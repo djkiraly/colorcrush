@@ -1,6 +1,7 @@
 import { siteConfig } from "../../../site.config";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
 
 export default function HomePage() {
   return (
@@ -117,7 +118,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Placeholder */}
+      {/* Featured Products */}
       <section className="py-16 bg-brand-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
@@ -131,20 +132,7 @@ export default function HomePage() {
               View All →
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow animate-pulse"
-              >
-                <div className="aspect-square bg-gray-200" />
-                <div className="p-4 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <FeaturedProducts />
         </div>
       </section>
     </div>
