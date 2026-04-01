@@ -8,7 +8,8 @@
       "Bash(npx shadcn@latest add sonner)",
       "Bash(npx next:*)",
       "Bash(npx shadcn@latest add badge card dialog dropdown-menu input label select separator sheet table tabs textarea avatar checkbox command popover scroll-area skeleton slider switch tooltip --yes)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
