@@ -8,7 +8,7 @@ import {
   reviews,
   users,
 } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
@@ -17,28 +17,24 @@ export async function GET(
   const { id } = await params;
 
   // Try by slug first, then by id
-  const [product] = await db
+  let [product] = await db
     .select()
     .from(products)
     .where(eq(products.slug, id))
     .limit(1);
 
   if (!product) {
-    const [byId] = await db
+    [product] = await db
       .select()
       .from(products)
       .where(eq(products.id, id))
       .limit(1);
-    if (!byId) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-    return getProductResponse(byId);
   }
 
-  return getProductResponse(product);
-}
+  if (!product) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
 
-async function getProductResponse(product: typeof products.$inferSelect) {
   const [images, category, inv, productReviews] = await Promise.all([
     db
       .select()
@@ -46,17 +42,9 @@ async function getProductResponse(product: typeof products.$inferSelect) {
       .where(eq(productImages.productId, product.id))
       .orderBy(productImages.sortOrder),
     product.categoryId
-      ? db
-          .select()
-          .from(categories)
-          .where(eq(categories.id, product.categoryId))
-          .limit(1)
+      ? db.select().from(categories).where(eq(categories.id, product.categoryId)).limit(1)
       : Promise.resolve([]),
-    db
-      .select()
-      .from(inventory)
-      .where(eq(inventory.productId, product.id))
-      .limit(1),
+    db.select().from(inventory).where(eq(inventory.productId, product.id)).limit(1),
     db
       .select({
         id: reviews.id,
@@ -70,16 +58,13 @@ async function getProductResponse(product: typeof products.$inferSelect) {
       })
       .from(reviews)
       .innerJoin(users, eq(reviews.userId, users.id))
-      .where(
-        and(eq(reviews.productId, product.id), eq(reviews.isApproved, true))
-      )
+      .where(and(eq(reviews.productId, product.id), eq(reviews.isApproved, true)))
       .orderBy(reviews.createdAt),
   ]);
 
   const avgRating =
     productReviews.length > 0
-      ? productReviews.reduce((sum, r) => sum + r.rating, 0) /
-        productReviews.length
+      ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length
       : 0;
 
   return NextResponse.json({
@@ -91,4 +76,40 @@ async function getProductResponse(product: typeof products.$inferSelect) {
     averageRating: avgRating,
     reviewCount: productReviews.length,
   });
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const body = await request.json();
+
+  const [updated] = await db
+    .update(products)
+    .set({
+      ...body,
+      price: String(body.price),
+      compareAtPrice: body.compareAtPrice ? String(body.compareAtPrice) : null,
+      costPrice: body.costPrice ? String(body.costPrice) : null,
+      weight: body.weight ? String(body.weight) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(products.id, id))
+    .returning();
+
+  if (!updated) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  await db.delete(products).where(eq(products.id, id));
+  return NextResponse.json({ success: true });
 }

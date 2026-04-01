@@ -3,6 +3,36 @@ import { db } from "@/lib/db";
 import { products, productImages, categories, inventory, reviews } from "@/lib/db/schema";
 import { eq, ilike, and, gte, lte, inArray, sql, desc, asc } from "drizzle-orm";
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    const [product] = await db
+      .insert(products)
+      .values({
+        ...body,
+        slug,
+        price: String(body.price),
+        compareAtPrice: body.compareAtPrice ? String(body.compareAtPrice) : null,
+        costPrice: body.costPrice ? String(body.costPrice) : null,
+        weight: body.weight ? String(body.weight) : null,
+      })
+      .returning();
+
+    // Create inventory record
+    await db.insert(inventory).values({
+      productId: product.id,
+      quantity: 0,
+    });
+
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Create product error:", error);
+    return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
+  }
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("search");
