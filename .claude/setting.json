@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install*)",
+      "Bash(npx drizzle-kit*)",
+      "Bash(npx tsx*)",
+      "Bash(npx create-next-app*)",
+      "Bash(npx shadcn*)",
+      "Bash(mkdir*)",
+      "Bash(cp*)",
+      "Bash(cat*)",
+      "Bash(ls*)",
+      "Bash(git*)",
+      "Bash(stripe*)",
+      "Bash(npm run*)",
+      "Edit",
+      "Write",
+      "MultiEdit"
+    ]
+  }
+}
