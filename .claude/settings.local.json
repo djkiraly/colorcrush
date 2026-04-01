@@ -3,7 +3,12 @@
     "allow": [
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init -d --defaults)"
+      "Bash(npx shadcn@latest init -d --defaults)",
+      "Bash(npx shadcn@latest add badge card dialog dropdown-menu input label select separator sheet table tabs textarea toast avatar checkbox command popover scroll-area skeleton slider switch tooltip)",
+      "Bash(npx shadcn@latest add sonner)",
+      "Bash(npx next:*)",
+      "Bash(npx shadcn@latest add badge card dialog dropdown-menu input label select separator sheet table tabs textarea avatar checkbox command popover scroll-area skeleton slider switch tooltip --yes)",
+      "Bash(git add:*)"
     ]
   }
 }
