@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { AIProductGenerator } from "@/components/admin/AIProductGenerator";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 function slugify(text: string) {
   return text
@@ -19,6 +21,11 @@ function slugify(text: string) {
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/categories").then(r => r.json()).then(d => setCategories(d.categories || [])).catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -28,6 +35,7 @@ export default function NewProductPage() {
     compareAtPrice: "",
     costPrice: "",
     sku: "",
+    manufacturer: "",
     weight: "",
     categoryId: "",
     tags: "",
@@ -98,13 +106,28 @@ export default function NewProductPage() {
               <Input id="slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             </div>
           </div>
+          <AIProductGenerator
+            productName={form.name}
+            categoryName={categories.find(c => c.id === form.categoryId)?.name}
+            onApply={(content) => {
+              setForm((f) => ({
+                ...f,
+                description: content.description,
+                shortDescription: content.shortDescription,
+                metaTitle: content.metaTitle,
+                metaDescription: content.metaDescription,
+                tags: content.tags.join(", "),
+                allergens: content.allergens.join(", "),
+              }));
+            }}
+          />
           <div className="space-y-2">
             <Label htmlFor="shortDescription">Short Description</Label>
             <Input id="shortDescription" value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Full Description</Label>
-            <Textarea id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
+            <RichTextEditor value={form.description} onChange={(val) => setForm({ ...form, description: val })} />
           </div>
         </div>
 
@@ -132,13 +155,32 @@ export default function NewProductPage() {
           <h2 className="font-heading font-semibold">Organization</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sku">SKU *</Label>
-              <Input id="sku" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} required />
+              <Label htmlFor="sku">SKU</Label>
+              <Input id="sku" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="Auto-generated if left blank" />
+              <p className="text-xs text-brand-text-muted">Format: CATG-PROD-0001. Leave blank to auto-generate from category and product name.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="weight">Weight per item (oz)</Label>
               <Input id="weight" type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="manufacturer">Manufacturer / Source</Label>
+            <Input id="manufacturer" value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} placeholder="Where the product was sourced from" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="categoryId">Category</Label>
+            <select
+              id="categoryId"
+              value={form.categoryId}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">None</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="tags">Tags (comma separated)</Label>

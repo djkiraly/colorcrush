@@ -1,18 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, productImages, categories, inventory, reviews } from "@/lib/db/schema";
-import { eq, ilike, and, gte, lte, inArray, sql, desc, asc } from "drizzle-orm";
+import { eq, ilike, and, gte, lte, inArray, sql, desc, asc, like } from "drizzle-orm";
+
+function toSkuSegment(text: string): string {
+  return text
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 4)
+    .padEnd(4, "X");
+}
+
+async function generateSku(categoryName: string | null, productName: string): Promise<string> {
+  const catPart = toSkuSegment(categoryName || "GNRL");
+  const prodPart = toSkuSegment(productName);
+  const prefix = `${catPart}-${prodPart}-`;
+
+  // Find the highest existing number with this prefix
+  const [latest] = await db
+    .select({ sku: products.sku })
+    .from(products)
+    .where(like(products.sku, `${prefix}%`))
+    .orderBy(desc(products.sku))
+    .limit(1);
+
+  let nextNum = 1;
+  if (latest?.sku) {
+    const lastPart = latest.sku.slice(prefix.length);
+    const parsed = parseInt(lastPart);
+    if (!isNaN(parsed)) nextNum = parsed + 1;
+  }
+
+  return `${prefix}${String(nextNum).padStart(4, "0")}`;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
+    // Resolve category name for SKU generation
+    let categoryName: string | null = null;
+    if (body.categoryId) {
+      const [cat] = await db
+        .select({ name: categories.name })
+        .from(categories)
+        .where(eq(categories.id, body.categoryId))
+        .limit(1);
+      categoryName = cat?.name || null;
+    }
+
+    const sku = await generateSku(categoryName, body.name);
+
     const [product] = await db
       .insert(products)
       .values({
         ...body,
         slug,
+        sku,
         price: String(body.price),
         compareAtPrice: body.compareAtPrice ? String(body.compareAtPrice) : null,
         costPrice: body.costPrice ? String(body.costPrice) : null,

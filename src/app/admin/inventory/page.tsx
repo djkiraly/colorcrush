@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Table2 } from "lucide-react";
 
 export default function AdminInventoryPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -75,7 +77,14 @@ export default function AdminInventoryPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-6">Inventory</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-heading font-bold text-brand-secondary">Inventory</h1>
+        <Link href="/admin/inventory/bulk-edit">
+          <Button variant="outline">
+            <Table2 className="h-4 w-4 mr-2" /> Bulk Edit
+          </Button>
+        </Link>
+      </div>
 
       <DataTable
         columns={columns}

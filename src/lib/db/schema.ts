@@ -83,6 +83,7 @@ export const users = pgTable("users", {
   phone: varchar("phone", { length: 20 }),
   avatarUrl: text("avatar_url"),
   emailVerified: timestamp("email_verified"),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -132,6 +133,7 @@ export const products = pgTable(
     costPrice: decimal("cost_price", { precision: 10, scale: 2 }),
     sku: varchar("sku", { length: 100 }).notNull().unique(),
     barcode: varchar("barcode", { length: 100 }),
+    manufacturer: varchar("manufacturer", { length: 255 }),
     weight: decimal("weight", { precision: 8, scale: 2 }),
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",

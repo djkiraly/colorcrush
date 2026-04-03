@@ -71,6 +71,14 @@ export default function AdminStaffPage() {
       header: "Joined",
       render: (s: any) => new Date(s.createdAt).toLocaleDateString(),
     },
+    {
+      key: "lastLoginAt",
+      header: "Last Login",
+      render: (s: any) =>
+        s.lastLoginAt
+          ? new Date(s.lastLoginAt).toLocaleString()
+          : "Never",
+    },
   ];
 
   return (

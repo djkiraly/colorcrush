@@ -82,6 +82,10 @@ export default function AdminSettingsPage() {
     error?: string;
   } | null>(null);
   const [gmailTestLoading, setGmailTestLoading] = useState(false);
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [openaiShowKey, setOpenaiShowKey] = useState(false);
+  const [openaiTestResult, setOpenaiTestResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [openaiTestLoading, setOpenaiTestLoading] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -133,6 +137,10 @@ export default function AdminSettingsPage() {
           refreshToken: (gmailOverride.refreshToken as string) || "",
           sendFrom: (gmailOverride.sendFrom as string) || "",
         });
+
+        // Load OpenAI settings
+        const openaiOverride = (data.overrides?.openai || {}) as Record<string, unknown>;
+        setOpenaiKey((openaiOverride.apiKey as string) || "");
       } catch {
         toast.error("Failed to load settings");
       } finally {
@@ -743,6 +751,78 @@ export default function AdminSettingsPage() {
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset
             </Button>
+          </div>
+        </section>
+
+        {/* OpenAI Integration */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-lg">OpenAI Integration</h2>
+            {isOverridden("openai") && (
+              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">Configured</span>
+            )}
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            Powers AI-generated product descriptions on the add/edit product pages. Uses GPT-4o-mini.
+          </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>API Key</Label>
+              <div className="flex gap-2">
+                <Input
+                  type={openaiShowKey ? "text" : "password"}
+                  value={openaiKey}
+                  onChange={(e) => setOpenaiKey(e.target.value)}
+                  placeholder="sk-..."
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setOpenaiShowKey(!openaiShowKey)}
+                >
+                  {openaiShowKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  await saveKey("openai", { apiKey: openaiKey });
+                }}
+                disabled={saving !== null}
+                className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+              <Button
+                variant="outline"
+                disabled={openaiTestLoading || !openaiKey}
+                onClick={async () => {
+                  setOpenaiTestLoading(true);
+                  setOpenaiTestResult(null);
+                  // Save first so the test uses the latest key
+                  await saveKey("openai", { apiKey: openaiKey });
+                  try {
+                    const res = await fetch("/api/settings/openai-test", { method: "POST" });
+                    setOpenaiTestResult(await res.json());
+                  } catch {
+                    setOpenaiTestResult({ success: false, error: "Request failed" });
+                  } finally {
+                    setOpenaiTestLoading(false);
+                  }
+                }}
+              >
+                {openaiTestLoading ? "Testing..." : "Test Connection"}
+              </Button>
+            </div>
+            {openaiTestResult && (
+              <div className={`flex items-center gap-2 text-sm ${openaiTestResult.success ? "text-green-600" : "text-red-600"}`}>
+                {openaiTestResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                {openaiTestResult.success ? "Connected successfully" : openaiTestResult.error}
+              </div>
+            )}
           </div>
         </section>
 

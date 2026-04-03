@@ -96,6 +96,8 @@ export function Footer() {
               <li><Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
               <li><Link href="/about" className="hover:text-white transition-colors">About Us</Link></li>
               <li><Link href="/account/orders" className="hover:text-white transition-colors">Track Order</Link></li>
+              <li><Link href="/terms-and-conditions" className="hover:text-white transition-colors">Terms &amp; Conditions</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
 
@@ -112,6 +114,11 @@ export function Footer() {
 
         <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm text-white/50">
           <p>&copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.</p>
+          <p className="mt-2 flex items-center justify-center gap-2 text-xs text-white/40">
+            <Link href="/terms-and-conditions" className="hover:text-white/70 transition-colors">Terms &amp; Conditions</Link>
+            <span aria-hidden="true">&middot;</span>
+            <Link href="/privacy-policy" className="hover:text-white/70 transition-colors">Privacy Policy</Link>
+          </p>
         </div>
       </div>
     </footer>

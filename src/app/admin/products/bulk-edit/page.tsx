@@ -17,6 +17,7 @@ interface Product {
   price: string;
   compareAtPrice: string | null;
   costPrice: string | null;
+  manufacturer: string | null;
   weight: string | null;
   categoryId: string | null;
   shortDescription: string | null;
@@ -169,6 +170,7 @@ export default function BulkEditPage() {
                 <th className="px-3 py-3 font-medium min-w-[90px]">Price</th>
                 <th className="px-3 py-3 font-medium min-w-[90px]">Compare</th>
                 <th className="px-3 py-3 font-medium min-w-[90px]">Cost</th>
+                <th className="px-3 py-3 font-medium min-w-[140px]">Manufacturer</th>
                 <th className="px-3 py-3 font-medium min-w-[80px]">Weight</th>
                 <th className="px-3 py-3 font-medium min-w-[140px]">Category</th>
                 <th className="px-3 py-3 font-medium w-14 text-center">Active</th>
@@ -274,6 +276,15 @@ function ProductRow({
             value={p.costPrice || ""}
             onChange={(e) =>
               onChange(id, "costPrice", e.target.value || null)
+            }
+            className="h-8 text-sm"
+          />
+        </td>
+        <td className="px-3 py-2">
+          <Input
+            value={p.manufacturer || ""}
+            onChange={(e) =>
+              onChange(id, "manufacturer", e.target.value || null)
             }
             className="h-8 text-sm"
           />

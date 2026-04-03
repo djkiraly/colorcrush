@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
         email: users.email,
         role: users.role,
         phone: users.phone,
+        lastLoginAt: users.lastLoginAt,
         createdAt: users.createdAt,
       })
       .from(users)

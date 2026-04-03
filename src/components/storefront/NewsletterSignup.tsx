@@ -18,10 +18,10 @@ export function NewsletterSignup() {
   if (submitted) {
     return (
       <div className="text-center">
-        <h3 className="text-2xl font-heading font-bold text-brand-secondary mb-2">
+        <h3 className="text-2xl font-heading font-bold text-white mb-2">
           You&apos;re on the list!
         </h3>
-        <p className="text-brand-text-secondary">
+        <p className="text-white/80">
           Thanks for subscribing. Sweet deals coming your way soon.
         </p>
       </div>
@@ -30,10 +30,10 @@ export function NewsletterSignup() {
 
   return (
     <div className="text-center">
-      <h3 className="text-2xl font-heading font-bold text-brand-secondary mb-2">
+      <h3 className="text-2xl font-heading font-bold text-white mb-2">
         Stay Sweet
       </h3>
-      <p className="text-brand-text-secondary mb-6 max-w-md mx-auto">
+      <p className="text-white/80 mb-6 max-w-md mx-auto">
         Join the {siteConfig.name} family for exclusive deals, new product alerts,
         and a 10% off welcome coupon.
       </p>

@@ -47,10 +47,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role || "customer";
+        // Record last login
+        if (user.id) {
+          db.update(users)
+            .set({ lastLoginAt: new Date() })
+            .where(eq(users.id, user.id))
+            .catch(() => {});
+        }
+      }
+      // Refresh emailVerified from DB on every token refresh
+      if (token.id) {
+        const [u] = await db.select({ emailVerified: users.emailVerified }).from(users).where(eq(users.id, token.id as string)).limit(1);
+        token.emailVerified = u?.emailVerified?.toISOString() || null;
       }
       if (account?.provider === "google") {
         const [existingUser] = await db
@@ -85,6 +97,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;
+        (session.user as { emailVerified?: string | null }).emailVerified = token.emailVerified as string | null;
       }
       return session;
     },

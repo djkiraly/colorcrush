@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getSettings, getSettingOverrides, saveSetting } from "@/lib/settings";
 import { invalidateGcsClient } from "@/lib/gcs";
 import { invalidateGmailClient } from "@/lib/gmail";
+import { invalidateOpenAIClient } from "@/lib/openai";
 import { siteConfig } from "../../../../site.config";
 
 export async function GET() {
@@ -59,6 +60,9 @@ export async function PUT(request: NextRequest) {
     "gmail",
     "logoUrl",
     "faviconUrl",
+    "openai",
+    "termsAndConditions",
+    "privacyPolicy",
   ];
 
   if (!allowedKeys.includes(key)) {
@@ -72,6 +76,7 @@ export async function PUT(request: NextRequest) {
 
   if (key === "gcs") invalidateGcsClient();
   if (key === "gmail") invalidateGmailClient();
+  if (key === "openai") invalidateOpenAIClient();
 
   return NextResponse.json({ success: true });
 }

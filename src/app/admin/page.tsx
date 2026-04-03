@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
-import { DollarSign, ShoppingCart, Clock, AlertTriangle } from "lucide-react";
+import { DollarSign, ShoppingCart, Clock, AlertTriangle, Info } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -169,6 +169,14 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* System Info */}
+      <div className="mt-8 bg-white rounded-xl p-4 shadow-sm flex items-center gap-3 text-sm text-brand-text-muted">
+        <Info className="h-4 w-4 flex-shrink-0" />
+        <span>
+          Version {process.env.NEXT_PUBLIC_APP_VERSION} ({process.env.NEXT_PUBLIC_BUILD_HASH}) &middot; Deployed {new Date(process.env.NEXT_PUBLIC_BUILD_DATE || "").toLocaleString()}
+        </span>
       </div>
     </div>
   );

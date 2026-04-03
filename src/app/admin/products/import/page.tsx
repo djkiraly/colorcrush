@@ -8,10 +8,11 @@ import { ArrowLeft, Upload, FileSpreadsheet } from "lucide-react";
 
 const EXPECTED_HEADERS = [
   "name",
-  "sku",
   "price",
+  "sku",
   "compareAtPrice",
   "costPrice",
+  "manufacturer",
   "weight",
   "shortDescription",
   "description",
@@ -57,7 +58,7 @@ export default function BulkImportPage() {
   } | null>(null);
 
   const { headers, rows } = parseTSV(input);
-  const isValid = rows.length > 0 && headers.includes("name") && headers.includes("sku") && headers.includes("price");
+  const isValid = rows.length > 0 && headers.includes("name") && headers.includes("price");
 
   const handleImport = async () => {
     if (!isValid) return;
@@ -120,13 +121,13 @@ export default function BulkImportPage() {
           <p className="text-sm text-brand-text-muted mb-3">
             First row must be headers. Required columns:{" "}
             <code className="bg-gray-100 px-1 rounded text-xs">name</code>,{" "}
-            <code className="bg-gray-100 px-1 rounded text-xs">sku</code>,{" "}
             <code className="bg-gray-100 px-1 rounded text-xs">price</code>.
+            SKU is auto-generated if omitted (format: CATG-PROD-0001).
             Optional columns:
           </p>
           <div className="flex flex-wrap gap-1.5">
             {EXPECTED_HEADERS.filter(
-              (h) => !["name", "sku", "price"].includes(h)
+              (h) => !["name", "price"].includes(h)
             ).map((h) => (
               <span
                 key={h}

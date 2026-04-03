@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCart } from "@/hooks/use-cart";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +12,15 @@ import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { toast } from "sonner";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { AlertTriangle, Mail } from "lucide-react";
 
 export default function CheckoutPage() {
   const { items, subtotal, shippingCost, taxAmount, total, discount, couponCode } = useCart();
+  const { data: session } = useSession();
   const siteConfig = useSiteSettings();
+  const emailVerified = (session?.user as { emailVerified?: string | null })?.emailVerified;
+  const isVerified = !!emailVerified;
+  const [resending, setResending] = useState(false);
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "overnight">("standard");
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
@@ -72,6 +78,42 @@ export default function CheckoutPage() {
       <h1 className="text-3xl font-heading font-bold text-brand-secondary mb-8">
         Checkout
       </h1>
+
+      {session?.user && !isVerified && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-6 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium text-yellow-800">Email verification required</p>
+            <p className="text-sm text-yellow-700 mt-1">
+              Please verify your email address before completing your purchase. Check your inbox for a verification link.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+              disabled={resending}
+              onClick={async () => {
+                setResending(true);
+                try {
+                  await fetch("/api/auth/verify-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: session.user?.email }),
+                  });
+                  toast.success("Verification email sent! Check your inbox.");
+                } catch {
+                  toast.error("Failed to resend");
+                } finally {
+                  setResending(false);
+                }
+              }}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              {resending ? "Sending..." : "Resend Verification Email"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-3 space-y-6">
@@ -179,10 +221,10 @@ export default function CheckoutPage() {
             </div>
             <Button
               onClick={handleCheckout}
-              disabled={loading}
+              disabled={loading || (!!session?.user && !isVerified)}
               className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white h-12 text-base mt-4"
             >
-              {loading ? "Redirecting..." : "Pay with Stripe"}
+              {loading ? "Redirecting..." : (session?.user && !isVerified) ? "Verify Email to Continue" : "Pay with Stripe"}
             </Button>
             <p className="text-xs text-brand-text-muted text-center mt-3">
               You&apos;ll be redirected to Stripe for secure payment

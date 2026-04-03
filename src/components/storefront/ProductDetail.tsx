@@ -11,7 +11,10 @@ import { StarRating } from "./StarRating";
 import { QuantitySelector } from "./QuantitySelector";
 import { ProductReviews } from "./ProductReviews";
 import { useCartStore } from "@/stores/cart-store";
+import { useSession } from "next-auth/react";
+import { AuthPromptModal } from "./AuthPromptModal";
 import { toast } from "sonner";
+import type { CartItem } from "@/types";
 
 interface ProductDetailProps {
   product: {
@@ -39,8 +42,11 @@ interface ProductDetailProps {
 export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [pendingItem, setPendingItem] = useState<{ item: Omit<CartItem, "quantity">; quantity: number } | null>(null);
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
+  const { data: session } = useSession();
 
   const price = parseFloat(product.price);
   const comparePrice = product.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
@@ -49,16 +55,21 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const primaryImage = product.images[selectedImage]?.url || product.images[0]?.url;
 
   const handleAddToCart = () => {
-    addItem(
-      {
-        productId: product.id,
-        name: product.name,
-        price,
-        image: product.images[0]?.url || "",
-        slug: product.slug,
-      },
-      quantity
-    );
+    const item = {
+      productId: product.id,
+      name: product.name,
+      price,
+      image: product.images[0]?.url || "",
+      slug: product.slug,
+    };
+
+    if (!session?.user) {
+      setPendingItem({ item, quantity });
+      setAuthPromptOpen(true);
+      return;
+    }
+
+    addItem(item, quantity);
     setCartOpen(true);
     toast.success(`${product.name} added to cart`);
   };
@@ -94,6 +105,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 height={600}
                 className="w-full h-full object-cover"
                 priority
+                unoptimized
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-6xl">🍬</div>
@@ -109,7 +121,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     selectedImage === i ? "border-brand-primary" : "border-transparent"
                   }`}
                 >
-                  <Image src={img.url} alt={img.altText || ""} width={80} height={80} className="w-full h-full object-cover" />
+                  <Image src={img.url} alt={img.altText || ""} width={80} height={80} className="w-full h-full object-cover" unoptimized />
                 </button>
               ))}
             </div>
@@ -209,8 +221,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="description" className="mt-12">
+      {/* Tabs — w-full + overflow-hidden prevents rich-text children from blowing out the page */}
+      <Tabs defaultValue="description" className="mt-12 w-full overflow-hidden">
         <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0">
           <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-primary data-[state=active]:text-brand-primary">
             Description
@@ -222,17 +234,23 @@ export function ProductDetail({ product }: ProductDetailProps) {
             Reviews ({product.reviewCount})
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="description" className="mt-6">
-          <div className="prose max-w-none text-brand-text-secondary">
-            <p>{product.description || "No description available."}</p>
-          </div>
+
+        {/* min-w-0 collapses the flex/grid intrinsic minimum so the content can shrink */}
+        <TabsContent value="description" className="mt-6 min-w-0">
+          <div
+            className="rich-text"
+            dangerouslySetInnerHTML={{
+              __html: product.description || "<p>No description available.</p>",
+            }}
+          />
         </TabsContent>
-        <TabsContent value="ingredients" className="mt-6">
+
+        <TabsContent value="ingredients" className="mt-6 min-w-0">
           <div className="space-y-4">
             {product.ingredients && (
               <div>
                 <h4 className="font-medium text-brand-text mb-2">Ingredients</h4>
-                <p className="text-brand-text-secondary">{product.ingredients}</p>
+                <p className="text-brand-text-secondary leading-relaxed">{product.ingredients}</p>
               </div>
             )}
             {product.allergens && product.allergens.length > 0 && (
@@ -249,10 +267,17 @@ export function ProductDetail({ product }: ProductDetailProps) {
             )}
           </div>
         </TabsContent>
-        <TabsContent value="reviews" className="mt-6">
+
+        <TabsContent value="reviews" className="mt-6 min-w-0">
           <ProductReviews reviews={product.reviews} averageRating={product.averageRating} totalReviews={product.reviewCount} />
         </TabsContent>
       </Tabs>
+
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        pendingItem={pendingItem}
+      />
     </div>
   );
 }

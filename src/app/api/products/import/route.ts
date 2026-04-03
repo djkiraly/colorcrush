@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, inventory } from "@/lib/db/schema";
+import { desc, like } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
+
+function toSkuSegment(text: string): string {
+  return text.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4).padEnd(4, "X");
+}
+
+async function generateSku(categoryName: string | null, productName: string): Promise<string> {
+  const prefix = `${toSkuSegment(categoryName || "GNRL")}-${toSkuSegment(productName)}-`;
+  const [latest] = await db
+    .select({ sku: products.sku })
+    .from(products)
+    .where(like(products.sku, `${prefix}%`))
+    .orderBy(desc(products.sku))
+    .limit(1);
+  let nextNum = 1;
+  if (latest?.sku) {
+    const parsed = parseInt(latest.sku.slice(prefix.length));
+    if (!isNaN(parsed)) nextNum = parsed + 1;
+  }
+  return `${prefix}${String(nextNum).padStart(4, "0")}`;
+}
 
 function slugify(text: string) {
   return text
@@ -28,20 +49,23 @@ export async function POST(request: NextRequest) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
-      if (!row.name || !row.sku || !row.price) {
-        errors.push(`Row ${i + 1}: name, sku, and price are required`);
+      if (!row.name || !row.price) {
+        errors.push(`Row ${i + 1}: name and price are required`);
         continue;
       }
+
+      const sku = row.sku || await generateSku(null, row.name);
 
       const [product] = await db
         .insert(products)
         .values({
           name: row.name,
           slug: row.slug || slugify(row.name),
-          sku: row.sku,
+          sku,
           price: String(row.price),
           compareAtPrice: row.compareAtPrice ? String(row.compareAtPrice) : null,
           costPrice: row.costPrice ? String(row.costPrice) : null,
+          manufacturer: row.manufacturer || null,
           weight: row.weight ? String(row.weight) : null,
           shortDescription: row.shortDescription || null,
           description: row.description || null,

@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
 import { useCartStore } from "@/stores/cart-store";
+import { useSession } from "next-auth/react";
+import { AuthPromptModal } from "./AuthPromptModal";
 import { toast } from "sonner";
+import { useState } from "react";
+import type { CartItem } from "@/types";
 
 interface ProductCardProps {
   product: {
@@ -28,6 +32,9 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
+  const { data: session } = useSession();
+  const [authPromptOpen, setAuthPromptOpen] = useState(false);
+  const [pendingItem, setPendingItem] = useState<{ item: Omit<CartItem, "quantity">; quantity: number } | null>(null);
   const price = parseFloat(product.price);
   const comparePrice = product.compareAtPrice
     ? parseFloat(product.compareAtPrice)
@@ -37,13 +44,21 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem({
+    const item = {
       productId: product.id,
       name: product.name,
       price,
       image: product.image || "",
       slug: product.slug,
-    });
+    };
+
+    if (!session?.user) {
+      setPendingItem({ item, quantity: 1 });
+      setAuthPromptOpen(true);
+      return;
+    }
+
+    addItem(item);
     setCartOpen(true);
     toast.success(`${product.name} added to cart`);
   };
@@ -62,6 +77,7 @@ export function ProductCard({ product }: ProductCardProps) {
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl">
@@ -141,6 +157,12 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
       </div>
+
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        pendingItem={pendingItem}
+      />
     </Link>
   );
 }

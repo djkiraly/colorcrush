@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ProductImageManager } from "@/components/admin/ProductImageManager";
+import { AIProductGenerator } from "@/components/admin/AIProductGenerator";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -18,6 +20,11 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/categories").then(r => r.json()).then(d => setCategories(d.categories || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -33,6 +40,8 @@ export default function EditProductPage() {
           compareAtPrice: data.compareAtPrice || "",
           costPrice: data.costPrice || "",
           sku: data.sku,
+          manufacturer: data.manufacturer || "",
+          categoryId: data.categoryId || "",
           weight: data.weight || "",
           tags: (data.tags || []).join(", "),
           allergens: (data.allergens || []).join(", "),
@@ -63,6 +72,7 @@ export default function EditProductPage() {
           compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
           weight: form.weight ? parseFloat(form.weight) : null,
+          categoryId: form.categoryId || null,
           tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a: string) => a.trim()) : [],
         }),
@@ -101,12 +111,32 @@ export default function EditProductPage() {
             </div>
           </div>
           <div className="space-y-2">
+            <Label>Slug</Label>
+            <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="url-friendly-name" />
+            <p className="text-xs text-brand-text-muted">The URL path for this product (e.g. /products/{form.slug}). Must be unique.</p>
+          </div>
+          <AIProductGenerator
+            productName={form.name}
+            categoryName={categories.find((c) => c.id === form.categoryId)?.name}
+            onApply={(content) => {
+              setForm((f: any) => ({
+                ...f,
+                description: content.description,
+                shortDescription: content.shortDescription,
+                metaTitle: content.metaTitle,
+                metaDescription: content.metaDescription,
+                tags: content.tags.join(", "),
+                allergens: content.allergens.join(", "),
+              }));
+            }}
+          />
+          <div className="space-y-2">
             <Label>Short Description</Label>
             <Input value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
+            <RichTextEditor value={form.description} onChange={(val) => setForm({ ...form, description: val })} />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -127,6 +157,23 @@ export default function EditProductPage() {
             <Input type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
           </div>
           <div className="space-y-2">
+            <Label>Manufacturer / Source</Label>
+            <Input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} placeholder="Where the product was sourced from" />
+          </div>
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <select
+              value={form.categoryId}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">None</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
             <Label>Tags</Label>
             <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
           </div>
@@ -144,6 +191,19 @@ export default function EditProductPage() {
             <div className="flex items-center justify-between"><Label>Gift Eligible</Label><Switch checked={form.isGiftEligible} onCheckedChange={(v) => setForm({ ...form, isGiftEligible: v })} /></div>
           </div>
         </div>
+        {/* SEO */}
+        <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
+          <h2 className="font-heading font-semibold">SEO</h2>
+          <div className="space-y-2">
+            <Label>Meta Title ({(form.metaTitle || "").length}/255)</Label>
+            <Input value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })} maxLength={255} />
+          </div>
+          <div className="space-y-2">
+            <Label>Meta Description</Label>
+            <Textarea value={form.metaDescription} onChange={(e) => setForm({ ...form, metaDescription: e.target.value })} rows={2} />
+          </div>
+        </div>
+
         {/* Images */}
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <h2 className="font-heading font-semibold mb-4">Images</h2>

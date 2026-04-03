@@ -16,6 +16,7 @@ import {
   BarChart3,
   Mail,
   Settings,
+  Scale,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/emails", label: "Email Log", icon: Mail },
+  { href: "/admin/legal", label: "Legal Pages", icon: Scale },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/guide", label: "Guide", icon: BookOpen },
 ];

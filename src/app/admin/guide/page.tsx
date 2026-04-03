@@ -15,8 +15,9 @@ const guides: { category: string; sections: GuideSection[] }[] = [
       {
         title: "Overview",
         content: [
-          "The Dashboard is your home screen when you log in to the admin panel. It shows key performance indicators (KPIs) at a glance including total revenue, order count, customer count, and average order value.",
+          "The Dashboard is your home screen when you log in to the admin panel. It shows key performance indicators (KPIs) at a glance including today's revenue, orders placed today, pending order count, and low stock item count.",
           "Below the KPIs you'll find recent orders and low stock alerts. Use this page to quickly assess the health of your store each day.",
+          "The bottom of the dashboard shows the system version number, build commit hash, and deployment date. Use this to confirm which version of the software is running.",
         ],
       },
     ],
@@ -38,6 +39,30 @@ const guides: { category: string; sections: GuideSection[] }[] = [
           "Upload files: Click 'Upload File' or drag and drop an image onto the upload area. Images are stored in Google Cloud Storage.",
           "External URLs: Click 'Paste URL' to add an image hosted elsewhere.",
           "The first image added automatically becomes the primary image (shown in product listings). Hover over any image to set it as primary (star icon), delete it (trash icon), or drag to reorder.",
+          "If you delete the primary image, the next image in the list is automatically promoted to primary.",
+        ],
+      },
+      {
+        title: "Bulk Edit",
+        content: [
+          "Bulk Edit lets you update multiple products at once in a spreadsheet-style table. Go to Products and click 'Bulk Edit'.",
+          "Each row is one product. Edit Name, SKU, Price, Compare At Price, Cost Price, Weight, and Category directly in the table cells. Toggle Active, Featured, and Gift Eligible with the switches in each row.",
+          "To edit content fields (Short Description, Tags, Allergens, Ingredients, Description), click the expand arrow at the left of any row to reveal a second row with those fields. Tags and allergens are comma-separated.",
+          "Modified rows are highlighted. The header shows how many unsaved changes exist. Click 'Save Changes' to write all changes at once — only modified rows are sent to the server.",
+          "Changes are not saved automatically. If you navigate away before saving, your edits will be lost.",
+        ],
+      },
+      {
+        title: "Bulk Import",
+        content: [
+          "Bulk Import creates new products from tab-delimited data — the format you get when you copy cells from a spreadsheet (Google Sheets, Excel).",
+          "Go to Products and click 'Bulk Import'. Paste your data into the text area. The first row must be column headers.",
+          "Required columns: name, sku, price. Optional columns: compareAtPrice, costPrice, weight, shortDescription, description, tags, allergens, ingredients, isActive, isFeatured, isGiftEligible, stock.",
+          "Tags and allergens should be comma-separated within their cell (e.g. 'vegan,bestseller'). Boolean fields (isActive, isFeatured, isGiftEligible) use 'true' or 'false'.",
+          "A live preview table appears below the paste area as soon as valid data is detected. It shows up to 20 rows. Review it before importing.",
+          "Click 'Load Sample' to fill the text area with example data showing the expected format.",
+          "After clicking Import, results show how many products were created and which rows failed (with error details). Failed rows do not block successful ones.",
+          "Import creates new products only — it does not update existing ones. Duplicate SKUs will cause row-level errors.",
         ],
       },
     ],
@@ -60,7 +85,15 @@ const guides: { category: string; sections: GuideSection[] }[] = [
       {
         title: "Viewing Orders",
         content: [
-          "The Orders page lists all orders with their status, customer name, total, and date. Click an order number to view full details including items, shipping address, and payment info.",
+          "The Orders page lists all orders with their status, customer name, item count, total, shipping method, and date. Click an order number to view full details including items, financial summary, shipping address, and payment info.",
+        ],
+      },
+      {
+        title: "Quick Actions on the Orders List",
+        content: [
+          "Each row in the orders list has two action icons on the right:",
+          "Resend Receipt (envelope icon): Sends the order confirmation email to the customer again. Use this if a customer says they never received their receipt. The action is logged in the order's audit log.",
+          "Cancel Order (X icon): Cancels the order after a confirmation prompt. Disabled for orders already in a final state (Cancelled or Refunded). This action is immediate and cannot be undone from the list — use the order detail page to change the status back if needed.",
         ],
       },
       {
@@ -69,6 +102,16 @@ const guides: { category: string; sections: GuideSection[] }[] = [
           "On the order detail page, use the status dropdown to update an order. Available statuses: Pending, Confirmed, Processing, Shipped, Delivered, Cancelled, Refunded.",
           "When marking as Shipped, enter the tracking number and carrier. The customer will automatically receive a shipping notification email with tracking details.",
           "When marking as Delivered, the customer will receive a delivery confirmation email with a prompt to leave a review.",
+          "The Admin Notes field lets you record internal notes visible only to staff. Notes are saved with each status update and logged in the audit trail.",
+        ],
+      },
+      {
+        title: "Order Audit Log",
+        content: [
+          "Every order detail page has an Audit Log section that shows a full history of all actions taken on that order.",
+          "Logged events include: order creation, status changes (with previous and new values), tracking number updates, admin note updates, and receipt resends.",
+          "Each entry shows a timestamp and the name of the admin who performed the action (if applicable). System-generated events (such as order creation at checkout) show without an admin name.",
+          "The audit log is read-only and cannot be edited or deleted. It provides a permanent record for customer disputes or internal review.",
         ],
       },
     ],
@@ -180,8 +223,19 @@ const guides: { category: string; sections: GuideSection[] }[] = [
         title: "Email Tracking",
         content: [
           "Every email sent through the system is logged here. View the recipient, subject, template used, status (Sent/Failed), and timestamp.",
-          "Emails are automatically sent for: Welcome (on registration), Order Confirmation (after checkout), Order Shipped, Order Delivered, and Low Stock Alerts.",
           "If an email fails to send, the error is logged. Check this page to diagnose delivery issues.",
+        ],
+      },
+      {
+        title: "Automatic Email Triggers",
+        content: [
+          "The following emails are sent automatically by the system — no admin action required:",
+          "Welcome: Sent to the customer immediately after they register an account.",
+          "Order Confirmation: Sent to the customer after a successful checkout. Includes itemized order details, subtotal, shipping, tax, and total.",
+          "Order Shipped: Sent when an order is marked Shipped. Includes the tracking number and carrier entered by the admin.",
+          "Order Delivered: Sent when an order is marked Delivered. Includes a prompt for the customer to leave a review.",
+          "Low Stock Alert: Sent to the store contact email when one or more active products fall at or below their low stock threshold. Lists all affected products with current quantity and threshold.",
+          "All five templates use the Gmail integration configured in Settings. If Gmail is not configured, emails will fail and errors will appear in this log.",
         ],
       },
     ],
