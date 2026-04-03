@@ -16,6 +16,7 @@ import {
   BarChart3,
   Mail,
   Settings,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/emails", label: "Email Log", icon: Mail },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/guide", label: "Guide", icon: BookOpen },
 ];
 
 export function AdminSidebar() {
