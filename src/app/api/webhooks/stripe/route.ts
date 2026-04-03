@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { orders, orderItems, inventory, inventoryLog, coupons, products } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import Stripe from "stripe";
+import { sendOrderConfirmationEmail, sendLowStockAlerts } from "@/lib/email-notifications";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -126,6 +127,10 @@ export async function POST(request: NextRequest) {
           .set({ usedCount: sql`${coupons.usedCount} + 1` })
           .where(eq(coupons.code, couponCode.toUpperCase()));
       }
+
+      // Send order confirmation and check low stock (fire-and-forget)
+      sendOrderConfirmationEmail(order.id).catch(() => {});
+      sendLowStockAlerts().catch(() => {});
     }
   }
 

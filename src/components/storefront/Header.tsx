@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ShoppingBag, Search, Menu, X, User, Heart } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, User, Heart, Shield } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useCartStore } from "@/stores/cart-store";
-import { siteConfig } from "../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { Button } from "@/components/ui/button";
 import { SearchOverlay } from "./SearchOverlay";
 
@@ -17,11 +19,14 @@ const navLinks = [
 ];
 
 export function Header() {
+  const siteConfig = useSiteSettings();
+  const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const items = useCartStore((s) => s.items);
   const setCartOpen = useCartStore((s) => s.setOpen);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+  const isSuperAdmin = (session?.user as { role?: string })?.role === "super_admin";
 
   return (
     <>
@@ -34,7 +39,21 @@ export function Header() {
           </p>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Logo — positioned absolutely so it spans across the header without inflating row height */}
+          {siteConfig.logoUrl && (
+            <Link href="/" className="absolute left-4 sm:left-6 lg:left-8 top-[calc(50%+25px)] -translate-y-1/2 z-10">
+              <Image
+                src={siteConfig.logoUrl}
+                alt={siteConfig.name}
+                width={250}
+                height={250}
+                className="h-[250px] w-auto object-contain"
+                unoptimized
+              />
+            </Link>
+          )}
+
           <div className="flex items-center justify-between h-16">
             {/* Mobile menu button */}
             <button
@@ -49,12 +68,16 @@ export function Header() {
               )}
             </button>
 
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl font-heading font-bold text-brand-secondary">
-                {siteConfig.name}
-              </span>
-            </Link>
+            {/* Logo — text fallback when no image */}
+            {!siteConfig.logoUrl && (
+              <Link href="/" className="flex items-center gap-2">
+                <span className="text-2xl font-heading font-bold text-brand-secondary">
+                  {siteConfig.name}
+                </span>
+              </Link>
+            )}
+            {/* Spacer for logo image so nav stays centered */}
+            {siteConfig.logoUrl && <div className="w-[250px]" />}
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-8">
@@ -84,6 +107,13 @@ export function Header() {
                   <Heart className="h-5 w-5" />
                 </Button>
               </Link>
+              {isSuperAdmin && (
+                <Link href="/admin">
+                  <Button variant="ghost" size="icon" aria-label="Admin Dashboard">
+                    <Shield className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <Link href="/account">
                 <Button variant="ghost" size="icon" aria-label="Account">
                   <User className="h-5 w-5" />
@@ -121,6 +151,15 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+              {isSuperAdmin && (
+                <Link
+                  href="/admin"
+                  className="block text-base font-medium text-brand-primary hover:text-brand-primary-hover transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin Dashboard
+                </Link>
+              )}
             </nav>
           </div>
         )}

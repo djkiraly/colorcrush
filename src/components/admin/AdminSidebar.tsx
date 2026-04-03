@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Warehouse,
   Users,
+  Shield,
   MessageSquare,
   Tag,
   Star,
@@ -19,6 +20,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "../../../site.config";
 
@@ -29,6 +31,7 @@ const navItems = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/staff", label: "Staff", icon: Shield, superAdminOnly: true as const },
   { href: "/admin/interactions", label: "Interactions", icon: MessageSquare },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
@@ -39,6 +42,8 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string })?.role;
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -71,6 +76,7 @@ export function AdminSidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
         {navItems.map((item) => {
+          if ("superAdminOnly" in item && item.superAdminOnly && userRole !== "super_admin") return null;
           const isActive =
             item.href === "/admin"
               ? pathname === "/admin"

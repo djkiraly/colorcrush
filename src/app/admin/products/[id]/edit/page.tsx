@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { ProductImageManager } from "@/components/admin/ProductImageManager";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -16,6 +17,7 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
+  const [images, setImages] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -41,6 +43,7 @@ export default function EditProductPage() {
           metaTitle: data.metaTitle || "",
           metaDescription: data.metaDescription || "",
         });
+        setImages(data.images || []);
       }
       setLoading(false);
     }
@@ -137,6 +140,16 @@ export default function EditProductPage() {
             <div className="flex items-center justify-between"><Label>Gift Eligible</Label><Switch checked={form.isGiftEligible} onCheckedChange={(v) => setForm({ ...form, isGiftEligible: v })} /></div>
           </div>
         </div>
+        {/* Images */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h2 className="font-heading font-semibold mb-4">Images</h2>
+          <ProductImageManager
+            productId={params.id as string}
+            images={images}
+            onChange={setImages}
+          />
+        </div>
+
         <div className="flex gap-4">
           <Button type="submit" disabled={saving} className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8">
             {saving ? "Saving..." : "Save Changes"}

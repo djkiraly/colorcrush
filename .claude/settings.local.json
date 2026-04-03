@@ -9,7 +9,12 @@
       "Bash(npx next:*)",
       "Bash(npx shadcn@latest add badge card dialog dropdown-menu input label select separator sheet table tabs textarea avatar checkbox command popover scroll-area skeleton slider switch tooltip --yes)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(find:*)",
+      "Bash(chmod +x:*)",
+      "Bash(npm run:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep:*)"
     ]
   }
 }

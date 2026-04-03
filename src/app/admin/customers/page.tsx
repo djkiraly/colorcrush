@@ -24,10 +24,9 @@ export default function AdminCustomersPage() {
       <Link href={`/admin/customers/${c.id}`} className="text-brand-primary hover:underline font-medium">{c.name}</Link>
     )},
     { key: "email", header: "Email" },
-    { key: "role", header: "Role", render: (c: any) => <span className="capitalize text-sm">{c.role}</span> },
     { key: "createdAt", header: "Joined", render: (c: any) => new Date(c.createdAt).toLocaleDateString() },
     { key: "totalOrders", header: "Orders", render: (c: any) => c.totalOrders || 0 },
-    { key: "totalSpent", header: "Total Spent", render: (c: any) => `$${(c.totalSpent || 0).toFixed(2)}` },
+    { key: "totalSpent", header: "Total Spent", render: (c: any) => `$${Number(c.totalSpent || 0).toFixed(2)}` },
   ];
 
   return (

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { sendWelcomeEmail } from "@/lib/email-notifications";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -74,6 +75,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .returning();
           token.id = newUser.id;
           token.role = newUser.role;
+          // Send welcome email (fire-and-forget)
+          sendWelcomeEmail(newUser.id, newUser.email, newUser.name).catch(() => {});
         }
       }
       return token;

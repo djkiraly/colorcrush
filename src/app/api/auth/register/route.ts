@@ -4,6 +4,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { sendWelcomeEmail } from "@/lib/email-notifications";
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -28,12 +29,15 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await db.insert(users).values({
+    const [user] = await db.insert(users).values({
       name,
       email,
       passwordHash,
       role: "customer",
-    });
+    }).returning();
+
+    // Send welcome email (fire-and-forget)
+    sendWelcomeEmail(user.id, email, name).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -7,7 +7,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { siteConfig } from "../../../site.config";
 
 export function CartDrawer() {
   const isOpen = useCartStore((s) => s.isOpen);

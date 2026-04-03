@@ -353,6 +353,14 @@ export const emailLog = pgTable("email_log", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const siteSettings = pgTable("site_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: jsonb("value").notNull(),
+  updatedBy: uuid("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // ═══ RELATIONS ═══
 
 export const usersRelations = relations(users, ({ many }) => ({

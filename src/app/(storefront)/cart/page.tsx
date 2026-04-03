@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
-import { siteConfig } from "../../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -25,6 +25,7 @@ export default function CartPage() {
     removeItem,
     setCoupon,
   } = useCart();
+  const siteConfig = useSiteSettings();
   const [couponInput, setCouponInput] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 

@@ -14,18 +14,18 @@ export async function GET(request: NextRequest) {
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
       phone: users.phone,
       createdAt: users.createdAt,
       totalOrders: sql<number>`(SELECT count(*) FROM orders WHERE orders.user_id = ${users.id})`,
       totalSpent: sql<number>`(SELECT COALESCE(sum(total::numeric), 0) FROM orders WHERE orders.user_id = ${users.id} AND orders.status != 'cancelled')`,
     })
     .from(users)
+    .where(eq(users.role, "customer"))
     .orderBy(desc(users.createdAt))
     .limit(limit)
     .offset(offset);
 
-  const [count] = await db.select({ count: sql<number>`count(*)` }).from(users);
+  const [count] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, "customer"));
 
   return NextResponse.json({
     customers,

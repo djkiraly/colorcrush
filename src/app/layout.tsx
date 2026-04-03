@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { siteConfig } from "../../site.config";
+import { getSettings } from "@/lib/settings";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,13 +15,19 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return {
+    title: {
+      default: settings.name,
+      template: `%s | ${settings.name}`,
+    },
+    description: settings.description,
+    icons: settings.faviconUrl
+      ? { icon: settings.faviconUrl }
+      : undefined,
+  };
+}
 
 export default function RootLayout({
   children,

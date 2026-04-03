@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Package, MapPin, Heart, Settings, LogOut } from "lucide-react";
+import { Package, MapPin, Heart, Settings, LogOut, Shield } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 const accountLinks = [
   { href: "/account/orders", label: "Order History", icon: Package, description: "View and track your orders" },
@@ -11,6 +12,9 @@ const accountLinks = [
 ];
 
 export default function AccountPage() {
+  const { data: session } = useSession();
+  const role = (session?.user as { role?: string })?.role;
+  const isAdmin = role === "admin" || role === "super_admin";
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-heading font-bold text-brand-secondary mb-8">
@@ -33,6 +37,20 @@ export default function AccountPage() {
             </div>
           </Link>
         ))}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="bg-brand-secondary/5 border border-brand-secondary/20 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
+          >
+            <div className="p-3 rounded-lg bg-brand-secondary/10">
+              <Shield className="h-6 w-6 text-brand-secondary" />
+            </div>
+            <div>
+              <h3 className="font-medium text-brand-text">Admin Dashboard</h3>
+              <p className="text-sm text-brand-text-muted mt-1">Manage your store</p>
+            </div>
+          </Link>
+        )}
       </div>
     </div>
   );

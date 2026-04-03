@@ -10,7 +10,7 @@ export async function GET(
   const { id } = await params;
 
   const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!user || user.role !== "customer") return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const [userOrders, userAddresses] = await Promise.all([
     db.select().from(orders).where(eq(orders.userId, id)).orderBy(desc(orders.createdAt)),

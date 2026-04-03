@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { siteConfig } from "../../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { toast } from "sonner";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
 export default function CheckoutPage() {
   const { items, subtotal, shippingCost, taxAmount, total, discount, couponCode } = useCart();
+  const siteConfig = useSiteSettings();
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "overnight">("standard");
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");

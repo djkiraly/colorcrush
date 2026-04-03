@@ -67,4 +67,7 @@ export const siteConfig = {
   },
 } as const;
 
-export type SiteConfig = typeof siteConfig;
+export type SiteConfig = typeof siteConfig & {
+  logoUrl?: string;
+  faviconUrl?: string;
+};

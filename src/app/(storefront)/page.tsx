@@ -1,9 +1,12 @@
-import { siteConfig } from "../../../site.config";
+"use client";
+
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
 
 export default function HomePage() {
+  const siteConfig = useSiteSettings();
   return (
     <div>
       {/* Hero Section */}

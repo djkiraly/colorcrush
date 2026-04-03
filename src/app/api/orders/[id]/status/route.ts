@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { sendOrderShippedEmail, sendOrderDeliveredEmail } from "@/lib/email-notifications";
 
 export async function PUT(
   request: NextRequest,
@@ -33,5 +34,14 @@ export async function PUT(
     .returning();
 
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Send status notification emails (fire-and-forget)
+  if (body.status === "shipped" && body.trackingNumber) {
+    sendOrderShippedEmail(id, body.trackingNumber, body.trackingCarrier || "").catch(() => {});
+  }
+  if (body.status === "delivered") {
+    sendOrderDeliveredEmail(id).catch(() => {});
+  }
+
   return NextResponse.json(updated);
 }

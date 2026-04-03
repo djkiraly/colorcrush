@@ -1,6 +1,10 @@
-import { siteConfig } from "../../../../site.config";
+"use client";
+
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 
 export default function AboutPage() {
+  const siteConfig = useSiteSettings();
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <h1 className="text-4xl font-heading font-bold text-brand-secondary mb-6">

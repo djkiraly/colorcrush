@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { siteConfig } from "../../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { toast } from "sonner";
 import { Mail, Phone, MapPin } from "lucide-react";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const siteConfig = useSiteSettings();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

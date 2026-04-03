@@ -64,8 +64,9 @@ export default function NewProductPage() {
       });
 
       if (res.ok) {
-        toast.success("Product created!");
-        router.push("/admin/products");
+        const product = await res.json();
+        toast.success("Product created! Add images now.");
+        router.push(`/admin/products/${product.id}/edit`);
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to create product");

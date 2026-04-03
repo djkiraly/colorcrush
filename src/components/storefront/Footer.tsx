@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { siteConfig } from "../../../site.config";
+import Image from "next/image";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { NewsletterSignup } from "./NewsletterSignup";
 
 export function Footer() {
+  const siteConfig = useSiteSettings();
   return (
     <footer className="bg-brand-secondary text-white">
       {/* Newsletter Section */}
@@ -18,9 +20,20 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <h3 className="text-xl font-heading font-bold mb-4">
-              {siteConfig.name}
-            </h3>
+            {siteConfig.logoUrl ? (
+              <Image
+                src={siteConfig.logoUrl}
+                alt={siteConfig.name}
+                width={250}
+                height={250}
+                className="h-[250px] w-auto object-contain brightness-0 invert mb-4"
+                unoptimized
+              />
+            ) : (
+              <h3 className="text-xl font-heading font-bold mb-4">
+                {siteConfig.name}
+              </h3>
+            )}
             <p className="text-white/70 text-sm leading-relaxed">
               {siteConfig.description}
             </p>

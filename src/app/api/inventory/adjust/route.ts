@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { inventory, inventoryLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { sendLowStockAlerts } from "@/lib/email-notifications";
 
 export async function POST(request: NextRequest) {
   const { productId, newQuantity, reason, notes, adminId } = await request.json();
@@ -35,6 +36,11 @@ export async function POST(request: NextRequest) {
     notes,
     adminId,
   });
+
+  // Check for low stock after adjustment (fire-and-forget)
+  if (newQuantity <= (current.lowStockThreshold ?? 10)) {
+    sendLowStockAlerts().catch(() => {});
+  }
 
   return NextResponse.json({ success: true });
 }

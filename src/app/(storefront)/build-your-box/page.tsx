@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
-import { siteConfig } from "../../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { X, Check, Gift, ChevronRight, Package } from "lucide-react";
 
 const BOX_SIZES = [
@@ -37,6 +37,7 @@ export default function BuildYourBoxPage() {
   const [isGift, setIsGift] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
+  const siteConfig = useSiteSettings();
 
   useEffect(() => {
     async function fetchProducts() {

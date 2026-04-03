@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { siteConfig } from "../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 
 export function NewsletterSignup() {
+  const siteConfig = useSiteSettings();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 

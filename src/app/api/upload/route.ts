@@ -3,7 +3,7 @@ import { getSignedUploadUrl } from "@/lib/gcs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { fileName, contentType } = await request.json();
+    const { fileName, contentType, pathPrefix } = await request.json();
 
     if (!fileName || !contentType) {
       return NextResponse.json(
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await getSignedUploadUrl(fileName, contentType);
+    const result = await getSignedUploadUrl(fileName, contentType, pathPrefix || "products");
     return NextResponse.json(result);
   } catch (error) {
     console.error("Upload URL error:", error);

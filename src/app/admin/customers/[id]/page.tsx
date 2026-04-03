@@ -32,7 +32,7 @@ export default function AdminCustomerDetailPage() {
           <h1 className="text-2xl font-heading font-bold text-brand-secondary">{customer.name}</h1>
           <p className="text-sm text-brand-text-muted">{customer.email}</p>
         </div>
-        <Badge className="capitalize">{customer.role}</Badge>
+        <Badge>Customer</Badge>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
