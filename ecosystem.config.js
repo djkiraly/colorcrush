@@ -5,7 +5,7 @@ module.exports = {
     {
       name: "candy",
       script: ".next/standalone/server.js",
-      cwd: "/opt/candy",
+      cwd: "/var/www/colorcrush",
       env: {
         NODE_ENV: "production",
         HOSTNAME: "127.0.0.1",
@@ -15,8 +15,8 @@ module.exports = {
       autorestart: true,
       max_memory_restart: "512M",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
-      error_file: "/opt/candy/logs/error.log",
-      out_file: "/opt/candy/logs/out.log",
+      error_file: "/var/www/colorcrush/logs/error.log",
+      out_file: "/var/www/colorcrush/logs/out.log",
       merge_logs: true,
     },
   ],

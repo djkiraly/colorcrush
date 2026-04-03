@@ -35,10 +35,10 @@ sudo apt install -y certbot python3-certbot-nginx
 ## 4. Clone the repository
 
 ```bash
-sudo mkdir -p /opt/candy
-sudo chown $USER:$USER /opt/candy
-git clone <your-repo-url> /opt/candy
-cd /opt/candy
+sudo mkdir -p /var/www/colorcrush
+sudo chown $USER:$USER /var/www/colorcrush
+git clone <your-repo-url> /var/www/colorcrush
+cd /var/www/colorcrush
 ```
 
 ## 5. Install dependencies and build
@@ -99,8 +99,8 @@ sudo npm install -g pm2
 Create the logs directory and start the app using the included config:
 
 ```bash
-mkdir -p /opt/candy/logs
-cd /opt/candy
+mkdir -p /var/www/colorcrush/logs
+cd /var/www/colorcrush
 pm2 start ecosystem.config.js
 ```
 
@@ -213,7 +213,7 @@ Events to subscribe to: `checkout.session.completed`, `payment_intent.succeeded`
 ### Deploy updates
 
 ```bash
-cd /opt/candy
+cd /var/www/colorcrush
 git pull
 npm ci
 npm run build
@@ -223,7 +223,7 @@ pm2 restart candy
 ### Run new migrations after schema changes
 
 ```bash
-cd /opt/candy
+cd /var/www/colorcrush
 npx drizzle-kit migrate
 pm2 restart candy
 ```
