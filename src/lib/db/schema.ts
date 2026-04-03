@@ -380,6 +380,32 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// ═══ PAGE VIEWS / ANALYTICS ═══
+
+export const pageViews = pgTable(
+  "page_views",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    path: varchar("path", { length: 500 }).notNull(),
+    referrer: varchar("referrer", { length: 1000 }),
+    browser: varchar("browser", { length: 100 }),
+    os: varchar("os", { length: 100 }),
+    deviceType: varchar("device_type", { length: 20 }), // desktop, mobile, tablet
+    country: varchar("country", { length: 100 }),
+    city: varchar("city", { length: 200 }),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    sessionId: varchar("session_id", { length: 100 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("page_views_path_idx").on(table.path),
+    index("page_views_created_idx").on(table.createdAt),
+    index("page_views_product_idx").on(table.productId),
+    index("page_views_session_idx").on(table.sessionId),
+  ]
+);
+
 // ═══ RELATIONS ═══
 
 export const usersRelations = relations(users, ({ many }) => ({

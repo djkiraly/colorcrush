@@ -21,7 +21,7 @@ export function StatsCard({
   color,
 }: StatsCardProps) {
   return (
-    <div className={cn("rounded-xl p-6", color)}>
+    <div className={cn("rounded-xl p-6 bg-card border border-border/50 dark:border-border/30 shadow-sm relative overflow-hidden", color)}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-brand-text-secondary">{label}</p>
         <Icon className="h-5 w-5 text-brand-text-muted" />

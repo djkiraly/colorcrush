@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { stripe, getWebhookSecret } from "@/lib/stripe";
 import { db } from "@/lib/db";
 import { orders, orderItems, inventory, inventoryLog, coupons, products } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -14,10 +14,11 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
+    const webhookSecret = await getWebhookSecret();
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     );
   } catch (err) {
     console.error("Webhook signature verification failed:", err);

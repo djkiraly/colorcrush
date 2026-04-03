@@ -4,6 +4,7 @@ import { getSettings, getSettingOverrides, saveSetting } from "@/lib/settings";
 import { invalidateGcsClient } from "@/lib/gcs";
 import { invalidateGmailClient } from "@/lib/gmail";
 import { invalidateOpenAIClient } from "@/lib/openai";
+import { invalidateStripeClient } from "@/lib/stripe";
 import { siteConfig } from "../../../../site.config";
 
 export async function GET() {
@@ -61,6 +62,7 @@ export async function PUT(request: NextRequest) {
     "logoUrl",
     "faviconUrl",
     "openai",
+    "stripe",
     "termsAndConditions",
     "privacyPolicy",
   ];
@@ -77,6 +79,7 @@ export async function PUT(request: NextRequest) {
   if (key === "gcs") invalidateGcsClient();
   if (key === "gmail") invalidateGmailClient();
   if (key === "openai") invalidateOpenAIClient();
+  if (key === "stripe") invalidateStripeClient();
 
   return NextResponse.json({ success: true });
 }

@@ -14,7 +14,9 @@
       "Bash(chmod +x:*)",
       "Bash(npm run:*)",
       "Bash(xargs grep:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx drizzle-kit:*)"
     ]
   }
 }
