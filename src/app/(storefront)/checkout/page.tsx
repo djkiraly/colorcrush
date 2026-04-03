@@ -149,7 +149,7 @@ export default function CheckoutPage() {
 
         {/* Summary */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
+          <div className="bg-white rounded-xl p-6 shadow-sm sticky top-20 sm:top-24">
             <h2 className="text-lg font-heading font-semibold text-brand-secondary mb-4">
               Summary
             </h2>

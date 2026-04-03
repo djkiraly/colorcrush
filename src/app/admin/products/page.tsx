@@ -6,7 +6,7 @@ import Image from "next/image";
 import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Table2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminProductsPage() {
@@ -70,11 +70,23 @@ export default function AdminProductsPage() {
         <h1 className="text-2xl font-heading font-bold text-brand-secondary">
           Products
         </h1>
-        <Link href="/admin/products/new">
-          <Button className="bg-brand-primary hover:bg-brand-primary-hover text-white">
-            <Plus className="h-4 w-4 mr-2" /> Add Product
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/products/import">
+            <Button variant="outline">
+              <Upload className="h-4 w-4 mr-2" /> Import
+            </Button>
+          </Link>
+          <Link href="/admin/products/bulk-edit">
+            <Button variant="outline">
+              <Table2 className="h-4 w-4 mr-2" /> Bulk Edit
+            </Button>
+          </Link>
+          <Link href="/admin/products/new">
+            <Button className="bg-brand-primary hover:bg-brand-primary-hover text-white">
+              <Plus className="h-4 w-4 mr-2" /> Add Product
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <DataTable

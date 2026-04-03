@@ -71,7 +71,7 @@ export function SearchOverlay({
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-w-2xl mx-auto mt-20 bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="max-w-[calc(100%-2rem)] sm:max-w-2xl mx-auto mt-4 sm:mt-20 bg-white rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center px-4 border-b">
@@ -99,7 +99,7 @@ export function SearchOverlay({
         )}
 
         {!loading && results.length > 0 && (
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-60 sm:max-h-96 overflow-y-auto">
             {results.map((product) => (
               <button
                 key={product.id}

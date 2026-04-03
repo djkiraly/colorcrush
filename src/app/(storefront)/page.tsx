@@ -44,7 +44,7 @@ export default function HomePage() {
       {/* Trust Badges */}
       <section className="border-b bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
             {[
               { icon: "🚚", text: `Free Shipping Over $${siteConfig.freeShippingThreshold}` },
               { icon: "🍬", text: "Handcrafted with Love" },
@@ -80,7 +80,7 @@ export default function HomePage() {
               <Link
                 key={cat.slug}
                 href={`/categories/${cat.slug}`}
-                className={`${cat.color} rounded-2xl p-8 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group`}
+                className={`${cat.color} rounded-2xl p-5 sm:p-8 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group`}
               >
                 <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
                   {cat.emoji}

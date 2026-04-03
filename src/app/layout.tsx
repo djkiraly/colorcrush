@@ -17,6 +17,11 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
   return {

@@ -112,7 +112,7 @@ export default function CartPage() {
                 <div className="flex items-center border rounded-lg">
                   <button
                     onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                    className="p-2 hover:bg-gray-50"
+                    className="p-2 h-10 w-10 flex items-center justify-center hover:bg-gray-50"
                     aria-label="Decrease"
                   >
                     <Minus className="h-4 w-4" />
@@ -120,7 +120,7 @@ export default function CartPage() {
                   <span className="w-10 text-center font-medium">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    className="p-2 hover:bg-gray-50"
+                    className="p-2 h-10 w-10 flex items-center justify-center hover:bg-gray-50"
                     aria-label="Increase"
                   >
                     <Plus className="h-4 w-4" />
@@ -142,7 +142,7 @@ export default function CartPage() {
         </div>
 
         {/* Summary */}
-        <div className="bg-white rounded-xl p-6 shadow-sm h-fit sticky top-24">
+        <div className="bg-white rounded-xl p-6 shadow-sm h-fit sticky top-20 sm:top-24">
           <h2 className="text-lg font-heading font-semibold text-brand-secondary mb-4">
             Order Summary
           </h2>

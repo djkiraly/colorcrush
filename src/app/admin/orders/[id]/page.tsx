@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Image from "next/image";
+import { Clock, UserCircle, ArrowRight, Send, FileText, MessageSquare, ShoppingCart } from "lucide-react";
 
 const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"];
 
@@ -22,16 +23,21 @@ export default function AdminOrderDetailPage() {
   const [trackingCarrier, setTrackingCarrier] = useState("");
   const [notes, setNotes] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchOrder() {
-      const res = await fetch(`/api/orders/${params.id}`);
-      const data = await res.json();
+      const [orderRes, auditRes] = await Promise.all([
+        fetch(`/api/orders/${params.id}`),
+        fetch(`/api/orders/${params.id}/audit`),
+      ]);
+      const data = await orderRes.json();
       setOrder(data);
       setNewStatus(data.status);
       setTrackingNumber(data.trackingNumber || "");
       setTrackingCarrier(data.trackingCarrier || "");
       setNotes(data.notes || "");
+      if (auditRes.ok) setAuditLog(await auditRes.json());
       setLoading(false);
     }
     fetchOrder();
@@ -49,6 +55,8 @@ export default function AdminOrderDetailPage() {
         toast.success("Order updated!");
         const data = await res.json();
         setOrder({ ...order, ...data });
+        // Refetch audit log
+        fetch(`/api/orders/${params.id}/audit`).then(r => r.json()).then(setAuditLog).catch(() => {});
       } else {
         toast.error("Failed to update");
       }
@@ -126,6 +134,48 @@ export default function AdminOrderDetailPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Audit Log */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="font-heading font-semibold mb-4">Audit Log</h2>
+            {auditLog.length === 0 ? (
+              <p className="text-sm text-brand-text-muted text-center py-4">No activity recorded</p>
+            ) : (
+              <div className="space-y-3">
+                {auditLog.map((entry: any) => {
+                  const iconMap: Record<string, React.ReactNode> = {
+                    order_created: <ShoppingCart className="h-4 w-4" />,
+                    status_changed: <ArrowRight className="h-4 w-4" />,
+                    tracking_updated: <FileText className="h-4 w-4" />,
+                    notes_updated: <MessageSquare className="h-4 w-4" />,
+                    receipt_resent: <Send className="h-4 w-4" />,
+                  };
+                  return (
+                    <div key={entry.id} className="flex gap-3 py-2 border-b last:border-0">
+                      <div className="mt-0.5 p-1.5 rounded-full bg-gray-100 text-brand-text-muted h-fit">
+                        {iconMap[entry.action] || <Clock className="h-4 w-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">{entry.details}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-brand-text-muted">
+                          <span>{new Date(entry.createdAt).toLocaleString()}</span>
+                          {entry.adminName && (
+                            <>
+                              <span>by</span>
+                              <span className="flex items-center gap-1">
+                                <UserCircle className="h-3 w-3" />
+                                {entry.adminName}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 

@@ -23,7 +23,7 @@ import {
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { siteConfig } from "../../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -45,6 +45,7 @@ const navItems = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const siteConfig = useSiteSettings();
   const userRole = (session?.user as { role?: string })?.role;
   const [collapsed, setCollapsed] = useState(false);
 

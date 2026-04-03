@@ -1,11 +1,17 @@
 "use client";
 
 import { Bell, Search, LogOut } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 export function AdminTopbar() {
+  const { data: session } = useSession();
+  const user = session?.user as { name?: string; role?: string } | undefined;
+  const displayName = user?.name || "Admin";
+  const role = user?.role === "super_admin" ? "Super Admin" : "Admin";
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
       {/* Search */}
@@ -28,10 +34,15 @@ export function AdminTopbar() {
 
         <div className="flex items-center gap-2 pl-3 border-l">
           <div className="text-right">
-            <p className="text-sm font-medium">Admin</p>
-            <Badge variant="secondary" className="text-xs">Super Admin</Badge>
+            <p className="text-sm font-medium">{displayName}</p>
+            <Badge variant="secondary" className="text-xs">{role}</Badge>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Sign out">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Sign out"
+            onClick={() => signOut({ callbackUrl: "/" })}
+          >
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

@@ -98,7 +98,7 @@ function ProductsContent() {
         {/* Products */}
         <div className="flex-1">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
                   <div className="aspect-square bg-gray-200" />

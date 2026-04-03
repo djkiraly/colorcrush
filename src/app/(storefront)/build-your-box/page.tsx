@@ -91,7 +91,7 @@ export default function BuildYourBoxPage() {
       </p>
 
       {/* Progress Steps */}
-      <div className="flex items-center gap-4 mb-10">
+      <div className="flex items-center gap-2 sm:gap-4 mb-10">
         {[
           { num: 1, label: "Choose Size" },
           { num: 2, label: "Fill Your Box" },
@@ -239,11 +239,11 @@ export default function BuildYourBoxPage() {
 
           {/* Product Picker Dialog */}
           <Dialog open={pickerSlot !== null} onOpenChange={() => setPickerSlot(null)}>
-            <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
+            <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Choose a Treat</DialogTitle>
               </DialogHeader>
-              <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                 {products.map((product) => (
                   <button
                     key={product.id}

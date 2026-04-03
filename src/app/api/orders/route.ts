@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         createdAt: orders.createdAt,
         userName: users.name,
         userEmail: users.email,
+        itemCount: sql<number>`(SELECT COALESCE(sum(quantity), 0) FROM order_items WHERE order_items.order_id = ${orders.id})`,
       })
       .from(orders)
       .innerJoin(users, eq(orders.userId, users.id))

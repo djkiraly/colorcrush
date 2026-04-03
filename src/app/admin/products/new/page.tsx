@@ -136,8 +136,8 @@ export default function NewProductPage() {
               <Input id="sku" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weight">Weight (oz)</Label>
-              <Input id="weight" type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} />
+              <Label htmlFor="weight">Weight per item (oz)</Label>
+              <Input id="weight" type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
             </div>
           </div>
           <div className="space-y-2">

@@ -353,6 +353,23 @@ export const emailLog = pgTable("email_log", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const orderAuditLog = pgTable(
+  "order_audit_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    adminId: uuid("admin_id").references(() => users.id),
+    action: varchar("action", { length: 100 }).notNull(),
+    details: text("details"),
+    previousValue: text("previous_value"),
+    newValue: text("new_value"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("order_audit_log_order_idx").on(table.orderId)]
+);
+
 export const siteSettings = pgTable("site_settings", {
   id: uuid("id").defaultRandom().primaryKey(),
   key: varchar("key", { length: 100 }).notNull().unique(),
@@ -413,9 +430,15 @@ export const inventoryRelations = relations(inventory, ({ one }) => ({
   }),
 }));
 
+export const orderAuditLogRelations = relations(orderAuditLog, ({ one }) => ({
+  order: one(orders, { fields: [orderAuditLog.orderId], references: [orders.id] }),
+  admin: one(users, { fields: [orderAuditLog.adminId], references: [users.id] }),
+}));
+
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, { fields: [orders.userId], references: [users.id] }),
   items: many(orderItems),
+  auditLog: many(orderAuditLog),
   shippingAddress: one(addresses, {
     fields: [orders.shippingAddressId],
     references: [addresses.id],

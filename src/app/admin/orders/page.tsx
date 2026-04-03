@@ -4,11 +4,53 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DataTable } from "@/components/admin/DataTable";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
+import { Send, Loader2, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [sendingReceipt, setSendingReceipt] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+
+  const cancelOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+    setCancellingOrder(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled", cancelReason: "Cancelled by admin" }),
+      });
+      if (res.ok) {
+        toast.success("Order cancelled");
+        setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "cancelled" } : o));
+      } else {
+        toast.error("Failed to cancel order");
+      }
+    } catch {
+      toast.error("Failed to cancel order");
+    } finally {
+      setCancellingOrder(null);
+    }
+  };
+
+  const resendReceipt = async (orderId: string) => {
+    setSendingReceipt(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/resend-receipt`, { method: "POST" });
+      if (res.ok) {
+        toast.success("Receipt sent");
+      } else {
+        toast.error("Failed to send receipt");
+      }
+    } catch {
+      toast.error("Failed to send receipt");
+    } finally {
+      setSendingReceipt(null);
+    }
+  };
 
   useEffect(() => {
     async function fetchOrders() {
@@ -25,10 +67,34 @@ export default function AdminOrdersPage() {
       <Link href={`/admin/orders/${o.id}`} className="text-brand-primary hover:underline font-medium">{o.orderNumber}</Link>
     )},
     { key: "userName", header: "Customer" },
-    { key: "createdAt", header: "Date", render: (o: any) => new Date(o.createdAt).toLocaleDateString() },
+    { key: "createdAt", header: "Date/Time", render: (o: any) => new Date(o.createdAt).toLocaleString() },
+    { key: "itemCount", header: "Item Count", render: (o: any) => Number(o.itemCount || 0) },
     { key: "total", header: "Total", render: (o: any) => <span className="font-semibold">${o.total}</span> },
     { key: "status", header: "Status", render: (o: any) => <OrderStatusBadge status={o.status} /> },
     { key: "shippingMethod", header: "Shipping", render: (o: any) => <span className="capitalize text-sm">{o.shippingMethod || "—"}</span> },
+    { key: "actions", header: "Actions", render: (o: any) => {
+      const isFinal = ["cancelled", "refunded"].includes(o.status);
+      return (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => resendReceipt(o.id)}
+            disabled={sendingReceipt === o.id}
+            className="p-2 rounded hover:bg-gray-100 text-brand-text-muted hover:text-brand-primary transition-colors disabled:opacity-50"
+            title="Resend receipt"
+          >
+            {sendingReceipt === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => cancelOrder(o.id)}
+            disabled={isFinal || cancellingOrder === o.id}
+            className="p-2 rounded hover:bg-red-50 text-brand-text-muted hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title={isFinal ? "Order already " + o.status : "Cancel order"}
+          >
+            {cancellingOrder === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+          </button>
+        </div>
+      );
+    }},
   ];
 
   return (

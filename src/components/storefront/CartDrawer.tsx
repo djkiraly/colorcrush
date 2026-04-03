@@ -74,24 +74,24 @@ export function CartDrawer() {
                     <div className="flex items-center gap-2 mt-1">
                       <button
                         onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                        className="p-1 rounded hover:bg-gray-100"
+                        className="p-2 h-9 w-9 flex items-center justify-center rounded hover:bg-gray-100"
                         aria-label="Decrease quantity"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-4 w-4" />
                       </button>
-                      <span className="text-sm font-medium w-6 text-center">
+                      <span className="text-sm font-medium w-8 text-center">
                         {item.quantity}
                       </span>
                       <button
                         onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                        className="p-1 rounded hover:bg-gray-100"
+                        className="p-2 h-9 w-9 flex items-center justify-center rounded hover:bg-gray-100"
                         aria-label="Increase quantity"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => removeItem(item.productId)}
-                        className="p-1 rounded hover:bg-red-50 text-brand-text-muted hover:text-brand-error ml-auto"
+                        className="p-2 rounded hover:bg-red-50 text-brand-text-muted hover:text-brand-error ml-auto"
                         aria-label="Remove item"
                       >
                         <Trash2 className="h-4 w-4" />

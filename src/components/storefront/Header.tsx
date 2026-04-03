@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ShoppingBag, Search, Menu, X, User, Heart, Shield } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -20,7 +21,9 @@ const navLinks = [
 
 export function Header() {
   const siteConfig = useSiteSettings();
+  const pathname = usePathname();
   const { data: session } = useSession();
+  const isHome = pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const items = useCartStore((s) => s.items);
@@ -40,15 +43,15 @@ export function Header() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Logo — positioned absolutely so it spans across the header without inflating row height */}
+          {/* Logo — absolute on desktop to span header, inline on mobile */}
           {siteConfig.logoUrl && (
-            <Link href="/" className="absolute left-4 sm:left-6 lg:left-8 top-[calc(50%+25px)] -translate-y-1/2 z-10">
+            <Link href="/" className={`hidden lg:block absolute left-8 top-[calc(50%+15px)] -translate-y-1/2 z-10`}>
               <Image
                 src={siteConfig.logoUrl}
                 alt={siteConfig.name}
                 width={250}
                 height={250}
-                className="h-[250px] w-auto object-contain"
+                className={`${isHome ? "h-[250px]" : "h-[175px]"} w-auto object-contain`}
                 unoptimized
               />
             </Link>
@@ -57,7 +60,7 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Mobile menu button */}
             <button
-              className="lg:hidden p-2 -ml-2"
+              className="lg:hidden p-3 -ml-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -68,16 +71,27 @@ export function Header() {
               )}
             </button>
 
-            {/* Logo — text fallback when no image */}
-            {!siteConfig.logoUrl && (
-              <Link href="/" className="flex items-center gap-2">
-                <span className="text-2xl font-heading font-bold text-brand-secondary">
+            {/* Logo — inline on mobile */}
+            <Link href="/" className="flex items-center gap-2">
+              {siteConfig.logoUrl ? (
+                <>
+                  <Image
+                    src={siteConfig.logoUrl}
+                    alt={siteConfig.name}
+                    width={160}
+                    height={64}
+                    className="h-10 sm:h-14 w-auto object-contain lg:hidden"
+                    unoptimized
+                  />
+                  {/* Spacer for desktop absolute logo */}
+                  <span className={`hidden lg:block ${isHome ? "w-[250px]" : "w-[175px]"}`} />
+                </>
+              ) : (
+                <span className="text-xl sm:text-2xl font-heading font-bold text-brand-secondary">
                   {siteConfig.name}
                 </span>
-              </Link>
-            )}
-            {/* Spacer for logo image so nav stays centered */}
-            {siteConfig.logoUrl && <div className="w-[250px]" />}
+              )}
+            </Link>
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-8">

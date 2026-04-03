@@ -123,6 +123,10 @@ export default function EditProductPage() {
             </div>
           </div>
           <div className="space-y-2">
+            <Label>Weight per item (oz)</Label>
+            <Input type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
+          </div>
+          <div className="space-y-2">
             <Label>Tags</Label>
             <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
           </div>
