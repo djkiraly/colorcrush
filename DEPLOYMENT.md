@@ -46,6 +46,7 @@ cd /var/www/colorcrush
 ```bash
 npm ci
 npm run build
+cp -r .next/static .next/standalone/.next/static
 ```
 
 ## 6. Configure environment variables
@@ -217,6 +218,7 @@ cd /var/www/colorcrush
 git pull
 npm ci
 npm run build
+cp -r .next/static .next/standalone/.next/static
 pm2 restart candy
 ```
 
