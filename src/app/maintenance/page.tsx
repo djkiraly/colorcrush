@@ -24,19 +24,17 @@ export default async function MaintenancePage() {
             <Image
               src={logoUrl}
               alt={settings.name}
-              width={200}
-              height={200}
-              className="h-32 w-auto object-contain"
+              width={400}
+              height={400}
+              className="h-64 w-auto object-contain"
               priority
             />
           </div>
         )}
 
-        <div className="space-y-2">
-          <h1 className="text-3xl font-heading font-bold text-brand-secondary">
-            We&apos;ll Be Back Soon
-          </h1>
-        </div>
+        <h1 className="text-3xl font-heading font-bold text-brand-secondary">
+          {settings.maintenanceMode?.heading || "We'll Be Back Soon"}
+        </h1>
 
         <div
           className="prose prose-sm mx-auto text-brand-text-secondary [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"

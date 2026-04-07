@@ -36,6 +36,7 @@ export type SiteSettingsOverrides = {
   };
   maintenanceMode?: {
     enabled?: boolean;
+    heading?: string;
     message?: string;
   };
 };

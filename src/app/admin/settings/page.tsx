@@ -61,6 +61,7 @@ export default function AdminSettingsPage() {
   });
   const [maintenanceMode, setMaintenanceMode] = useState({
     enabled: false,
+    heading: "",
     message: "",
   });
   const [gcs, setGcs] = useState({
@@ -124,6 +125,7 @@ export default function AdminSettingsPage() {
         const maintenanceOverride = (data.overrides?.maintenanceMode || {}) as Record<string, unknown>;
         setMaintenanceMode({
           enabled: (maintenanceOverride.enabled as boolean) || false,
+          heading: (maintenanceOverride.heading as string) || "",
           message: (maintenanceOverride.message as string) || "",
         });
 
@@ -354,6 +356,16 @@ export default function AdminSettingsPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label>Heading</Label>
+              <Input
+                value={maintenanceMode.heading}
+                onChange={(e) =>
+                  setMaintenanceMode((prev) => ({ ...prev, heading: e.target.value }))
+                }
+                placeholder="We'll Be Back Soon"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Maintenance Message</Label>
               <RichTextEditor
                 value={maintenanceMode.message}
@@ -381,8 +393,8 @@ export default function AdminSettingsPage() {
               <Button
                 variant="outline"
                 onClick={async () => {
-                  setMaintenanceMode({ enabled: false, message: "" });
-                  await saveKey("maintenanceMode", { enabled: false, message: "" });
+                  setMaintenanceMode({ enabled: false, heading: "", message: "" });
+                  await saveKey("maintenanceMode", { enabled: false, heading: "", message: "" });
                 }}
                 disabled={saving !== null}
               >

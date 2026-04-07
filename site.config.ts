@@ -72,6 +72,7 @@ export type SiteConfig = typeof siteConfig & {
   faviconUrl?: string;
   maintenanceMode?: {
     enabled: boolean;
+    heading: string;
     message: string;
   };
 };
