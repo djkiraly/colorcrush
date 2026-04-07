@@ -70,4 +70,8 @@ export const siteConfig = {
 export type SiteConfig = typeof siteConfig & {
   logoUrl?: string;
   faviconUrl?: string;
+  maintenanceMode?: {
+    enabled: boolean;
+    message: string;
+  };
 };

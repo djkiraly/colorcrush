@@ -175,7 +175,7 @@ curl -I http://yourdomain.com
 ## 11. Obtain SSL certificate
 
 ```bash
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com --email you@email.com --agree-tos --no-eff-email
+sudo certbot --nginx -d ccc.rocketcore.ai --email david@rocketcore.ai --agree-tos --no-eff-email
 ```
 
 Certbot will automatically modify your nginx config to add SSL and set up HTTP-to-HTTPS redirects.

@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2 } from "lucide-react";
+import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2, Construction } from "lucide-react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 export default function AdminSettingsPage() {
   const { data: session } = useSession();
@@ -57,6 +58,10 @@ export default function AdminSettingsPage() {
     reviews: true,
     wishlist: true,
     loyaltyPoints: false,
+  });
+  const [maintenanceMode, setMaintenanceMode] = useState({
+    enabled: false,
+    message: "",
   });
   const [gcs, setGcs] = useState({
     projectId: "",
@@ -114,6 +119,13 @@ export default function AdminSettingsPage() {
         setContact({ ...m.contact });
         setSocial({ ...m.social });
         setFeatures({ ...m.features });
+
+        // Load maintenance mode
+        const maintenanceOverride = (data.overrides?.maintenanceMode || {}) as Record<string, unknown>;
+        setMaintenanceMode({
+          enabled: (maintenanceOverride.enabled as boolean) || false,
+          message: (maintenanceOverride.message as string) || "",
+        });
 
         setLogoUrl((data.overrides?.logoUrl as string) || "");
         setFaviconUrl((data.overrides?.faviconUrl as string) || "");
@@ -301,6 +313,86 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="space-y-6 max-w-3xl">
+        {/* Maintenance Mode */}
+        <section className="bg-white rounded-xl p-6 shadow-sm border-2 border-dashed border-amber-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Construction className="h-5 w-5 text-amber-500" />
+              <h2 className="font-heading font-semibold text-lg">
+                Maintenance Mode
+              </h2>
+            </div>
+            <div className="flex items-center gap-3">
+              {isOverridden("maintenanceMode") && (
+                <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                  Modified
+                </span>
+              )}
+              {maintenanceMode.enabled && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">
+                  Active
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            When enabled, all storefront pages will display a maintenance landing page. Admin access is unaffected.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Enable Maintenance Mode</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Visitors will see the maintenance page instead of the store
+                </p>
+              </div>
+              <Switch
+                checked={maintenanceMode.enabled}
+                onCheckedChange={(checked) =>
+                  setMaintenanceMode((prev) => ({ ...prev, enabled: checked }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Maintenance Message</Label>
+              <RichTextEditor
+                value={maintenanceMode.message}
+                onChange={(value) =>
+                  setMaintenanceMode((prev) => ({ ...prev, message: value }))
+                }
+                placeholder="We're currently performing scheduled maintenance. We'll be back soon!"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() => saveKey("maintenanceMode", maintenanceMode)}
+              disabled={saving !== null}
+              className={
+                maintenanceMode.enabled
+                  ? "bg-amber-500 hover:bg-amber-600 text-white"
+                  : "bg-brand-primary hover:bg-brand-primary-hover text-white"
+              }
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {maintenanceMode.enabled ? "Save & Activate" : "Save Maintenance Settings"}
+            </Button>
+            {isOverridden("maintenanceMode") && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  setMaintenanceMode({ enabled: false, message: "" });
+                  await saveKey("maintenanceMode", { enabled: false, message: "" });
+                }}
+                disabled={saving !== null}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </section>
+
         {/* Brand */}
         <section className="bg-white rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">

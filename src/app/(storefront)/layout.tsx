@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { redirect } from "next/navigation";
 import { Header } from "@/components/storefront/Header";
 import { Footer } from "@/components/storefront/Footer";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
@@ -14,6 +15,11 @@ export default async function StorefrontLayout({
   children: React.ReactNode;
 }) {
   const settings = await getSettings();
+
+  // Redirect to maintenance page if enabled
+  if (settings.maintenanceMode?.enabled) {
+    redirect("/maintenance");
+  }
 
   return (
     <SessionProvider>

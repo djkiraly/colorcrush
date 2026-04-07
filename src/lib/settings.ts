@@ -34,6 +34,10 @@ export type SiteSettingsOverrides = {
     wishlist?: boolean;
     loyaltyPoints?: boolean;
   };
+  maintenanceMode?: {
+    enabled?: boolean;
+    message?: string;
+  };
 };
 
 /**
