@@ -19,78 +19,87 @@ export async function GET(
 ) {
   const { id } = await params;
   const includeInactive = request.nextUrl.searchParams.get("includeInactive") === "true";
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  // Try by slug first, then by id
-  let [product] = await db
-    .select()
-    .from(products)
-    .where(eq(products.slug, id))
-    .limit(1);
-
-  if (!product) {
-    [product] = await db
+  try {
+    // Try by slug first, then by id (only when id looks like a uuid, to avoid pg uuid cast errors)
+    let [product] = await db
       .select()
       .from(products)
-      .where(eq(products.id, id))
+      .where(eq(products.slug, id))
       .limit(1);
+
+    if (!product && isUuid) {
+      [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, id))
+        .limit(1);
+    }
+
+    if (!product || (!includeInactive && !product.isActive)) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    const [images, category, inv, productReviews, linkedCategories] = await Promise.all([
+      db
+        .select()
+        .from(productImages)
+        .where(eq(productImages.productId, product.id))
+        .orderBy(productImages.sortOrder),
+      product.categoryId
+        ? db.select().from(categories).where(eq(categories.id, product.categoryId)).limit(1)
+        : Promise.resolve([]),
+      db.select().from(inventory).where(eq(inventory.productId, product.id)).limit(1),
+      db
+        .select({
+          id: reviews.id,
+          rating: reviews.rating,
+          title: reviews.title,
+          body: reviews.body,
+          isVerifiedPurchase: reviews.isVerifiedPurchase,
+          adminResponse: reviews.adminResponse,
+          createdAt: reviews.createdAt,
+          userName: users.name,
+        })
+        .from(reviews)
+        .innerJoin(users, eq(reviews.userId, users.id))
+        .where(and(eq(reviews.productId, product.id), eq(reviews.isApproved, true)))
+        .orderBy(reviews.createdAt),
+      db
+        .select({
+          id: categories.id,
+          name: categories.name,
+          slug: categories.slug,
+        })
+        .from(productCategories)
+        .innerJoin(categories, eq(productCategories.categoryId, categories.id))
+        .where(eq(productCategories.productId, product.id)),
+    ]);
+
+    const avgRating =
+      productReviews.length > 0
+        ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length
+        : 0;
+
+    return NextResponse.json({
+      ...product,
+      images,
+      category: category[0] || null,
+      categories: linkedCategories,
+      categoryIds: linkedCategories.map((c) => c.id),
+      inventory: inv[0] || null,
+      reviews: productReviews,
+      averageRating: avgRating,
+      reviewCount: productReviews.length,
+    });
+  } catch (err) {
+    console.error("GET /api/products/[id] failed:", { id, err });
+    return NextResponse.json(
+      { error: "Failed to load product", details: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
   }
-
-  if (!product || (!includeInactive && !product.isActive)) {
-    return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  }
-
-  const [images, category, inv, productReviews, linkedCategories] = await Promise.all([
-    db
-      .select()
-      .from(productImages)
-      .where(eq(productImages.productId, product.id))
-      .orderBy(productImages.sortOrder),
-    product.categoryId
-      ? db.select().from(categories).where(eq(categories.id, product.categoryId)).limit(1)
-      : Promise.resolve([]),
-    db.select().from(inventory).where(eq(inventory.productId, product.id)).limit(1),
-    db
-      .select({
-        id: reviews.id,
-        rating: reviews.rating,
-        title: reviews.title,
-        body: reviews.body,
-        isVerifiedPurchase: reviews.isVerifiedPurchase,
-        adminResponse: reviews.adminResponse,
-        createdAt: reviews.createdAt,
-        userName: users.name,
-      })
-      .from(reviews)
-      .innerJoin(users, eq(reviews.userId, users.id))
-      .where(and(eq(reviews.productId, product.id), eq(reviews.isApproved, true)))
-      .orderBy(reviews.createdAt),
-    db
-      .select({
-        id: categories.id,
-        name: categories.name,
-        slug: categories.slug,
-      })
-      .from(productCategories)
-      .innerJoin(categories, eq(productCategories.categoryId, categories.id))
-      .where(eq(productCategories.productId, product.id)),
-  ]);
-
-  const avgRating =
-    productReviews.length > 0
-      ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length
-      : 0;
-
-  return NextResponse.json({
-    ...product,
-    images,
-    category: category[0] || null,
-    categories: linkedCategories,
-    categoryIds: linkedCategories.map((c) => c.id),
-    inventory: inv[0] || null,
-    reviews: productReviews,
-    averageRating: avgRating,
-    reviewCount: productReviews.length,
-  });
 }
 
 export async function PUT(
