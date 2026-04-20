@@ -2,11 +2,27 @@
 
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
 
+type CategoryRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl: string | null;
+};
+
 export default function HomePage() {
   const siteConfig = useSiteSettings();
+  const [dbCategories, setDbCategories] = useState<CategoryRecord[]>([]);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => setDbCategories(data.categories ?? []))
+      .catch(() => {});
+  }, []);
   return (
     <div>
       {/* Hero Section */}
@@ -76,20 +92,45 @@ export default function HomePage() {
               { name: "Gift Boxes", slug: "gift-boxes", color: "bg-brand-peach/20", emoji: "🎁" },
               { name: "Seasonal Specials", slug: "seasonal-specials", color: "bg-brand-sky/20", emoji: "🌸" },
               { name: "Sugar-Free", slug: "sugar-free", color: "bg-brand-mint/30", emoji: "🌿" },
-            ].map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/categories/${cat.slug}`}
-                className={`${cat.color} rounded-2xl p-5 sm:p-8 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group`}
-              >
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
-                  {cat.emoji}
-                </div>
-                <h3 className="text-xl font-heading font-semibold text-brand-secondary">
-                  {cat.name}
-                </h3>
-              </Link>
-            ))}
+            ].map((cat) => {
+              const dbCat = dbCategories.find((c) => c.slug === cat.slug);
+              const imageUrl = dbCat?.imageUrl;
+              if (imageUrl) {
+                return (
+                  <Link
+                    key={cat.slug}
+                    href={`/categories/${cat.slug}`}
+                    className="relative rounded-2xl overflow-hidden h-48 sm:h-56 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group"
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={cat.name}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    <div className="relative h-full flex items-end justify-center p-5 sm:p-8">
+                      <h3 className="text-2xl font-heading font-semibold text-white text-center drop-shadow-lg">
+                        {cat.name}
+                      </h3>
+                    </div>
+                  </Link>
+                );
+              }
+              return (
+                <Link
+                  key={cat.slug}
+                  href={`/categories/${cat.slug}`}
+                  className={`${cat.color} rounded-2xl p-5 sm:p-8 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group`}
+                >
+                  <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                    {cat.emoji}
+                  </div>
+                  <h3 className="text-xl font-heading font-semibold text-brand-secondary">
+                    {cat.name}
+                  </h3>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

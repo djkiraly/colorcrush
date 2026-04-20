@@ -39,6 +39,23 @@ export type SiteSettingsOverrides = {
     heading?: string;
     message?: string;
   };
+  colors?: {
+    primary?: string;
+    primaryHover?: string;
+    secondary?: string;
+    accent?: {
+      pink?: string;
+      mint?: string;
+      lavender?: string;
+      peach?: string;
+      sky?: string;
+    };
+    background?: string;
+    surface?: string;
+    success?: string;
+    warning?: string;
+    error?: string;
+  };
 };
 
 /**

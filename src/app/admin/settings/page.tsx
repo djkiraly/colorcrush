@@ -88,6 +88,18 @@ export default function AdminSettingsPage() {
     error?: string;
   } | null>(null);
   const [gmailTestLoading, setGmailTestLoading] = useState(false);
+  const [colors, setColors] = useState({
+    primary: "",
+    primaryHover: "",
+    secondary: "",
+    accent: { pink: "", mint: "", lavender: "", peach: "", sky: "" },
+    background: "",
+    surface: "",
+    success: "",
+    warning: "",
+    error: "",
+  });
+  const [pickerKey, setPickerKey] = useState<string | null>(null);
   const [openaiKey, setOpenaiKey] = useState("");
   const [openaiShowKey, setOpenaiShowKey] = useState(false);
   const [openaiTestResult, setOpenaiTestResult] = useState<{ success: boolean; error?: string } | null>(null);
@@ -120,6 +132,17 @@ export default function AdminSettingsPage() {
         setContact({ ...m.contact });
         setSocial({ ...m.social });
         setFeatures({ ...m.features });
+        setColors({
+          primary: m.colors.primary,
+          primaryHover: m.colors.primaryHover,
+          secondary: m.colors.secondary,
+          accent: { ...m.colors.accent },
+          background: m.colors.background,
+          surface: m.colors.surface,
+          success: m.colors.success,
+          warning: m.colors.warning,
+          error: m.colors.error,
+        });
 
         // Load maintenance mode
         const maintenanceOverride = (data.overrides?.maintenanceMode || {}) as Record<string, unknown>;
@@ -1386,56 +1409,109 @@ export default function AdminSettingsPage() {
           </div>
         </section>
 
-        {/* Theme Colors (read-only) */}
+        {/* Theme Colors (editable) */}
         <section className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="font-heading font-semibold text-lg mb-4">
-            Theme Colors
-          </h2>
-          <p className="text-sm text-brand-text-muted mb-4">
-            Theme colors are defined in{" "}
-            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-              site.config.ts
-            </code>{" "}
-            and wired into the Tailwind theme via{" "}
-            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-              globals.css
-            </code>
-            . To change colors, edit those files directly and redeploy.
-          </p>
-          <div className="flex gap-3 flex-wrap">
-            {defaults &&
-              Object.entries(defaults.colors.accent).map(([name, color]) => (
-                <div key={name} className="text-center">
-                  <div
-                    className="w-12 h-12 rounded-lg shadow-sm border"
-                    style={{ backgroundColor: color as string }}
-                  />
-                  <p className="text-xs text-brand-text-muted mt-1 capitalize">
-                    {name}
-                  </p>
-                </div>
-              ))}
-            {defaults && (
-              <>
-                <div className="text-center">
-                  <div
-                    className="w-12 h-12 rounded-lg shadow-sm border"
-                    style={{ backgroundColor: defaults.colors.primary }}
-                  />
-                  <p className="text-xs text-brand-text-muted mt-1">Primary</p>
-                </div>
-                <div className="text-center">
-                  <div
-                    className="w-12 h-12 rounded-lg shadow-sm border"
-                    style={{ backgroundColor: defaults.colors.secondary }}
-                  />
-                  <p className="text-xs text-brand-text-muted mt-1">
-                    Secondary
-                  </p>
-                </div>
-              </>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-lg">Theme Colors</h2>
+            {isOverridden("colors") && (
+              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                Modified
+              </span>
             )}
           </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            Click any swatch to pick a new color. Changes apply to all public pages after saving.
+          </p>
+          {(() => {
+            const swatches: { key: string; label: string; value: string; onChange: (v: string) => void }[] = [
+              { key: "primary", label: "Primary", value: colors.primary, onChange: (v) => setColors((p) => ({ ...p, primary: v })) },
+              { key: "primaryHover", label: "Primary Hover", value: colors.primaryHover, onChange: (v) => setColors((p) => ({ ...p, primaryHover: v })) },
+              { key: "secondary", label: "Secondary", value: colors.secondary, onChange: (v) => setColors((p) => ({ ...p, secondary: v })) },
+              { key: "accent.pink", label: "Pink", value: colors.accent.pink, onChange: (v) => setColors((p) => ({ ...p, accent: { ...p.accent, pink: v } })) },
+              { key: "accent.mint", label: "Mint", value: colors.accent.mint, onChange: (v) => setColors((p) => ({ ...p, accent: { ...p.accent, mint: v } })) },
+              { key: "accent.lavender", label: "Lavender", value: colors.accent.lavender, onChange: (v) => setColors((p) => ({ ...p, accent: { ...p.accent, lavender: v } })) },
+              { key: "accent.peach", label: "Peach", value: colors.accent.peach, onChange: (v) => setColors((p) => ({ ...p, accent: { ...p.accent, peach: v } })) },
+              { key: "accent.sky", label: "Sky", value: colors.accent.sky, onChange: (v) => setColors((p) => ({ ...p, accent: { ...p.accent, sky: v } })) },
+              { key: "background", label: "Background", value: colors.background, onChange: (v) => setColors((p) => ({ ...p, background: v })) },
+              { key: "surface", label: "Surface", value: colors.surface, onChange: (v) => setColors((p) => ({ ...p, surface: v })) },
+              { key: "success", label: "Success", value: colors.success, onChange: (v) => setColors((p) => ({ ...p, success: v })) },
+              { key: "warning", label: "Warning", value: colors.warning, onChange: (v) => setColors((p) => ({ ...p, warning: v })) },
+              { key: "error", label: "Error", value: colors.error, onChange: (v) => setColors((p) => ({ ...p, error: v })) },
+            ];
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {swatches.map((s) => (
+                  <div key={s.key} className="flex items-center gap-3 p-2 rounded-lg border bg-gray-50">
+                    <label className="relative cursor-pointer" title="Click to change">
+                      <span
+                        className="block w-10 h-10 rounded-md shadow-sm border"
+                        style={{ backgroundColor: s.value || "#FFFFFF" }}
+                      />
+                      <input
+                        type="color"
+                        value={s.value || "#000000"}
+                        onChange={(e) => {
+                          s.onChange(e.target.value);
+                          setPickerKey(s.key);
+                        }}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      />
+                    </label>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{s.label}</p>
+                      <Input
+                        value={s.value}
+                        onChange={(e) => s.onChange(e.target.value)}
+                        className="h-7 text-xs font-mono px-2"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={async () => {
+                await saveKey("colors", colors);
+                toast.success("Theme colors updated! Reload the storefront to see the change.");
+              }}
+              disabled={saving !== null}
+              className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Theme Colors
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!defaults) return;
+                const reset = {
+                  primary: defaults.colors.primary,
+                  primaryHover: defaults.colors.primaryHover,
+                  secondary: defaults.colors.secondary,
+                  accent: { ...defaults.colors.accent },
+                  background: defaults.colors.background,
+                  surface: defaults.colors.surface,
+                  success: defaults.colors.success,
+                  warning: defaults.colors.warning,
+                  error: defaults.colors.error,
+                };
+                setColors(reset);
+                await saveKey("colors", reset);
+                toast.success("Theme colors reset to defaults.");
+              }}
+              disabled={saving !== null}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset to Defaults
+            </Button>
+          </div>
+          {pickerKey && (
+            <p className="text-xs text-brand-text-muted mt-2">
+              Preview updated. Click <strong>Save Theme Colors</strong> to apply on the storefront.
+            </p>
+          )}
         </section>
       </div>
     </div>

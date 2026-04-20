@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productImages, categories, inventory, reviews, productCategories, orderItems, orders } from "@/lib/db/schema";
+import { products, productImages, categories, inventory, reviews, productCategories, orderItems, orders, pageViews } from "@/lib/db/schema";
 import { eq, ilike, and, gte, lte, inArray, sql, desc, asc, like } from "drizzle-orm";
 
 function toSkuSegment(text: string): string {
@@ -145,6 +145,7 @@ export async function GET(request: NextRequest) {
   }
 
   let orderBy;
+  let trendingOrderedIds: string[] | null = null;
   switch (sort) {
     case "price-asc":
       orderBy = asc(products.price);
@@ -158,8 +159,63 @@ export async function GET(request: NextRequest) {
     case "name-asc":
       orderBy = asc(products.name);
       break;
+    case "trending": {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const trendingBase = and(
+        eq(products.isActive, true),
+        sql`${pageViews.productId} is not null`,
+        gte(pageViews.createdAt, since)
+      );
+      const trendingRows = await db
+        .select({
+          productId: pageViews.productId,
+          views: sql<number>`count(*)`,
+        })
+        .from(pageViews)
+        .innerJoin(products, eq(products.id, pageViews.productId))
+        .where(trendingBase)
+        .groupBy(pageViews.productId)
+        .orderBy(sql`count(*) desc`)
+        .limit(limit);
+
+      const trendingIds = trendingRows
+        .map((r) => r.productId)
+        .filter((id): id is string => !!id);
+
+      if (trendingIds.length < limit) {
+        const fillerRows = await db
+          .select({ id: products.id })
+          .from(products)
+          .where(
+            and(
+              eq(products.isActive, true),
+              trendingIds.length > 0
+                ? sql`${products.id} not in (${sql.join(
+                    trendingIds.map((id) => sql`${id}`),
+                    sql`, `
+                  )})`
+                : sql`true`
+            )
+          )
+          .orderBy(asc(products.name))
+          .limit(limit - trendingIds.length);
+        trendingOrderedIds = [...trendingIds, ...fillerRows.map((r) => r.id)];
+      } else {
+        trendingOrderedIds = trendingIds;
+      }
+
+      orderBy = desc(products.isFeatured);
+      break;
+    }
     default:
       orderBy = desc(products.isFeatured);
+  }
+
+  if (trendingOrderedIds) {
+    if (trendingOrderedIds.length === 0) {
+      return NextResponse.json({ products: [], total: 0, page, totalPages: 0 });
+    }
+    conditions.push(inArray(products.id, trendingOrderedIds));
   }
 
   const where = and(...conditions);
@@ -239,6 +295,13 @@ export async function GET(request: NextRequest) {
   if (tags && tags.length > 0) {
     filteredProducts = productRows.filter((p) =>
       tags.some((tag) => p.tags?.includes(tag))
+    );
+  }
+
+  if (trendingOrderedIds) {
+    const order = new Map(trendingOrderedIds.map((id, i) => [id, i]));
+    filteredProducts = [...filteredProducts].sort(
+      (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)
     );
   }
 

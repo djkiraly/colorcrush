@@ -11,7 +11,7 @@ export function FeaturedProducts() {
   useEffect(() => {
     async function fetchFeatured() {
       try {
-        const res = await fetch("/api/products?featured=true&limit=8");
+        const res = await fetch("/api/products?sort=trending&limit=8");
         const data = await res.json();
         setProducts(data.products || []);
       } catch {

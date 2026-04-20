@@ -19,23 +19,23 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: 'Poppins', sans-serif;
 
-  /* Brand colors from site.config */
-  --color-brand-primary: #F43F5E;
-  --color-brand-primary-hover: #E11D48;
-  --color-brand-secondary: #581C87;
-  --color-brand-pink: #F9A8D4;
-  --color-brand-mint: #A7F3D0;
-  --color-brand-lavender: #C4B5FD;
-  --color-brand-peach: #FDBA74;
-  --color-brand-sky: #7DD3FC;
-  --color-brand-bg: #FAFAFA;
-  --color-brand-surface: #FFFFFF;
-  --color-brand-text: #1E1B2E;
-  --color-brand-text-secondary: #6B7280;
-  --color-brand-text-muted: #9CA3AF;
-  --color-brand-success: #10B981;
-  --color-brand-warning: #F59E0B;
-  --color-brand-error: #EF4444;
+  /* Brand colors — resolved at runtime via :root vars so admin overrides apply */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-hover: var(--brand-primary-hover);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-mint: var(--brand-mint);
+  --color-brand-lavender: var(--brand-lavender);
+  --color-brand-peach: var(--brand-peach);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-text: var(--brand-text);
+  --color-brand-text-secondary: var(--brand-text-secondary);
+  --color-brand-text-muted: var(--brand-text-muted);
+  --color-brand-success: var(--brand-success);
+  --color-brand-warning: var(--brand-warning);
+  --color-brand-error: var(--brand-error);
 
   /* shadcn theme vars */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -77,6 +77,24 @@
 }
 
 :root {
+  /* Brand tokens — safe defaults; overridden at runtime by root layout */
+  --brand-primary: #F43F5E;
+  --brand-primary-hover: #E11D48;
+  --brand-secondary: #581C87;
+  --brand-pink: #F9A8D4;
+  --brand-mint: #A7F3D0;
+  --brand-lavender: #C4B5FD;
+  --brand-peach: #FDBA74;
+  --brand-sky: #7DD3FC;
+  --brand-bg: #FAFAFA;
+  --brand-surface: #FFFFFF;
+  --brand-text: #1E1B2E;
+  --brand-text-secondary: #6B7280;
+  --brand-text-muted: #9CA3AF;
+  --brand-success: #10B981;
+  --brand-warning: #F59E0B;
+  --brand-error: #EF4444;
+
   --background: #FAFAFA;
   --foreground: #1E1B2E;
   --card: #FFFFFF;
