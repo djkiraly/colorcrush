@@ -96,6 +96,11 @@ export default function AdminProductsPage() {
         <span className={p.stock <= 10 ? "text-brand-error font-bold" : ""}>{p.stock}</span>
       ),
     },
+    {
+      key: "orderedCount",
+      header: "Ordered",
+      render: (p: any) => <span>{p.orderedCount ?? 0}</span>,
+    },
     { key: "category", header: "Category" },
     {
       key: "isFeatured",

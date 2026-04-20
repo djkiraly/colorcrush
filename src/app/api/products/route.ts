@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productImages, categories, inventory, reviews, productCategories } from "@/lib/db/schema";
+import { products, productImages, categories, inventory, reviews, productCategories, orderItems, orders } from "@/lib/db/schema";
 import { eq, ilike, and, gte, lte, inArray, sql, desc, asc, like } from "drizzle-orm";
 
 function toSkuSegment(text: string): string {
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ products: [], total: 0, page, totalPages: 0 });
   }
 
-  const [images, cats, inventoryData, reviewData] = await Promise.all([
+  const [images, cats, inventoryData, reviewData, orderedData] = await Promise.all([
     db
       .select()
       .from(productImages)
@@ -218,6 +218,20 @@ export async function GET(request: NextRequest) {
       .from(reviews)
       .where(and(inArray(reviews.productId, productIds), eq(reviews.isApproved, true)))
       .groupBy(reviews.productId),
+    db
+      .select({
+        productId: orderItems.productId,
+        totalOrdered: sql<number>`coalesce(sum(${orderItems.quantity}), 0)`,
+      })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(
+        and(
+          inArray(orderItems.productId, productIds),
+          sql`${orders.status} <> 'cancelled'`
+        )
+      )
+      .groupBy(orderItems.productId),
   ]);
 
   // Filter by tags in application layer (pg array contains is complex)
@@ -235,6 +249,7 @@ export async function GET(request: NextRequest) {
     const cat = cats.find((c) => c.id === p.categoryId);
     const inv = inventoryData.find((i) => i.productId === p.id);
     const rev = reviewData.find((r) => r.productId === p.id);
+    const ord = orderedData.find((o) => o.productId === p.id);
 
     return {
       ...p,
@@ -244,6 +259,7 @@ export async function GET(request: NextRequest) {
       stock: inv?.quantity ?? 0,
       averageRating: rev ? Number(rev.avgRating) : 0,
       reviewCount: rev ? Number(rev.count) : 0,
+      orderedCount: ord ? Number(ord.totalOrdered) : 0,
     };
   });
 

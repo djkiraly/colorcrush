@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, categories } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { products, categories, inventory } from "@/lib/db/schema";
+import { eq, asc, inArray } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
 export async function GET() {
@@ -30,12 +30,26 @@ export async function GET() {
     .from(products)
     .orderBy(asc(products.name));
 
+  const productIds = allProducts.map((p) => p.id);
+  const invRows = productIds.length
+    ? await db
+        .select({ productId: inventory.productId, quantity: inventory.quantity })
+        .from(inventory)
+        .where(inArray(inventory.productId, productIds))
+    : [];
+  const stockMap = new Map(invRows.map((r) => [r.productId, r.quantity]));
+
+  const withStock = allProducts.map((p) => ({
+    ...p,
+    stock: stockMap.get(p.id) ?? 0,
+  }));
+
   const allCategories = await db
     .select({ id: categories.id, name: categories.name })
     .from(categories)
     .orderBy(asc(categories.name));
 
-  return NextResponse.json({ products: allProducts, categories: allCategories });
+  return NextResponse.json({ products: withStock, categories: allCategories });
 }
 
 export async function PUT(request: NextRequest) {
@@ -76,6 +90,17 @@ export async function PUT(request: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(products.id, item.id));
+
+    if (typeof item.stock === "number" && Number.isFinite(item.stock)) {
+      const quantity = Math.max(0, Math.floor(item.stock));
+      await db
+        .insert(inventory)
+        .values({ productId: item.id, quantity })
+        .onConflictDoUpdate({
+          target: inventory.productId,
+          set: { quantity, updatedAt: new Date() },
+        });
+    }
     updatedCount++;
   }
 

@@ -28,6 +28,7 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   isGiftEligible: boolean;
+  stock: number;
 }
 
 interface Category {
@@ -91,6 +92,7 @@ export default function BulkEditPage() {
         compareAtPrice: p.compareAtPrice ? parseFloat(p.compareAtPrice) : null,
         costPrice: p.costPrice ? parseFloat(p.costPrice) : null,
         weight: p.weight ? parseFloat(p.weight) : null,
+        stock: Number.isFinite(Number(p.stock)) ? Number(p.stock) : 0,
       }));
 
       const res = await fetch("/api/products/bulk", {
@@ -172,6 +174,7 @@ export default function BulkEditPage() {
                 <th className="px-3 py-3 font-medium min-w-[90px]">Cost</th>
                 <th className="px-3 py-3 font-medium min-w-[140px]">Manufacturer</th>
                 <th className="px-3 py-3 font-medium min-w-[80px]">Weight</th>
+                <th className="px-3 py-3 font-medium min-w-[80px]">Stock</th>
                 <th className="px-3 py-3 font-medium min-w-[140px]">Category</th>
                 <th className="px-3 py-3 font-medium w-14 text-center">Active</th>
                 <th className="px-3 py-3 font-medium w-14 text-center">Feat.</th>
@@ -301,6 +304,18 @@ function ProductRow({
           />
         </td>
         <td className="px-3 py-2">
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            value={p.stock ?? 0}
+            onChange={(e) =>
+              onChange(id, "stock", e.target.value === "" ? 0 : parseInt(e.target.value, 10))
+            }
+            className="h-8 text-sm"
+          />
+        </td>
+        <td className="px-3 py-2">
           <select
             value={p.categoryId || ""}
             onChange={(e) =>
@@ -338,7 +353,7 @@ function ProductRow({
       {expanded && (
         <tr className={`border-b ${isDirty ? "bg-brand-primary/5" : "bg-gray-50/50"}`}>
           <td></td>
-          <td colSpan={10} className="px-3 py-3">
+          <td colSpan={11} className="px-3 py-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-brand-text-muted">
