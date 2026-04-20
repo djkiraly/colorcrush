@@ -116,18 +116,30 @@ export async function GET(request: NextRequest) {
 
   if (category) {
     const [cat] = await db
-      .select({ id: categories.id })
+      .select({ id: categories.id, parentId: categories.parentId })
       .from(categories)
       .where(eq(categories.slug, category))
       .limit(1);
     if (cat) {
+      // If the matched category is a root, include its descendants so e.g.
+      // `/categories/shop-by-type` lists every product under any Type child.
+      let categoryIds: string[] = [cat.id];
+      if (cat.parentId === null) {
+        const descendants = await db
+          .select({ id: categories.id })
+          .from(categories)
+          .where(eq(categories.parentId, cat.id));
+        if (descendants.length > 0) {
+          categoryIds = [cat.id, ...descendants.map((d) => d.id)];
+        }
+      }
       conditions.push(
         inArray(
           products.id,
           db
             .select({ id: productCategories.productId })
             .from(productCategories)
-            .where(eq(productCategories.categoryId, cat.id))
+            .where(inArray(productCategories.categoryId, categoryIds))
         )
       );
     }

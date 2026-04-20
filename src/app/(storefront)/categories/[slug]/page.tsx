@@ -11,7 +11,8 @@ function CategoryContent() {
   const searchParams = useSearchParams();
   const slug = params.slug as string;
   const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState<{ name: string; description: string | null } | null>(null);
+  const [category, setCategory] = useState<{ name: string; description: string | null; parentId: string | null } | null>(null);
+  const [ancestors, setAncestors] = useState<{ name: string; slug: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,8 +27,22 @@ function CategoryContent() {
       const productsData = await productsRes.json();
       const categoriesData = await categoriesRes.json();
       setProducts(productsData.products || []);
-      const cat = categoriesData.categories?.find((c: { slug: string }) => c.slug === slug);
-      setCategory(cat || null);
+
+      const all: { id: string; name: string; slug: string; description: string | null; parentId: string | null }[] =
+        categoriesData.categories || [];
+      const byId = new Map(all.map((c) => [c.id, c]));
+      const cat = all.find((c) => c.slug === slug) || null;
+      setCategory(cat);
+
+      const chain: { name: string; slug: string }[] = [];
+      let cursor = cat?.parentId ?? null;
+      while (cursor) {
+        const parent = byId.get(cursor);
+        if (!parent) break;
+        chain.unshift({ name: parent.name, slug: parent.slug });
+        cursor = parent.parentId;
+      }
+      setAncestors(chain);
       setLoading(false);
     }
     fetchData();
@@ -36,10 +51,14 @@ function CategoryContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-sm text-brand-text-muted mb-6">
+      <nav className="flex items-center gap-2 text-sm text-brand-text-muted mb-6 flex-wrap">
         <Link href="/" className="hover:text-brand-primary">Home</Link>
-        <ChevronRight className="h-3 w-3" />
-        <Link href="/products" className="hover:text-brand-primary">Products</Link>
+        {ancestors.map((a) => (
+          <span key={a.slug} className="flex items-center gap-2">
+            <ChevronRight className="h-3 w-3" />
+            <Link href={`/categories/${a.slug}`} className="hover:text-brand-primary">{a.name}</Link>
+          </span>
+        ))}
         <ChevronRight className="h-3 w-3" />
         <span className="text-brand-text">{category?.name || slug}</span>
       </nav>

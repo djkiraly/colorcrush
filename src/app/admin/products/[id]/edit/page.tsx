@@ -20,11 +20,25 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
 
   useEffect(() => {
     fetch("/api/categories").then(r => r.json()).then(d => setCategories(d.categories || [])).catch(() => {});
   }, []);
+
+  const groupedCategories = (() => {
+    const roots = categories.filter((c) => c.parentId === null);
+    const groups = roots.map((root) => ({
+      root,
+      children: categories
+        .filter((c) => c.parentId === root.id)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+    const orphans = categories.filter(
+      (c) => c.parentId !== null && !roots.some((r) => r.id === c.parentId)
+    );
+    return { groups, orphans };
+  })();
 
   useEffect(() => {
     async function fetchProduct() {
@@ -166,30 +180,70 @@ export default function EditProductPage() {
           </div>
           <div className="space-y-2">
             <Label>Categories</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 rounded-md border border-input bg-background p-3 max-h-56 overflow-y-auto">
+            <div className="space-y-4 rounded-md border border-input bg-background p-3 max-h-96 overflow-y-auto">
               {categories.length === 0 && (
-                <p className="text-xs text-brand-text-muted col-span-full">No categories yet.</p>
+                <p className="text-xs text-brand-text-muted">No categories yet.</p>
               )}
-              {categories.map((c) => {
-                const checked = (form.categoryIds as string[]).includes(c.id);
+              {groupedCategories.groups.map(({ root, children }) => {
+                const renderCheckbox = (c: { id: string; name: string }) => {
+                  const checked = (form.categoryIds as string[]).includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setForm((f: any) => ({
+                            ...f,
+                            categoryIds: e.target.checked
+                              ? [...(f.categoryIds as string[]), c.id]
+                              : (f.categoryIds as string[]).filter((id) => id !== c.id),
+                          }));
+                        }}
+                      />
+                      <span>{c.name}</span>
+                    </label>
+                  );
+                };
                 return (
-                  <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        setForm((f: any) => ({
-                          ...f,
-                          categoryIds: e.target.checked
-                            ? [...(f.categoryIds as string[]), c.id]
-                            : (f.categoryIds as string[]).filter((id) => id !== c.id),
-                        }));
-                      }}
-                    />
-                    <span>{c.name}</span>
-                  </label>
+                  <div key={root.id}>
+                    <div className="text-xs font-semibold text-brand-secondary uppercase tracking-wide mb-1">
+                      {root.name}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {renderCheckbox(root)}
+                      {children.map(renderCheckbox)}
+                    </div>
+                  </div>
                 );
               })}
+              {groupedCategories.orphans.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-brand-secondary uppercase tracking-wide mb-1">Other</div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {groupedCategories.orphans.map((c) => {
+                      const checked = (form.categoryIds as string[]).includes(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setForm((f: any) => ({
+                                ...f,
+                                categoryIds: e.target.checked
+                                  ? [...(f.categoryIds as string[]), c.id]
+                                  : (f.categoryIds as string[]).filter((id) => id !== c.id),
+                              }));
+                            }}
+                          />
+                          <span>{c.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             <p className="text-xs text-brand-text-muted">The first selected category is used as the primary category.</p>
           </div>
