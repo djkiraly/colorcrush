@@ -28,7 +28,7 @@ export default function EditProductPage() {
 
   useEffect(() => {
     async function fetchProduct() {
-      const res = await fetch(`/api/products/${params.id}`);
+      const res = await fetch(`/api/products/${params.id}?includeInactive=true`);
       if (res.ok) {
         const data = await res.json();
         setForm({

@@ -89,9 +89,10 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "12");
   const featured = searchParams.get("featured");
+  const includeInactive = searchParams.get("includeInactive") === "true";
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(products.isActive, true)];
+  const conditions = includeInactive ? [] : [eq(products.isActive, true)];
 
   if (search) {
     conditions.push(ilike(products.name, `%${search}%`));
@@ -150,6 +151,8 @@ export async function GET(request: NextRequest) {
         compareAtPrice: products.compareAtPrice,
         tags: products.tags,
         isFeatured: products.isFeatured,
+        isActive: products.isActive,
+        sku: products.sku,
         categoryId: products.categoryId,
       })
       .from(products)

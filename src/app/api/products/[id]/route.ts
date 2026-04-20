@@ -15,6 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const includeInactive = request.nextUrl.searchParams.get("includeInactive") === "true";
 
   // Try by slug first, then by id
   let [product] = await db
@@ -31,7 +32,7 @@ export async function GET(
       .limit(1);
   }
 
-  if (!product) {
+  if (!product || (!includeInactive && !product.isActive)) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
@@ -95,6 +96,30 @@ export async function PUT(
       weight: body.weight ? String(body.weight) : null,
       updatedAt: new Date(),
     })
+    .where(eq(products.id, id))
+    .returning();
+
+  if (!updated) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(updated);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const body = await request.json();
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof body.isActive === "boolean") patch.isActive = body.isActive;
+  if (typeof body.isFeatured === "boolean") patch.isFeatured = body.isFeatured;
+
+  const [updated] = await db
+    .update(products)
+    .set(patch)
     .where(eq(products.id, id))
     .returning();
 
