@@ -41,7 +41,11 @@ export default function EditProductPage() {
           costPrice: data.costPrice || "",
           sku: data.sku,
           manufacturer: data.manufacturer || "",
-          categoryId: data.categoryId || "",
+          categoryIds: Array.isArray(data.categoryIds) && data.categoryIds.length > 0
+            ? data.categoryIds
+            : data.categoryId
+            ? [data.categoryId]
+            : [],
           weight: data.weight || "",
           tags: (data.tags || []).join(", "),
           allergens: (data.allergens || []).join(", "),
@@ -72,7 +76,7 @@ export default function EditProductPage() {
           compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
           weight: form.weight ? parseFloat(form.weight) : null,
-          categoryId: form.categoryId || null,
+          categoryIds: form.categoryIds,
           tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a: string) => a.trim()) : [],
         }),
@@ -117,7 +121,7 @@ export default function EditProductPage() {
           </div>
           <AIProductGenerator
             productName={form.name}
-            categoryName={categories.find((c) => c.id === form.categoryId)?.name}
+            categoryName={categories.find((c) => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
               setForm((f: any) => ({
                 ...f,
@@ -161,17 +165,33 @@ export default function EditProductPage() {
             <Input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} placeholder="Where the product was sourced from" />
           </div>
           <div className="space-y-2">
-            <Label>Category</Label>
-            <select
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">None</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <Label>Categories</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 rounded-md border border-input bg-background p-3 max-h-56 overflow-y-auto">
+              {categories.length === 0 && (
+                <p className="text-xs text-brand-text-muted col-span-full">No categories yet.</p>
+              )}
+              {categories.map((c) => {
+                const checked = (form.categoryIds as string[]).includes(c.id);
+                return (
+                  <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setForm((f: any) => ({
+                          ...f,
+                          categoryIds: e.target.checked
+                            ? [...(f.categoryIds as string[]), c.id]
+                            : (f.categoryIds as string[]).filter((id) => id !== c.id),
+                        }));
+                      }}
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-brand-text-muted">The first selected category is used as the primary category.</p>
           </div>
           <div className="space-y-2">
             <Label>Tags</Label>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productImages, categories, inventory, reviews } from "@/lib/db/schema";
+import { products, productImages, categories, inventory, reviews, productCategories } from "@/lib/db/schema";
 import { eq, ilike, and, gte, lte, inArray, sql, desc, asc, like } from "drizzle-orm";
 
 function toSkuSegment(text: string): string {
@@ -39,23 +39,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
+    const categoryIds: string[] = Array.isArray(body.categoryIds)
+      ? body.categoryIds.filter(Boolean)
+      : body.categoryId
+      ? [body.categoryId]
+      : [];
+    const primaryCategoryId = categoryIds[0] || null;
+
     // Resolve category name for SKU generation
     let categoryName: string | null = null;
-    if (body.categoryId) {
+    if (primaryCategoryId) {
       const [cat] = await db
         .select({ name: categories.name })
         .from(categories)
-        .where(eq(categories.id, body.categoryId))
+        .where(eq(categories.id, primaryCategoryId))
         .limit(1);
       categoryName = cat?.name || null;
     }
 
     const sku = await generateSku(categoryName, body.name);
 
+    const { categoryIds: _ignore, ...rest } = body;
     const [product] = await db
       .insert(products)
       .values({
-        ...body,
+        ...rest,
+        categoryId: primaryCategoryId,
         slug,
         sku,
         price: String(body.price),
@@ -64,6 +73,13 @@ export async function POST(request: NextRequest) {
         weight: body.weight ? String(body.weight) : null,
       })
       .returning();
+
+    if (categoryIds.length > 0) {
+      await db
+        .insert(productCategories)
+        .values(categoryIds.map((categoryId) => ({ productId: product.id, categoryId })))
+        .onConflictDoNothing();
+    }
 
     // Create inventory record
     await db.insert(inventory).values({
@@ -105,7 +121,15 @@ export async function GET(request: NextRequest) {
       .where(eq(categories.slug, category))
       .limit(1);
     if (cat) {
-      conditions.push(eq(products.categoryId, cat.id));
+      conditions.push(
+        inArray(
+          products.id,
+          db
+            .select({ id: productCategories.productId })
+            .from(productCategories)
+            .where(eq(productCategories.categoryId, cat.id))
+        )
+      );
     }
   }
 

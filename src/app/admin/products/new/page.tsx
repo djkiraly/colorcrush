@@ -37,7 +37,7 @@ export default function NewProductPage() {
     sku: "",
     manufacturer: "",
     weight: "",
-    categoryId: "",
+    categoryIds: [] as string[],
     tags: "",
     isActive: true,
     isFeatured: false,
@@ -67,7 +67,7 @@ export default function NewProductPage() {
           weight: form.weight ? parseFloat(form.weight) : null,
           tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a) => a.trim()) : [],
-          categoryId: form.categoryId || null,
+          categoryIds: form.categoryIds,
         }),
       });
 
@@ -108,7 +108,7 @@ export default function NewProductPage() {
           </div>
           <AIProductGenerator
             productName={form.name}
-            categoryName={categories.find(c => c.id === form.categoryId)?.name}
+            categoryName={categories.find(c => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
               setForm((f) => ({
                 ...f,
@@ -169,18 +169,33 @@ export default function NewProductPage() {
             <Input id="manufacturer" value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} placeholder="Where the product was sourced from" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="categoryId">Category</Label>
-            <select
-              id="categoryId"
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">None</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <Label>Categories</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 rounded-md border border-input bg-background p-3 max-h-56 overflow-y-auto">
+              {categories.length === 0 && (
+                <p className="text-xs text-brand-text-muted col-span-full">No categories yet.</p>
+              )}
+              {categories.map((c) => {
+                const checked = form.categoryIds.includes(c.id);
+                return (
+                  <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setForm((f) => ({
+                          ...f,
+                          categoryIds: e.target.checked
+                            ? [...f.categoryIds, c.id]
+                            : f.categoryIds.filter((id) => id !== c.id),
+                        }));
+                      }}
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-brand-text-muted">The first selected category is used as the primary category for SKU generation.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="tags">Tags (comma separated)</Label>

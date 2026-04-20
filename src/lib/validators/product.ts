@@ -12,6 +12,7 @@ export const productSchema = z.object({
   barcode: z.string().max(100).optional(),
   weight: z.coerce.number().positive().nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
+  categoryIds: z.array(z.string().uuid()).optional(),
   tags: z.array(z.string()).optional(),
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),

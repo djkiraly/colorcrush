@@ -7,8 +7,11 @@ import {
   inventory,
   reviews,
   users,
+  productCategories,
+  orderItems,
+  orders,
 } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray, ne } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
@@ -36,7 +39,7 @@ export async function GET(
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
 
-  const [images, category, inv, productReviews] = await Promise.all([
+  const [images, category, inv, productReviews, linkedCategories] = await Promise.all([
     db
       .select()
       .from(productImages)
@@ -61,6 +64,15 @@ export async function GET(
       .innerJoin(users, eq(reviews.userId, users.id))
       .where(and(eq(reviews.productId, product.id), eq(reviews.isApproved, true)))
       .orderBy(reviews.createdAt),
+    db
+      .select({
+        id: categories.id,
+        name: categories.name,
+        slug: categories.slug,
+      })
+      .from(productCategories)
+      .innerJoin(categories, eq(productCategories.categoryId, categories.id))
+      .where(eq(productCategories.productId, product.id)),
   ]);
 
   const avgRating =
@@ -72,6 +84,8 @@ export async function GET(
     ...product,
     images,
     category: category[0] || null,
+    categories: linkedCategories,
+    categoryIds: linkedCategories.map((c) => c.id),
     inventory: inv[0] || null,
     reviews: productReviews,
     averageRating: avgRating,
@@ -86,21 +100,40 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
 
+  const hasCategoryIds = Array.isArray(body.categoryIds);
+  const categoryIds: string[] = hasCategoryIds ? body.categoryIds.filter(Boolean) : [];
+  const { categoryIds: _ignore, ...rest } = body;
+
+  const updatePayload: Record<string, unknown> = {
+    ...rest,
+    price: String(body.price),
+    compareAtPrice: body.compareAtPrice ? String(body.compareAtPrice) : null,
+    costPrice: body.costPrice ? String(body.costPrice) : null,
+    weight: body.weight ? String(body.weight) : null,
+    updatedAt: new Date(),
+  };
+  if (hasCategoryIds) {
+    updatePayload.categoryId = categoryIds[0] || null;
+  }
+
   const [updated] = await db
     .update(products)
-    .set({
-      ...body,
-      price: String(body.price),
-      compareAtPrice: body.compareAtPrice ? String(body.compareAtPrice) : null,
-      costPrice: body.costPrice ? String(body.costPrice) : null,
-      weight: body.weight ? String(body.weight) : null,
-      updatedAt: new Date(),
-    })
+    .set(updatePayload)
     .where(eq(products.id, id))
     .returning();
 
   if (!updated) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
+  if (hasCategoryIds) {
+    await db.delete(productCategories).where(eq(productCategories.productId, id));
+    if (categoryIds.length > 0) {
+      await db
+        .insert(productCategories)
+        .values(categoryIds.map((categoryId) => ({ productId: id, categoryId })))
+        .onConflictDoNothing();
+    }
   }
 
   return NextResponse.json(updated);
@@ -135,6 +168,40 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await db.delete(products).where(eq(products.id, id));
-  return NextResponse.json({ success: true });
+  try {
+    const blocking = await db
+      .select({ orderNumber: orders.orderNumber })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(and(eq(orderItems.productId, id), ne(orders.status, "cancelled")))
+      .limit(6);
+
+    if (blocking.length > 0) {
+      const unique = Array.from(new Set(blocking.map((b) => b.orderNumber)));
+      const shown = unique.slice(0, 5).join(", ");
+      const suffix = unique.length > 5 ? ` and ${unique.length - 5} more` : "";
+      return NextResponse.json(
+        {
+          error: `This product is referenced by order(s) ${shown}${suffix} and cannot be deleted. Deactivate it instead to hide it from the storefront.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    await db.delete(orderItems).where(eq(orderItems.productId, id));
+    await db.delete(products).where(eq(products.id, id));
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    if (err?.code === "23503" || err?.cause?.code === "23503") {
+      return NextResponse.json(
+        {
+          error:
+            "This product is referenced by existing records and cannot be deleted. Deactivate it instead.",
+        },
+        { status: 409 }
+      );
+    }
+    console.error("Delete product error:", err);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  }
 }

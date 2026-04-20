@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DataTable } from "@/components/admin/DataTable";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
-import { Send, Loader2, XCircle } from "lucide-react";
+import { Send, Loader2, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminOrdersPage() {
@@ -13,6 +13,26 @@ export default function AdminOrdersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [sendingReceipt, setSendingReceipt] = useState<string | null>(null);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
+
+  const deleteOrder = async (orderId: string, orderNumber: string) => {
+    if (!confirm(`Delete order ${orderNumber}? This cannot be undone.`)) return;
+    setDeletingOrder(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Order deleted");
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to delete order");
+      }
+    } catch {
+      toast.error("Failed to delete order");
+    } finally {
+      setDeletingOrder(null);
+    }
+  };
 
   const cancelOrder = async (orderId: string) => {
     if (!confirm("Are you sure you want to cancel this order?")) return;
@@ -92,6 +112,16 @@ export default function AdminOrdersPage() {
           >
             {cancellingOrder === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
           </button>
+          {o.status === "cancelled" && (
+            <button
+              onClick={() => deleteOrder(o.id, o.orderNumber)}
+              disabled={deletingOrder === o.id}
+              className="p-2 rounded hover:bg-red-50 text-brand-text-muted hover:text-red-600 transition-colors disabled:opacity-50"
+              title="Delete order"
+            >
+              {deletingOrder === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </button>
+          )}
         </div>
       );
     }},

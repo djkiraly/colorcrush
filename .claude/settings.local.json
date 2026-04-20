@@ -16,7 +16,8 @@
       "Bash(xargs grep:*)",
       "Bash(grep:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx drizzle-kit:*)"
+      "Bash(npx drizzle-kit:*)",
+      "Bash(npx tsx *)"
     ]
   }
 }
