@@ -10,6 +10,16 @@ try {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Type-checking runs separately via `npx tsc --noEmit` / `npm run typecheck`.
+  // Skipping it in `next build` prevents the build worker from OOMing on
+  // small hosts (the TypeScript pass alone uses ~2GB).
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // ESLint likewise — we run it explicitly via `npm run lint`.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   env: {
     NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || "0.0.0",
     NEXT_PUBLIC_BUILD_DATE: gitCommitDate,
