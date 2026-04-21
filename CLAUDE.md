@@ -11,7 +11,7 @@ npm run dev          # Start dev server (Next.js 16)
 npm run build        # Production build
 npm run lint         # ESLint
 npx drizzle-kit generate   # Generate migration from schema changes
-npx drizzle-kit migrate    # Run pending migrations
+npm run migrate            # Run pending migrations (uses neon-http migrator — drizzle-kit migrate is incompatible with Neon)
 npx drizzle-kit push       # Push schema directly (dev shortcut, skips migrations)
 npx tsx scripts/seed.ts          # Seed database with sample data
 npx tsx scripts/create-admin.ts  # Create an admin user

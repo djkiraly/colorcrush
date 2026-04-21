@@ -76,7 +76,7 @@ APP_PORT=3000
 ## 7. Run database migrations
 
 ```bash
-npx drizzle-kit migrate
+npm run migrate
 ```
 
 ## 8. Create an admin user
@@ -226,7 +226,7 @@ pm2 restart candy
 
 ```bash
 cd /var/www/colorcrush
-npx drizzle-kit migrate
+npm run migrate
 pm2 restart candy
 ```
 

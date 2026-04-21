@@ -24,9 +24,13 @@ Without `CRON_SECRET` the endpoint refuses to run (returns 500).
 ### 2. Apply the migration
 
 ```bash
-psql "$DATABASE_URL" -f src/lib/db/migrations/0005_scheduled_alerts.sql
-psql "$DATABASE_URL" -f src/lib/db/migrations/0006_alerts_notified_at.sql
+npm run migrate
 ```
+
+That runs `scripts/migrate.ts`, which uses the Neon HTTP migrator to apply
+every pending SQL file under `src/lib/db/migrations/` and records each in the
+`drizzle.__drizzle_migrations` tracking table. Safe to re-run — already-applied
+migrations are skipped.
 
 ### 3. Install the cron
 
