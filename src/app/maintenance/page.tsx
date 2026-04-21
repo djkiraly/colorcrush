@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import { getSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { MaintenanceVideo, parseYouTubeId } from "@/components/storefront/MaintenanceVideo";
+import { MaintenanceVideo } from "@/components/storefront/MaintenanceVideo";
+import { parseYouTubeId } from "@/lib/youtube";
 
 export default async function MaintenancePage() {
   const settings = await getSettings();
