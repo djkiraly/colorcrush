@@ -135,10 +135,10 @@ export function MaintenanceVideo({ videoId, staticHero, hero }: Props) {
       {hero}
       <div className="w-full flex justify-center px-4 pt-8 pb-12">
         <div className="w-full max-w-3xl">
-          <div className="relative aspect-video w-full overflow-hidden rounded-2xl shadow-xl bg-black">
-            <div ref={containerRef} className="absolute inset-0 w-full h-full" />
-            {/* Transparent overlay blocks clicks on the YouTube iframe (disables all in-player controls) */}
-            <div className="absolute inset-0" aria-hidden />
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl shadow-xl bg-black [&>iframe]:absolute [&>iframe]:inset-0 [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:pointer-events-none">
+            <div ref={containerRef} />
+            {/* Transparent overlay blocks any residual pointer events on the iframe */}
+            <div className="absolute inset-0 z-[5]" aria-hidden />
             <button
               type="button"
               onClick={toggleMute}
