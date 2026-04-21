@@ -24,7 +24,7 @@ echo "▶ Clearing previous build…"
 rm -rf .next
 
 echo "▶ Building (webpack — turbopack standalone has a chunk-emit bug in Next 16)…"
-npm run build
+NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 echo "▶ Copying static assets into standalone output…"
 cp -r public .next/standalone/

@@ -1,10 +1,10 @@
 {
   "name": "candy",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=2048' next build --webpack",
+    "build": "next build --webpack",
     "typecheck": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint",
