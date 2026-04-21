@@ -401,6 +401,37 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// ═══ SCHEDULED ALERTS (admin reminders) ═══
+
+export const alertTypeEnum = pgEnum("alert_type", ["date", "inventory"]);
+export const alertSeverityEnum = pgEnum("alert_severity", ["info", "warning", "critical"]);
+
+export const scheduledAlerts = pgTable(
+  "scheduled_alerts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    type: alertTypeEnum("type").notNull(),
+    severity: alertSeverityEnum("severity").default("info").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    message: text("message"),
+    triggerAt: timestamp("trigger_at"),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "cascade" }),
+    thresholdQuantity: integer("threshold_quantity"),
+    isAcknowledged: boolean("is_acknowledged").default(false).notNull(),
+    acknowledgedAt: timestamp("acknowledged_at"),
+    acknowledgedBy: uuid("acknowledged_by").references(() => users.id, { onDelete: "set null" }),
+    notifiedAt: timestamp("notified_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("scheduled_alerts_trigger_idx").on(table.triggerAt),
+    index("scheduled_alerts_product_idx").on(table.productId),
+    index("scheduled_alerts_ack_idx").on(table.isAcknowledged),
+  ]
+);
+
 // ═══ PAGE VIEWS / ANALYTICS ═══
 
 export const pageViews = pgTable(

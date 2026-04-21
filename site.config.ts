@@ -74,5 +74,11 @@ export type SiteConfig = typeof siteConfig & {
     enabled: boolean;
     heading: string;
     message: string;
+    videoEnabled?: boolean;
+    videoUrl?: string;
+  };
+  announcementBar?: {
+    enabled: boolean;
+    text: string;
   };
 };

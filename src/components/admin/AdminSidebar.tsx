@@ -20,10 +20,11 @@ import {
   Settings,
   Scale,
   BookOpen,
+  Bell,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/admin/stripe", label: "Stripe", icon: Wallet, superAdminOnly: true as const },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
+  { href: "/admin/alerts", label: "Alerts", icon: Bell, badge: "alerts" as const },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/emails", label: "Email Log", icon: Mail },
   { href: "/admin/legal", label: "Legal Pages", icon: Scale },
@@ -54,6 +56,25 @@ export function AdminSidebar() {
   const siteConfig = useSiteSettings();
   const userRole = (session?.user as { role?: string })?.role;
   const [collapsed, setCollapsed] = useState(false);
+  const [alertCount, setAlertCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetch("/api/alerts/active")
+        .then((r) => r.json())
+        .then((d) => {
+          if (!cancelled) setAlertCount(d.count ?? 0);
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <aside
@@ -103,7 +124,12 @@ export function AdminSidebar() {
               title={collapsed ? item.label : undefined}
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span className="flex-1">{item.label}</span>}
+              {"badge" in item && item.badge === "alerts" && alertCount > 0 && (
+                <span className="ml-auto bg-brand-primary text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[1.25rem] text-center">
+                  {alertCount}
+                </span>
+              )}
             </Link>
           );
         })}

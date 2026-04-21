@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2, Construction } from "lucide-react";
+import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2, Construction, Megaphone } from "lucide-react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -63,6 +63,12 @@ export default function AdminSettingsPage() {
     enabled: false,
     heading: "",
     message: "",
+    videoEnabled: false,
+    videoUrl: "",
+  });
+  const [announcementBar, setAnnouncementBar] = useState({
+    enabled: true,
+    text: "",
   });
   const [gcs, setGcs] = useState({
     projectId: "",
@@ -150,6 +156,15 @@ export default function AdminSettingsPage() {
           enabled: (maintenanceOverride.enabled as boolean) || false,
           heading: (maintenanceOverride.heading as string) || "",
           message: (maintenanceOverride.message as string) || "",
+          videoEnabled: (maintenanceOverride.videoEnabled as boolean) || false,
+          videoUrl: (maintenanceOverride.videoUrl as string) || "",
+        });
+
+        const announcementOverride = (data.overrides?.announcementBar || {}) as Record<string, unknown>;
+        setAnnouncementBar({
+          enabled:
+            typeof announcementOverride.enabled === "boolean" ? (announcementOverride.enabled as boolean) : true,
+          text: (announcementOverride.text as string) || "",
         });
 
         setLogoUrl((data.overrides?.logoUrl as string) || "");
@@ -398,6 +413,35 @@ export default function AdminSettingsPage() {
                 placeholder="We're currently performing scheduled maintenance. We'll be back soon!"
               />
             </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Play Intro Video</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Shows an embedded YouTube video first, then transitions to the message
+                </p>
+              </div>
+              <Switch
+                checked={maintenanceMode.videoEnabled}
+                onCheckedChange={(checked) =>
+                  setMaintenanceMode((prev) => ({ ...prev, videoEnabled: checked }))
+                }
+              />
+            </div>
+            {maintenanceMode.videoEnabled && (
+              <div className="space-y-2">
+                <Label>YouTube URL or Video ID</Label>
+                <Input
+                  value={maintenanceMode.videoUrl}
+                  onChange={(e) =>
+                    setMaintenanceMode((prev) => ({ ...prev, videoUrl: e.target.value }))
+                  }
+                  placeholder="https://www.youtube.com/watch?v=... or dQw4w9WgXcQ"
+                />
+                <p className="text-xs text-brand-text-muted">
+                  Plays muted on load (browsers require this). A mute/unmute button overlays the video.
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 mt-4">
             <Button
@@ -416,8 +460,77 @@ export default function AdminSettingsPage() {
               <Button
                 variant="outline"
                 onClick={async () => {
-                  setMaintenanceMode({ enabled: false, heading: "", message: "" });
-                  await saveKey("maintenanceMode", { enabled: false, heading: "", message: "" });
+                  const reset = { enabled: false, heading: "", message: "", videoEnabled: false, videoUrl: "" };
+                  setMaintenanceMode(reset);
+                  await saveKey("maintenanceMode", reset);
+                }}
+                disabled={saving !== null}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </section>
+
+        {/* Announcement Bar */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-brand-primary" />
+              <h2 className="font-heading font-semibold text-lg">Announcement Bar</h2>
+            </div>
+            {isOverridden("announcementBar") && (
+              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                Modified
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            The thin bar at the very top of every storefront page. Use{" "}
+            <code className="bg-gray-100 px-1 rounded text-xs">{"{freeShippingThreshold}"}</code> to insert the
+            current free-shipping threshold.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Show Announcement Bar</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Hide the bar across the whole storefront
+                </p>
+              </div>
+              <Switch
+                checked={announcementBar.enabled}
+                onCheckedChange={(checked) =>
+                  setAnnouncementBar((prev) => ({ ...prev, enabled: checked }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Banner Text</Label>
+              <Input
+                value={announcementBar.text}
+                onChange={(e) => setAnnouncementBar((prev) => ({ ...prev, text: e.target.value }))}
+                placeholder="Free shipping on orders over ${freeShippingThreshold}!"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() => saveKey("announcementBar", announcementBar)}
+              disabled={saving !== null}
+              className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Announcement Bar
+            </Button>
+            {isOverridden("announcementBar") && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const reset = { enabled: true, text: "" };
+                  setAnnouncementBar(reset);
+                  await saveKey("announcementBar", reset);
                 }}
                 disabled={saving !== null}
               >

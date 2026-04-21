@@ -1,0 +1,1 @@
+ALTER TABLE "scheduled_alerts" ADD COLUMN "notified_at" timestamp;

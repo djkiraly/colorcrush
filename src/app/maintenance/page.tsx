@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { getSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { MaintenanceVideo, parseYouTubeId } from "@/components/storefront/MaintenanceVideo";
 
 export default async function MaintenancePage() {
   const settings = await getSettings();
@@ -15,8 +16,12 @@ export default async function MaintenancePage() {
   const message =
     settings.maintenanceMode?.message ||
     "<p>We're currently performing scheduled maintenance. We'll be back soon!</p>";
+  const heading = settings.maintenanceMode?.heading || "We'll Be Back Soon";
 
-  return (
+  const videoEnabled = settings.maintenanceMode?.videoEnabled;
+  const videoId = videoEnabled ? parseYouTubeId(settings.maintenanceMode?.videoUrl ?? "") : null;
+
+  const staticHero = (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50 px-4">
       <div className="max-w-lg w-full text-center space-y-8">
         {logoUrl && (
@@ -32,9 +37,7 @@ export default async function MaintenancePage() {
           </div>
         )}
 
-        <h1 className="text-3xl font-heading font-bold text-brand-secondary">
-          {settings.maintenanceMode?.heading || "We'll Be Back Soon"}
-        </h1>
+        <h1 className="text-3xl font-heading font-bold text-brand-secondary">{heading}</h1>
 
         <div
           className="prose prose-sm mx-auto text-brand-text-secondary [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
@@ -43,12 +46,16 @@ export default async function MaintenancePage() {
 
         <div className="flex items-center justify-center gap-3 text-brand-text-muted">
           <div className="h-px w-12 bg-gray-200" />
-          <span className="text-xs uppercase tracking-widest">
-            {settings.name}
-          </span>
+          <span className="text-xs uppercase tracking-widest">{settings.name}</span>
           <div className="h-px w-12 bg-gray-200" />
         </div>
       </div>
     </div>
   );
+
+  if (videoId) {
+    return <MaintenanceVideo videoId={videoId} staticHero={staticHero} />;
+  }
+
+  return staticHero;
 }

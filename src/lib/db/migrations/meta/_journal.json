@@ -36,6 +36,20 @@
       "when": 1776718283099,
       "tag": "0004_color_crush_taxonomy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776739296555,
+      "tag": "0005_scheduled_alerts",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776739767320,
+      "tag": "0006_alerts_notified_at",
+      "breakpoints": true
     }
   ]
 }

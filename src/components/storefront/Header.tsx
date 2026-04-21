@@ -60,11 +60,18 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-        <div className="bg-brand-secondary text-white text-center text-sm py-1.5 px-4">
-          <p>
-            Free shipping on orders over ${siteConfig.freeShippingThreshold}!
-          </p>
-        </div>
+        {siteConfig.announcementBar?.enabled !== false && (
+          <div className="bg-brand-secondary text-white text-center text-sm py-1.5 px-4">
+            <p>
+              {siteConfig.announcementBar?.text?.trim()
+                ? siteConfig.announcementBar.text.replace(
+                    /\{freeShippingThreshold\}/g,
+                    String(siteConfig.freeShippingThreshold)
+                  )
+                : `Free shipping on orders over $${siteConfig.freeShippingThreshold}!`}
+            </p>
+          </div>
+        )}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {siteConfig.logoUrl && (

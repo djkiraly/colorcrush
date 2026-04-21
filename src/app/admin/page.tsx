@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
-import { DollarSign, ShoppingCart, Clock, AlertTriangle, Info } from "lucide-react";
+import { DollarSign, ShoppingCart, Clock, AlertTriangle, Info, Bell } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -12,6 +12,7 @@ export default function AdminDashboard() {
     todayOrders: 0,
     pendingOrders: 0,
     lowStockItems: 0,
+    activeAlerts: 0,
   });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [lowStock, setLowStock] = useState<any[]>([]);
@@ -19,12 +20,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ordersRes, inventoryRes] = await Promise.all([
+        const [ordersRes, inventoryRes, alertsRes] = await Promise.all([
           fetch("/api/orders?limit=10"),
           fetch("/api/inventory"),
+          fetch("/api/alerts/active"),
         ]);
         const ordersData = await ordersRes.json();
         const inventoryData = await inventoryRes.json();
+        const alertsData = await alertsRes.json();
 
         const orders = ordersData.orders || [];
         const today = new Date().toDateString();
@@ -44,6 +47,7 @@ export default function AdminDashboard() {
           todayOrders: todayOrders.length,
           pendingOrders: orders.filter((o: any) => o.status === "pending").length,
           lowStockItems: lowStockItems.length,
+          activeAlerts: alertsData.count ?? 0,
         });
 
         setRecentOrders(orders.slice(0, 10));
@@ -62,7 +66,7 @@ export default function AdminDashboard() {
       </h1>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <StatsCard
           label="Today's Revenue"
           value={`$${stats.todayRevenue.toFixed(2)}`}
@@ -87,6 +91,14 @@ export default function AdminDashboard() {
           icon={AlertTriangle}
           color="bg-brand-lavender/20"
         />
+        <Link href="/admin/alerts" className="block">
+          <StatsCard
+            label="Active Alerts"
+            value={String(stats.activeAlerts)}
+            icon={Bell}
+            color="bg-brand-sky/20"
+          />
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
