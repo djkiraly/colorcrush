@@ -15,7 +15,8 @@ const guides: { category: string; sections: GuideSection[] }[] = [
       {
         title: "Overview",
         content: [
-          "The Dashboard is your home screen when you log in to the admin panel. It shows key performance indicators (KPIs) at a glance including today's revenue, orders placed today, pending order count, and low stock item count.",
+          "The Dashboard is your home screen when you log in to the admin panel. It shows key performance indicators (KPIs) at a glance including today's revenue, orders placed today, pending order count, low stock item count, and the number of currently firing scheduled alerts.",
+          "Click the Active Alerts tile to jump straight to the Alerts page and review what's firing.",
           "Below the KPIs you'll find recent orders and low stock alerts. Use this page to quickly assess the health of your store each day.",
           "The bottom of the dashboard shows the system version number, build commit hash, and deployment date. Use this to confirm which version of the software is running.",
         ],
@@ -125,6 +126,53 @@ const guides: { category: string; sections: GuideSection[] }[] = [
           "The Inventory page shows current stock levels for all products. Items below their low stock threshold are highlighted.",
           "To adjust stock, click a product and enter the new quantity. Select a reason (restock, adjustment, damage, return) and optionally add notes. All changes are logged for auditing.",
           "When inventory drops below the low stock threshold, an automatic email alert is sent to the store contact email.",
+        ],
+      },
+    ],
+  },
+  {
+    category: "Alerts",
+    sections: [
+      {
+        title: "Scheduled Alerts & Reminders",
+        content: [
+          "The Alerts page (sidebar: Alerts) lets you schedule reminders that fire on a date or when a product's stock drops to a threshold. Use it for holiday prep, restocking deadlines, marketing milestones, or any recurring operational nudge.",
+          "Two alert types are supported: Date-based (fires at a specific date and time) and Inventory-based (fires when a chosen product's current stock is at or below a threshold quantity you set).",
+          "Each alert has a severity — Info, Warning, or Critical — that controls the badge color in the UI and the label prefix in the notification email.",
+        ],
+      },
+      {
+        title: "Creating a Date-Based Alert",
+        content: [
+          "Click 'New Alert', select 'Date-based', and enter a title plus an optional message. Severity defaults to Info.",
+          "Pick a Trigger Date & Time using the date/time picker. The alert will fire as soon as the cron job runs after that time has passed.",
+          "Holiday Presets (optional): Choose a holiday from the dropdown (Valentine's Day, Easter, Mother's Day, Father's Day, Halloween, Thanksgiving, Christmas), enter a lead time in days (default 60), and click Apply. The trigger date is automatically set to N days before the next occurrence of that holiday, and a default title is filled in if you haven't set one. This is the fastest way to set up seasonal prep reminders.",
+        ],
+      },
+      {
+        title: "Creating an Inventory-Based Alert",
+        content: [
+          "Click 'New Alert', select 'Inventory-based', and enter a title plus an optional message.",
+          "Pick a product from the dropdown (all products including inactive ones are listed) and enter a threshold quantity. The alert fires when current stock for that product is at or below the threshold.",
+          "Inventory alerts are independent of the global Low Stock email (which uses each product's own low stock threshold). Use inventory alerts when you want a one-off reminder tied to a specific stock level — e.g., 'reorder chocolate truffles when we hit 50 units before Mother's Day'.",
+        ],
+      },
+      {
+        title: "How Alerts Fire & Get Delivered",
+        content: [
+          "A cron job (POST /api/cron/alerts) scans the database on a schedule. For each unacknowledged alert whose firing condition is met and that has not yet been notified, it sends an email and stamps the alert as notified so it won't email again.",
+          "Email recipients are every user with the Admin or Super Admin role (using the email address on their staff account). If no admin emails exist, it falls back to the store's contact email from Settings.",
+          "The cron endpoint is protected by the CRON_SECRET environment variable — it must be configured on the server, and the cron caller must send 'Authorization: Bearer <CRON_SECRET>'. If CRON_SECRET is missing, the endpoint refuses to run.",
+          "Email delivery uses the same Gmail integration as transactional emails. If Gmail is not configured, alert emails will fail and the failure will appear in the Email Log.",
+        ],
+      },
+      {
+        title: "Managing Active and Acknowledged Alerts",
+        content: [
+          "The Alerts page is split into two sections: Scheduled / Active (everything not yet acknowledged) and Acknowledged (dismissed alerts, shown faded).",
+          "An alert in the active list shows a 'Firing' badge once its trigger condition has been met (date passed, or inventory at/below threshold). Before that, it's scheduled but waiting.",
+          "Click the checkmark icon to acknowledge an alert (moves it to the Acknowledged section and prevents further notifications). Click it again on an acknowledged alert to mark it active again.",
+          "Click the trash icon to delete an alert permanently. There is no undo.",
         ],
       },
     ],
