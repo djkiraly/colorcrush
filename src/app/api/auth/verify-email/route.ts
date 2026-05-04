@@ -40,7 +40,12 @@ export async function POST(request: NextRequest) {
   });
 
   const settings = await getSettings();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || settings.url;
+  const baseUrl =
+    settings.url ||
+    process.env.NEXTAUTH_URL ||
+    process.env.AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "";
   const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
 
   const html = await verifyEmailTemplate(user.name, verifyUrl);
