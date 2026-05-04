@@ -27,26 +27,45 @@ export async function POST(request: NextRequest) {
     const { name, email, password, address } = registerSchema.parse(body);
 
     const [existing] = await db
-      .select({ id: users.id })
+      .select({
+        id: users.id,
+        isGuest: users.isGuest,
+        passwordHash: users.passwordHash,
+      })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
 
-    if (existing) {
+    if (existing && (!existing.isGuest || existing.passwordHash)) {
       return NextResponse.json({ error: "Email already in use" }, { status: 400 });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const [user] = await db
-      .insert(users)
-      .values({
-        name,
-        email,
-        passwordHash,
-        role: "customer",
-      })
-      .returning();
+    let user;
+    if (existing?.isGuest) {
+      // Upgrade the guest stub — existing orders stay linked via userId.
+      [user] = await db
+        .update(users)
+        .set({
+          name,
+          passwordHash,
+          isGuest: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, existing.id))
+        .returning();
+    } else {
+      [user] = await db
+        .insert(users)
+        .values({
+          name,
+          email,
+          passwordHash,
+          role: "customer",
+        })
+        .returning();
+    }
 
     // Save address if provided
     if (address?.line1) {

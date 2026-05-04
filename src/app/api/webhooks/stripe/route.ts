@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, getWebhookSecret } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { orders, orderItems, products } from "@/lib/db/schema";
+import { orders, orderItems, products, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { logOrderAction } from "@/lib/order-audit";
@@ -124,6 +124,29 @@ export async function POST(request: NextRequest) {
       paymentIntentId: (session.payment_intent as string) || null,
       couponCode,
     });
+
+    // If checkout flagged "create account", fire verification email now that
+    // the user has actually paid. We POST to our own endpoint so rate-limit
+    // and token-issuance logic stays in one place.
+    if (metadata.triggerVerifyEmail === "true") {
+      try {
+        const [u] = await db
+          .select({ email: users.email, emailVerified: users.emailVerified })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (u && !u.emailVerified) {
+          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+          await fetch(`${baseUrl}/api/auth/verify-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: u.email }),
+          });
+        }
+      } catch (e) {
+        console.error("Failed to trigger post-checkout verify email:", e);
+      }
+    }
   }
 
   // Manual-order pay paths (admin charge OR customer pay link) emit payment_intent.succeeded

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, emailVerificationTokens } from "@/lib/db/schema";
+import { eq, and, gt } from "drizzle-orm";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/gmail";
 import { verifyEmailTemplate } from "@/lib/email-templates/verify-email";
 import { getSettings } from "@/lib/settings";
 
-// Simple token store — in production consider a DB table or Redis
-const tokens = new Map<string, { userId: string; email: string; expires: number }>();
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const RESEND_COOLDOWN_MS = 60 * 1000; // 1 per minute per user
 
 export async function POST(request: NextRequest) {
   const { email } = await request.json();
@@ -32,11 +32,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, alreadyVerified: true });
   }
 
+  // Rate limit: refuse if a token was issued in the last RESEND_COOLDOWN_MS
+  const recent = await db
+    .select({ createdAt: emailVerificationTokens.createdAt })
+    .from(emailVerificationTokens)
+    .where(eq(emailVerificationTokens.userId, user.id))
+    .orderBy(emailVerificationTokens.createdAt)
+    .limit(1);
+
+  const mostRecent = recent[recent.length - 1];
+  if (mostRecent && Date.now() - mostRecent.createdAt.getTime() < RESEND_COOLDOWN_MS) {
+    const secondsLeft = Math.ceil(
+      (RESEND_COOLDOWN_MS - (Date.now() - mostRecent.createdAt.getTime())) / 1000
+    );
+    return NextResponse.json(
+      { error: `Please wait ${secondsLeft}s before requesting another email.` },
+      { status: 429 }
+    );
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
-  tokens.set(token, {
+  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+
+  await db.insert(emailVerificationTokens).values({
+    token,
     userId: user.id,
     email,
-    expires: Date.now() + 24 * 60 * 60 * 1000,
+    expiresAt,
   });
 
   const settings = await getSettings();
@@ -67,18 +89,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=invalid-token", request.url));
   }
 
-  const data = tokens.get(token);
-  if (!data || data.expires < Date.now()) {
-    tokens.delete(token!);
+  const [row] = await db
+    .select()
+    .from(emailVerificationTokens)
+    .where(
+      and(
+        eq(emailVerificationTokens.token, token),
+        gt(emailVerificationTokens.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (!row) {
     return NextResponse.redirect(new URL("/login?error=expired-token", request.url));
   }
 
   await db
     .update(users)
     .set({ emailVerified: new Date() })
-    .where(eq(users.id, data.userId));
+    .where(eq(users.id, row.userId));
 
-  tokens.delete(token);
+  // Burn this and any other outstanding tokens for the user
+  await db
+    .delete(emailVerificationTokens)
+    .where(eq(emailVerificationTokens.userId, row.userId));
 
   return NextResponse.redirect(new URL("/login?verified=true", request.url));
 }

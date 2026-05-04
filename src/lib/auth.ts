@@ -59,10 +59,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .catch(() => {});
         }
       }
-      // Refresh emailVerified from DB on every token refresh
+      // Refresh emailVerified + isGuest from DB on every token refresh
       if (token.id) {
-        const [u] = await db.select({ emailVerified: users.emailVerified }).from(users).where(eq(users.id, token.id as string)).limit(1);
+        const [u] = await db
+          .select({ emailVerified: users.emailVerified, isGuest: users.isGuest })
+          .from(users)
+          .where(eq(users.id, token.id as string))
+          .limit(1);
         token.emailVerified = u?.emailVerified?.toISOString() || null;
+        token.isGuest = u?.isGuest ?? false;
       }
       if (account?.provider === "google") {
         const [existingUser] = await db
@@ -98,6 +103,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { emailVerified?: string | null }).emailVerified = token.emailVerified as string | null;
+        (session.user as { isGuest?: boolean }).isGuest = !!token.isGuest;
       }
       return session;
     },

@@ -89,11 +89,29 @@ export const users = pgTable("users", {
   phone: varchar("phone", { length: 20 }),
   avatarUrl: text("avatar_url"),
   emailVerified: timestamp("email_verified"),
+  isGuest: boolean("is_guest").default(false).notNull(),
   lastLoginAt: timestamp("last_login_at"),
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const emailVerificationTokens = pgTable(
+  "email_verification_tokens",
+  {
+    token: varchar("token", { length: 64 }).primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 255 }).notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("email_verification_tokens_user_idx").on(table.userId),
+    index("email_verification_tokens_expires_idx").on(table.expiresAt),
+  ]
+);
 
 export const addresses = pgTable("addresses", {
   id: uuid("id").defaultRandom().primaryKey(),

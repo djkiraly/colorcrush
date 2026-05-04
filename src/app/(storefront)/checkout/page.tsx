@@ -20,14 +20,22 @@ import { AlertTriangle, Mail } from "lucide-react";
 export default function CheckoutPage() {
   const { items, subtotal, taxAmount, discount, couponCode } = useCart();
   const selectedRate = useCartStore((s) => s.selectedRate);
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const siteConfig = useSiteSettings();
   const emailVerified = (session?.user as { emailVerified?: string | null })?.emailVerified;
+  const isGuestUser = (session?.user as { isGuest?: boolean })?.isGuest ?? false;
   const isVerified = !!emailVerified;
   const [resending, setResending] = useState(false);
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Guest checkout fields (shown only when no session)
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [createAccount, setCreateAccount] = useState(false);
+  const [guestPassword, setGuestPassword] = useState("");
+  const [guestError, setGuestError] = useState<string | null>(null);
 
   const [shipAddr, setShipAddr] = useState({
     street1: "",
@@ -72,6 +80,22 @@ export default function CheckoutPage() {
       toast.error("Please select a shipping option");
       return;
     }
+    if (!session?.user) {
+      // Guest validation
+      if (!guestEmail.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(guestEmail.trim())) {
+        setGuestError("Enter a valid email");
+        return;
+      }
+      if (!guestName.trim()) {
+        setGuestError("Enter your name");
+        return;
+      }
+      if (createAccount && guestPassword.length < 8) {
+        setGuestError("Password must be at least 8 characters");
+        return;
+      }
+      setGuestError(null);
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -91,11 +115,21 @@ export default function CheckoutPage() {
           couponCode,
           giftMessage: isGift ? giftMessage : undefined,
           isGift,
+          guest: !session?.user
+            ? {
+                email: guestEmail.trim(),
+                name: guestName.trim(),
+                createAccount,
+                password: createAccount ? guestPassword : undefined,
+              }
+            : undefined,
         }),
       });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.code === "ACCOUNT_EXISTS") {
+        setGuestError(data.error);
       } else {
         toast.error(data.error || "Failed to create checkout session");
       }
@@ -125,20 +159,25 @@ export default function CheckoutPage() {
     );
   }
 
-  const canPay = !!selectedRate && !!destination && (!session?.user || isVerified);
+  const guestFieldsValid =
+    !!session?.user ||
+    (!!guestEmail.trim() &&
+      !!guestName.trim() &&
+      (!createAccount || guestPassword.length >= 8));
+  const canPay = !!selectedRate && !!destination && guestFieldsValid;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-heading font-bold text-brand-secondary mb-8">Checkout</h1>
 
-      {session?.user && !isVerified && (
+      {session?.user && !isVerified && !isGuestUser && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-6 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <p className="font-medium text-yellow-800">Email verification required</p>
+            <p className="font-medium text-yellow-800">Email not verified</p>
             <p className="text-sm text-yellow-700 mt-1">
-              Please verify your email address before completing your purchase. Check your inbox for a
-              verification link.
+              You can still complete this order, but please verify your email so we can send you order
+              updates.
             </p>
             <Button
               variant="outline"
@@ -148,12 +187,17 @@ export default function CheckoutPage() {
               onClick={async () => {
                 setResending(true);
                 try {
-                  await fetch("/api/auth/verify-email", {
+                  const r = await fetch("/api/auth/verify-email", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email: session.user?.email }),
                   });
-                  toast.success("Verification email sent! Check your inbox.");
+                  if (r.ok) {
+                    toast.success("Verification email sent! Check your inbox.");
+                  } else {
+                    const data = await r.json().catch(() => ({}));
+                    toast.error(data.error || "Failed to resend");
+                  }
                 } catch {
                   toast.error("Failed to resend");
                 } finally {
@@ -165,6 +209,69 @@ export default function CheckoutPage() {
               {resending ? "Sending..." : "Resend Verification Email"}
             </Button>
           </div>
+        </div>
+      )}
+
+      {!session?.user && sessionStatus !== "loading" && (
+        <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-heading font-semibold">Contact</h2>
+            <Link
+              href="/login?next=/checkout"
+              className="text-sm text-brand-primary hover:underline"
+            >
+              Already have an account? Sign in
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="guest-email">Email</Label>
+              <Input
+                id="guest-email"
+                type="email"
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="guest-name">Full name</Label>
+              <Input
+                id="guest-name"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Jane Doe"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-4">
+            <Label htmlFor="create-account" className="cursor-pointer">
+              Create an account to track this order
+            </Label>
+            <Switch
+              id="create-account"
+              checked={createAccount}
+              onCheckedChange={setCreateAccount}
+            />
+          </div>
+          {createAccount && (
+            <div className="space-y-2 mt-3">
+              <Label htmlFor="guest-password">Password (min. 8 characters)</Label>
+              <Input
+                id="guest-password"
+                type="password"
+                value={guestPassword}
+                onChange={(e) => setGuestPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+              <p className="text-xs text-brand-text-muted">
+                We&apos;ll email you a verification link after checkout completes.
+              </p>
+            </div>
+          )}
+          {guestError && (
+            <p className="text-sm text-red-600 mt-3">{guestError}</p>
+          )}
         </div>
       )}
 
@@ -308,8 +415,8 @@ export default function CheckoutPage() {
                 ? "Enter Shipping Address"
                 : !selectedRate
                 ? "Select a Shipping Option"
-                : session?.user && !isVerified
-                ? "Verify Email to Continue"
+                : !guestFieldsValid
+                ? "Enter Contact Info"
                 : "Pay with Stripe"}
             </Button>
             <p className="text-xs text-brand-text-muted text-center mt-3">
