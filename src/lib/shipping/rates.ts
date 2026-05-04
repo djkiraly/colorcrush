@@ -145,8 +145,28 @@ export async function getShippingRates(
     estimatedDays?: number;
   }>;
 
+  console.log(
+    "[shipping/rates] raw rates from Shippo:",
+    rawRates.map(
+      (r) =>
+        `${r.provider}/${r.servicelevel?.token || r.servicelevel?.name}=$${r.amount}`
+    )
+  );
+  console.log(
+    "[shipping/rates] carriersEnabled:",
+    JSON.stringify(ship.carriersEnabled)
+  );
+
   const filtered = rawRates.filter((r) =>
     isCarrierEnabled(r.provider || "", ship.carriersEnabled)
+  );
+
+  console.log(
+    "[shipping/rates] filtered rates:",
+    filtered.map(
+      (r) =>
+        `${r.provider}/${r.servicelevel?.token || r.servicelevel?.name}=$${r.amount}`
+    )
   );
 
   const mapped: ShippingRateOption[] = filtered
