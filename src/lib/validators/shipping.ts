@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const shippingDestinationSchema = z.object({
+  name: z.string().optional(),
   street1: z.string().min(1, "Street address required"),
   street2: z.string().optional(),
   city: z.string().min(1, "City required"),

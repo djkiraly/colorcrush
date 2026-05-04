@@ -101,6 +101,7 @@ export async function getShippingRates(
       email: ship.origin.email || undefined,
     },
     addressTo: {
+      name: destination.name?.trim() || "Recipient",
       street1: destination.street1,
       street2: destination.street2 || undefined,
       city: destination.city,
