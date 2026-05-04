@@ -10,6 +10,7 @@ import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { ShippingBoxesManager } from "@/components/admin/shipping-boxes-manager";
 
 export default function AdminSettingsPage() {
   const { data: session } = useSession();
@@ -1135,6 +1136,14 @@ export default function AdminSettingsPage() {
               Reset
             </Button>
           </div>
+        </section>
+
+        {/* Shipping Boxes */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-lg">Shipping Boxes</h2>
+          </div>
+          <ShippingBoxesManager />
         </section>
 
         {/* Contact */}
