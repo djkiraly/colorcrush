@@ -21,9 +21,16 @@ export default function EditProductPage() {
   const [form, setForm] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
+  const [boxes, setBoxes] = useState<
+    { id: string; name: string; maxWeightOz: number; isActive: boolean }[]
+  >([]);
 
   useEffect(() => {
     fetch("/api/categories").then(r => r.json()).then(d => setCategories(d.categories || [])).catch(() => {});
+    fetch("/api/admin/shipping-boxes")
+      .then((r) => r.json())
+      .then((d) => setBoxes((d.boxes || []).filter((b: { isActive: boolean }) => b.isActive)))
+      .catch(() => {});
   }, []);
 
   const groupedCategories = (() => {
@@ -62,6 +69,7 @@ export default function EditProductPage() {
             : [],
           weight: data.weight || "",
           weightOz: data.weightOz != null ? String(data.weightOz) : "4",
+          defaultBoxId: data.defaultBoxId || "",
           tags: (data.tags || []).join(", "),
           allergens: (data.allergens || []).join(", "),
           ingredients: data.ingredients || "",
@@ -92,6 +100,7 @@ export default function EditProductPage() {
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
           weight: form.weight ? parseFloat(form.weight) : null,
           weightOz: form.weightOz ? parseInt(form.weightOz, 10) : 4,
+          defaultBoxId: form.defaultBoxId || null,
           categoryIds: form.categoryIds,
           tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a: string) => a.trim()) : [],
@@ -191,6 +200,26 @@ export default function EditProductPage() {
                 ⚠️ Using default weight — set actual weight for accurate shipping rates.
               </p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="defaultBoxId">Default shipping box</Label>
+            <select
+              id="defaultBoxId"
+              value={form.defaultBoxId || ""}
+              onChange={(e) => setForm({ ...form, defaultBoxId: e.target.value })}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+            >
+              <option value="">Auto (by weight)</option>
+              {boxes.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} (≤ {b.maxWeightOz} oz)
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-brand-text-muted">
+              Forces this product into the chosen carton when calculating shipping. Cart with mixed
+              products uses the largest declared box.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Manufacturer / Source</Label>

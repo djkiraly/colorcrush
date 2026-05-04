@@ -6,6 +6,7 @@ export interface CartItemForShipping {
   productId: string;
   weightOz: number;
   quantity: number;
+  defaultBoxId?: string | null;
 }
 
 export interface SelectedBox {
@@ -28,12 +29,18 @@ export function calculateCartWeightOz(
 }
 
 /**
- * Pick the smallest active box whose `maxWeightOz >= total cart weight`.
- * Falls back to the largest active box when nothing fits (caller can decide
- * whether to surface this — Shippo will still produce rates for over-weight
- * shipments, just based on the largest box's dimensions).
+ * Pick the box for a cart, in priority order:
  *
- * Returns `null` only when no active boxes exist in the database.
+ * 1. If any cart item declares a `defaultBoxId`, pick the largest declared box
+ *    by `maxWeightOz` (so a small + large product ships in the larger box).
+ *    If that declared box is still too small for total cart weight, escalate
+ *    to the smallest active box that fits.
+ * 2. Otherwise pick the smallest active box whose `maxWeightOz >= total cart
+ *    weight`.
+ * 3. If nothing fits, fall back to the largest active box (Shippo will still
+ *    quote — just on the largest available dims).
+ *
+ * Returns `null` only when no active boxes exist.
  */
 export async function selectBoxForCart(
   items: CartItemForShipping[],
@@ -49,8 +56,29 @@ export async function selectBoxForCart(
 
   if (boxes.length === 0) return null;
 
-  const fitting = boxes.find((b) => b.maxWeightOz >= totalWeightOz);
-  const chosen = fitting ?? boxes[boxes.length - 1];
+  const declaredIds = Array.from(
+    new Set(items.map((i) => i.defaultBoxId).filter((v): v is string => !!v))
+  );
+
+  let chosen: (typeof boxes)[number] | undefined;
+
+  if (declaredIds.length > 0) {
+    // Largest declared (still active) box — that's the carton everything goes in.
+    const declared = boxes
+      .filter((b) => declaredIds.includes(b.id))
+      .sort((a, b) => b.maxWeightOz - a.maxWeightOz)[0];
+
+    if (declared && declared.maxWeightOz >= totalWeightOz) {
+      chosen = declared;
+    } else {
+      // Declared box(es) can't carry the cart weight — escalate.
+      chosen = boxes.find((b) => b.maxWeightOz >= totalWeightOz);
+    }
+  } else {
+    chosen = boxes.find((b) => b.maxWeightOz >= totalWeightOz);
+  }
+
+  if (!chosen) chosen = boxes[boxes.length - 1];
 
   return {
     id: chosen.id,

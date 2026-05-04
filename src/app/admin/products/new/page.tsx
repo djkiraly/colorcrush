@@ -22,9 +22,16 @@ export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [boxes, setBoxes] = useState<
+    { id: string; name: string; maxWeightOz: number; isActive: boolean }[]
+  >([]);
 
   useEffect(() => {
     fetch("/api/categories").then(r => r.json()).then(d => setCategories(d.categories || [])).catch(() => {});
+    fetch("/api/admin/shipping-boxes")
+      .then((r) => r.json())
+      .then((d) => setBoxes((d.boxes || []).filter((b: { isActive: boolean }) => b.isActive)))
+      .catch(() => {});
   }, []);
   const [form, setForm] = useState({
     name: "",
@@ -35,6 +42,7 @@ export default function NewProductPage() {
     compareAtPrice: "",
     costPrice: "",
     weightOz: "4",
+    defaultBoxId: "",
     sku: "",
     manufacturer: "",
     weight: "",
@@ -67,6 +75,7 @@ export default function NewProductPage() {
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
           weight: form.weight ? parseFloat(form.weight) : null,
           weightOz: form.weightOz ? parseInt(form.weightOz, 10) : 4,
+          defaultBoxId: form.defaultBoxId || null,
           tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a) => a.trim()) : [],
           categoryIds: form.categoryIds,
@@ -181,6 +190,26 @@ export default function NewProductPage() {
                   ⚠️ Using default weight — set actual weight for accurate shipping rates.
                 </p>
               )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultBoxId">Default shipping box</Label>
+              <select
+                id="defaultBoxId"
+                value={form.defaultBoxId}
+                onChange={(e) => setForm({ ...form, defaultBoxId: e.target.value })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+              >
+                <option value="">Auto (by weight)</option>
+                {boxes.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} (≤ {b.maxWeightOz} oz)
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-brand-text-muted">
+                Forces this product into the chosen carton when calculating shipping. Cart with mixed
+                products uses the largest declared box.
+              </p>
             </div>
           </div>
           <div className="space-y-2">

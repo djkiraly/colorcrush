@@ -26,17 +26,25 @@ export async function POST(request: NextRequest) {
     const productIds = parsed.items.map((i) => i.productId);
     const productRows = productIds.length
       ? await db
-          .select({ id: products.id, weightOz: products.weightOz })
+          .select({
+            id: products.id,
+            weightOz: products.weightOz,
+            defaultBoxId: products.defaultBoxId,
+          })
           .from(products)
           .where(inArray(products.id, productIds))
       : [];
-    const weightById = new Map(productRows.map((p) => [p.id, p.weightOz]));
+    const productById = new Map(productRows.map((p) => [p.id, p]));
 
-    const cartItems = parsed.items.map((i) => ({
-      productId: i.productId,
-      quantity: i.quantity,
-      weightOz: weightById.get(i.productId) ?? defaultWeight,
-    }));
+    const cartItems = parsed.items.map((i) => {
+      const p = productById.get(i.productId);
+      return {
+        productId: i.productId,
+        quantity: i.quantity,
+        weightOz: p?.weightOz ?? defaultWeight,
+        defaultBoxId: p?.defaultBoxId ?? null,
+      };
+    });
 
     const rates = await getShippingRates(cartItems, parsed.destination);
     return NextResponse.json({ rates });

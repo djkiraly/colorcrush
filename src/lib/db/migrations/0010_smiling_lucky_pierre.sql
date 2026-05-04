@@ -1,0 +1,2 @@
+ALTER TABLE "products" ADD COLUMN "default_box_id" uuid;--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_default_box_id_shipping_boxes_id_fk" FOREIGN KEY ("default_box_id") REFERENCES "public"."shipping_boxes"("id") ON DELETE set null ON UPDATE no action;

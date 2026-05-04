@@ -164,6 +164,9 @@ export const products = pgTable(
     manufacturer: varchar("manufacturer", { length: 255 }),
     weight: decimal("weight", { precision: 8, scale: 2 }),
     weightOz: integer("weight_oz").notNull().default(4),
+    defaultBoxId: uuid("default_box_id").references(() => shippingBoxes.id, {
+      onDelete: "set null",
+    }),
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",
     }),
