@@ -6,6 +6,7 @@ import {
   type CartItemForShipping,
 } from "@/lib/shipping/box-selector";
 import type { ShippingDestination } from "@/lib/validators/shipping";
+import { ShippingRatesError } from "@/lib/shipping/errors";
 
 export interface ShippingRateOption {
   rateId: string;
@@ -69,13 +70,25 @@ export async function getShippingRates(
   // Live-rate path via Shippo
   const box = await selectBoxForCart(items, ship.defaultProductWeightOz);
   if (!box) {
-    throw new Error("No active shipping boxes configured");
+    throw new ShippingRatesError(
+      "No active shipping boxes configured. Add or activate a box in admin settings.",
+      true
+    );
+  }
+
+  if (!ship.origin?.street1 || !ship.origin?.city || !ship.origin?.state || !ship.origin?.zip) {
+    throw new ShippingRatesError(
+      "Origin (ship-from) address is not fully configured.",
+      true
+    );
   }
 
   const totalWeightLb = Math.max(0.01, totalWeightOz / 16);
   const weightLb = (Math.round(totalWeightLb * 100) / 100).toFixed(2);
 
-  const shipment = await shippo.shipments.create({
+  let shipment;
+  try {
+    shipment = await shippo.shipments.create({
     addressFrom: {
       name: ship.origin.name,
       street1: ship.origin.street1,
@@ -107,6 +120,22 @@ export async function getShippingRates(
     ],
     async: false,
   });
+  } catch (err) {
+    console.error("[shipping/rates] Shippo SDK error:", err);
+    throw new ShippingRatesError(
+      "Could not retrieve shipping rates from the carrier. Please verify your address.",
+      true
+    );
+  }
+
+  const messages = (shipment as { messages?: Array<{ text?: string; source?: string }> })
+    .messages;
+  if (Array.isArray(messages) && messages.length > 0) {
+    console.warn(
+      "[shipping/rates] Shippo returned messages:",
+      messages.map((m) => `${m.source || "?"}: ${m.text || ""}`).join(" | ")
+    );
+  }
 
   const rawRates = (shipment.rates ?? []) as Array<{
     objectId?: string;
@@ -132,6 +161,21 @@ export async function getShippingRates(
     }))
     .filter((r) => r.rateId && r.amountCents > 0)
     .sort((a, b) => a.amountCents - b.amountCents);
+
+  if (mapped.length === 0) {
+    // No rates from any enabled carrier. Surface the cause if Shippo gave us one.
+    const carrierIssues = (messages || [])
+      .map((m) => m.text)
+      .filter(Boolean)
+      .join("; ");
+    if (carrierIssues) {
+      console.warn("[shipping/rates] No usable rates; carrier messages:", carrierIssues);
+    }
+    throw new ShippingRatesError(
+      "No shipping options are available for this address. Please verify the address or contact support.",
+      true
+    );
+  }
 
   return mapped;
 }

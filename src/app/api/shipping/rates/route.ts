@@ -5,6 +5,7 @@ import { inArray } from "drizzle-orm";
 import { shippingRateRequestSchema } from "@/lib/validators/shipping";
 import { getShippingRates } from "@/lib/shipping/rates";
 import { getSettings } from "@/lib/settings";
+import { ShippingRatesError } from "@/lib/shipping/errors";
 
 export async function POST(request: NextRequest) {
   let parsed;
@@ -41,11 +42,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ rates });
   } catch (err) {
     console.error("[shipping/rates]", err);
-    const message = err instanceof Error ? err.message : "Failed to fetch shipping rates";
-    // Sanitize: never leak Shippo internals to the client
-    const safe = /SHIPPO_API_KEY|shippo|address|zip/i.test(message)
-      ? "Could not retrieve shipping rates. Please verify your address and try again."
-      : message;
-    return NextResponse.json({ error: safe }, { status: 400 });
+    if (err instanceof ShippingRatesError && err.safe) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    return NextResponse.json(
+      { error: "Could not retrieve shipping rates. Please verify your address and try again." },
+      { status: 400 }
+    );
   }
 }
