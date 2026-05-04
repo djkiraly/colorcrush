@@ -24,7 +24,7 @@ export function CartDrawer() {
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <ShoppingBag className="h-16 w-16 text-brand-text-muted mb-4" />
             <p className="text-lg font-medium mb-2">Your cart is empty</p>
             <p className="text-brand-text-muted mb-6">
@@ -41,12 +41,12 @@ export function CartDrawer() {
         ) : (
           <>
             {freeShippingRemaining > 0 && (
-              <div className="bg-brand-mint/30 rounded-lg px-4 py-2 text-sm text-center">
+              <div className="mx-4 bg-brand-mint/30 rounded-lg px-4 py-2 text-sm text-center">
                 Add <strong>${freeShippingRemaining.toFixed(2)}</strong> more for free shipping!
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto space-y-4 py-4">
+            <div className="flex-1 overflow-y-auto space-y-4 px-4 py-4">
               {items.map((item) => (
                 <div key={item.productId} className="flex gap-3 items-start">
                   <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
@@ -105,7 +105,7 @@ export function CartDrawer() {
               ))}
             </div>
 
-            <div className="border-t pt-4 space-y-2">
+            <div className="border-t px-4 pt-4 pb-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-brand-text-secondary">Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
