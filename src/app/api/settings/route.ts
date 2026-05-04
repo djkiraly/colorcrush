@@ -68,6 +68,7 @@ export async function PUT(request: NextRequest) {
     "maintenanceMode",
     "colors",
     "shipping",
+    "announcementBar",
   ];
 
   if (!allowedKeys.includes(key)) {
