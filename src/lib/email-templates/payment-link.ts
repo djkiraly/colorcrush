@@ -1,5 +1,4 @@
-import { emailLayout, ctaButton } from "./base";
-import { siteConfig } from "../../../site.config";
+import { emailLayout, ctaButton, loadEmailSettings } from "./base";
 
 interface PaymentLinkData {
   customerName: string;
@@ -13,7 +12,9 @@ interface PaymentLinkData {
   expiresAt: Date;
 }
 
-export function paymentLinkEmail(data: PaymentLinkData): string {
+export async function paymentLinkEmail(data: PaymentLinkData): Promise<string> {
+  const s = await loadEmailSettings();
+
   const itemRows = data.items
     .map(
       (item) => `
@@ -35,8 +36,9 @@ export function paymentLinkEmail(data: PaymentLinkData): string {
   });
 
   return emailLayout(
+    s,
     `
-    <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:${siteConfig.colors.secondary};font-size:22px;">
+    <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:${s.colors.secondary};font-size:22px;">
       Your order is ready for payment
     </h2>
     <p style="color:#6B7280;font-size:14px;line-height:1.6;">
@@ -57,10 +59,10 @@ export function paymentLinkEmail(data: PaymentLinkData): string {
       <tr><td style="font-size:14px;color:#6B7280;padding:4px 0;">Subtotal</td><td style="text-align:right;font-size:14px;">$${data.subtotal.toFixed(2)}</td></tr>
       <tr><td style="font-size:14px;color:#6B7280;padding:4px 0;">Shipping</td><td style="text-align:right;font-size:14px;">${data.shippingCost === 0 ? "FREE" : `$${data.shippingCost.toFixed(2)}`}</td></tr>
       <tr><td style="font-size:14px;color:#6B7280;padding:4px 0;">Tax</td><td style="text-align:right;font-size:14px;">$${data.taxAmount.toFixed(2)}</td></tr>
-      <tr><td style="font-size:16px;font-weight:700;color:${siteConfig.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">Total Due</td><td style="text-align:right;font-size:16px;font-weight:700;color:${siteConfig.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">$${data.total.toFixed(2)}</td></tr>
+      <tr><td style="font-size:16px;font-weight:700;color:${s.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">Total Due</td><td style="text-align:right;font-size:16px;font-weight:700;color:${s.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">$${data.total.toFixed(2)}</td></tr>
     </table>
 
-    ${ctaButton("Review & Pay", data.payUrl)}
+    ${ctaButton(s, "Review & Pay", data.payUrl)}
 
     <p style="color:#9CA3AF;font-size:12px;line-height:1.6;text-align:center;">
       This payment link expires on ${expiresFmt}.<br>

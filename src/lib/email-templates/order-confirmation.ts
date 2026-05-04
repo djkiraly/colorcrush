@@ -1,5 +1,4 @@
-import { emailLayout, ctaButton } from "./base";
-import { siteConfig } from "../../../site.config";
+import { emailLayout, ctaButton, loadEmailSettings } from "./base";
 
 interface OrderConfirmationData {
   customerName: string;
@@ -12,7 +11,9 @@ interface OrderConfirmationData {
   orderId: string;
 }
 
-export function orderConfirmationEmail(data: OrderConfirmationData): string {
+export async function orderConfirmationEmail(data: OrderConfirmationData): Promise<string> {
+  const s = await loadEmailSettings();
+
   const itemRows = data.items
     .map(
       (item) => `
@@ -25,8 +26,9 @@ export function orderConfirmationEmail(data: OrderConfirmationData): string {
     .join("");
 
   return emailLayout(
+    s,
     `
-    <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:${siteConfig.colors.secondary};font-size:22px;">
+    <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:${s.colors.secondary};font-size:22px;">
       Thank you for your order!
     </h2>
     <p style="color:#6B7280;font-size:14px;line-height:1.6;">
@@ -47,10 +49,10 @@ export function orderConfirmationEmail(data: OrderConfirmationData): string {
       <tr><td style="font-size:14px;color:#6B7280;padding:4px 0;">Subtotal</td><td style="text-align:right;font-size:14px;">$${data.subtotal.toFixed(2)}</td></tr>
       <tr><td style="font-size:14px;color:#6B7280;padding:4px 0;">Shipping</td><td style="text-align:right;font-size:14px;">${data.shippingCost === 0 ? "FREE" : `$${data.shippingCost.toFixed(2)}`}</td></tr>
       <tr><td style="font-size:14px;color:#6B7280;padding:4px 0;">Tax</td><td style="text-align:right;font-size:14px;">$${data.taxAmount.toFixed(2)}</td></tr>
-      <tr><td style="font-size:16px;font-weight:700;color:${siteConfig.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">Total</td><td style="text-align:right;font-size:16px;font-weight:700;color:${siteConfig.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">$${data.total.toFixed(2)}</td></tr>
+      <tr><td style="font-size:16px;font-weight:700;color:${s.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">Total</td><td style="text-align:right;font-size:16px;font-weight:700;color:${s.colors.primary};padding:12px 0 0;border-top:2px solid #E5E7EB;">$${data.total.toFixed(2)}</td></tr>
     </table>
 
-    ${ctaButton("View Order", `${siteConfig.url}/account/orders/${data.orderId}`)}
+    ${ctaButton(s, "View Order", `${s.url}/account/orders/${data.orderId}`)}
     `,
     `Your order ${data.orderNumber} has been confirmed!`
   );

@@ -7,16 +7,17 @@ import { orderConfirmationEmail } from "@/lib/email-templates/order-confirmation
 import { orderShippedEmail } from "@/lib/email-templates/order-shipped";
 import { orderDeliveredEmail } from "@/lib/email-templates/order-delivered";
 import { lowStockAlertEmail } from "@/lib/email-templates/low-stock-alert";
-import { siteConfig } from "../../site.config";
+import { getSettings } from "@/lib/settings";
 
 /**
  * Send welcome email to a newly registered customer.
  */
 export async function sendWelcomeEmail(userId: string, email: string, name: string) {
-  const html = welcomeEmail(name);
+  const settings = await getSettings();
+  const html = await welcomeEmail(name);
   await sendEmail({
     to: email,
-    subject: `Welcome to ${siteConfig.name}!`,
+    subject: `Welcome to ${settings.name}!`,
     html,
     templateName: "welcome",
     userId,
@@ -42,7 +43,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
 
-  const html = orderConfirmationEmail({
+  const html = await orderConfirmationEmail({
     customerName: user.name,
     orderNumber: order.orderNumber,
     items: items.map((i) => ({
@@ -81,7 +82,7 @@ export async function sendOrderShippedEmail(
   const [user] = await db.select().from(users).where(eq(users.id, order.userId)).limit(1);
   if (!user) return;
 
-  const html = orderShippedEmail({
+  const html = await orderShippedEmail({
     customerName: user.name,
     orderNumber: order.orderNumber,
     trackingNumber: trackingNumber || order.shippoTrackingNumber || "",
@@ -110,7 +111,7 @@ export async function sendOrderDeliveredEmail(orderId: string) {
   const [user] = await db.select().from(users).where(eq(users.id, order.userId)).limit(1);
   if (!user) return;
 
-  const html = orderDeliveredEmail({
+  const html = await orderDeliveredEmail({
     customerName: user.name,
     orderNumber: order.orderNumber,
     orderId: order.id,
@@ -148,7 +149,8 @@ export async function sendLowStockAlerts() {
 
   if (lowStockItems.length === 0) return;
 
-  const html = lowStockAlertEmail(
+  const settings = await getSettings();
+  const html = await lowStockAlertEmail(
     lowStockItems.map((i) => ({
       name: i.name,
       sku: i.sku,
@@ -158,7 +160,7 @@ export async function sendLowStockAlerts() {
   );
 
   await sendEmail({
-    to: siteConfig.contact.email,
+    to: settings.contact.email,
     subject: `Low Stock Alert — ${lowStockItems.length} product(s)`,
     html,
     templateName: "low-stock-alert",

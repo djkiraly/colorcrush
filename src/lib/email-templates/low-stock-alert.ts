@@ -1,5 +1,4 @@
-import { emailLayout, ctaButton } from "./base";
-import { siteConfig } from "../../../site.config";
+import { emailLayout, ctaButton, loadEmailSettings } from "./base";
 
 interface LowStockItem {
   name: string;
@@ -8,7 +7,9 @@ interface LowStockItem {
   threshold: number;
 }
 
-export function lowStockAlertEmail(items: LowStockItem[]): string {
+export async function lowStockAlertEmail(items: LowStockItem[]): Promise<string> {
+  const s = await loadEmailSettings();
+
   const rows = items
     .map(
       (item) => `
@@ -22,6 +23,7 @@ export function lowStockAlertEmail(items: LowStockItem[]): string {
     .join("");
 
   return emailLayout(
+    s,
     `
     <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:#EF4444;font-size:22px;">
       Low Stock Alert
@@ -40,7 +42,7 @@ export function lowStockAlertEmail(items: LowStockItem[]): string {
       ${rows}
     </table>
 
-    ${ctaButton("View Inventory", `${siteConfig.url}/admin/inventory`)}
+    ${ctaButton(s, "View Inventory", `${s.url}/admin/inventory`)}
     `,
     `${items.length} product(s) are running low on stock`
   );

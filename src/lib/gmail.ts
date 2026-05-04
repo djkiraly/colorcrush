@@ -3,6 +3,7 @@ import { siteConfig } from "../../site.config";
 import { db } from "@/lib/db";
 import { emailLog, siteSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getSettings } from "@/lib/settings";
 
 interface GmailSettings {
   clientId: string;
@@ -90,9 +91,10 @@ export async function sendEmail({
 }: SendEmailOptions): Promise<boolean> {
   try {
     const { gmail, sendFrom } = await getGmailClient();
+    const settings = await getSettings();
 
     const message = [
-      `From: ${siteConfig.name} <${sendFrom}>`,
+      `From: ${settings.name} <${sendFrom}>`,
       `To: ${to}`,
       `Subject: ${subject}`,
       "MIME-Version: 1.0",

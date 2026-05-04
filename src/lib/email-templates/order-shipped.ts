@@ -1,5 +1,4 @@
-import { emailLayout, ctaButton } from "./base";
-import { siteConfig } from "../../../site.config";
+import { emailLayout, ctaButton, loadEmailSettings } from "./base";
 
 interface OrderShippedData {
   customerName: string;
@@ -10,14 +9,17 @@ interface OrderShippedData {
   trackingUrl?: string | null;
 }
 
-export function orderShippedEmail(data: OrderShippedData): string {
+export async function orderShippedEmail(data: OrderShippedData): Promise<string> {
+  const s = await loadEmailSettings();
+
   const trackingDisplay = data.trackingUrl
-    ? `<a href="${data.trackingUrl}" style="color:${siteConfig.colors.primary};text-decoration:underline;font-weight:600;">${data.trackingNumber}</a>`
+    ? `<a href="${data.trackingUrl}" style="color:${s.colors.primary};text-decoration:underline;font-weight:600;">${data.trackingNumber}</a>`
     : `<strong>${data.trackingNumber}</strong>`;
 
   return emailLayout(
+    s,
     `
-    <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:${siteConfig.colors.secondary};font-size:22px;">
+    <h2 style="margin:0 0 16px;font-family:'Poppins',Arial,sans-serif;color:${s.colors.secondary};font-size:22px;">
       Your order is on its way!
     </h2>
     <p style="color:#6B7280;font-size:14px;line-height:1.6;">
@@ -35,8 +37,9 @@ export function orderShippedEmail(data: OrderShippedData): string {
     </div>
 
     ${ctaButton(
+      s,
       data.trackingUrl ? "Track Shipment" : "View Order",
-      data.trackingUrl || `${siteConfig.url}/account/orders/${data.orderId}`
+      data.trackingUrl || `${s.url}/account/orders/${data.orderId}`
     )}
     `,
     `Your order ${data.orderNumber} has shipped!`

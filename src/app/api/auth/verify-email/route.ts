@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/gmail";
 import { verifyEmailTemplate } from "@/lib/email-templates/verify-email";
-import { siteConfig } from "../../../../../site.config";
+import { getSettings } from "@/lib/settings";
 
 // Simple token store — in production consider a DB table or Redis
 const tokens = new Map<string, { userId: string; email: string; expires: number }>();
@@ -39,13 +39,14 @@ export async function POST(request: NextRequest) {
     expires: Date.now() + 24 * 60 * 60 * 1000,
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || siteConfig.url;
+  const settings = await getSettings();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || settings.url;
   const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
 
-  const html = verifyEmailTemplate(user.name, verifyUrl);
+  const html = await verifyEmailTemplate(user.name, verifyUrl);
   sendEmail({
     to: email,
-    subject: `Verify your email — ${siteConfig.name}`,
+    subject: `Verify your email — ${settings.name}`,
     html,
     templateName: "verify-email",
     userId: user.id,

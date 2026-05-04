@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/gmail";
 import { paymentLinkEmail } from "@/lib/email-templates/payment-link";
 import { logOrderAction } from "@/lib/order-audit";
-import { siteConfig } from "../../../site.config";
+import { getSettings } from "@/lib/settings";
 
 const TOKEN_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
@@ -13,8 +13,9 @@ export function generatePaymentLinkToken(): string {
   return crypto.randomBytes(32).toString("base64url");
 }
 
-export function buildPayUrl(token: string): string {
-  return `${siteConfig.url}/pay/${token}`;
+export async function buildPayUrl(token: string): Promise<string> {
+  const settings = await getSettings();
+  return `${settings.url}/pay/${token}`;
 }
 
 /**
@@ -58,8 +59,8 @@ export async function issuePaymentLink(orderId: string, adminId: string | undefi
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
 
-  const payUrl = buildPayUrl(token);
-  const html = paymentLinkEmail({
+  const payUrl = await buildPayUrl(token);
+  const html = await paymentLinkEmail({
     customerName: user.name,
     orderNumber: order.orderNumber,
     items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: parseFloat(i.unitPrice) })),
