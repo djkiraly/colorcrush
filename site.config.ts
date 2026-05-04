@@ -38,8 +38,31 @@ export const siteConfig = {
   currency: "USD",
   locale: "en-US",
   taxRate: 0.08,
-  freeShippingThreshold: 50,
+  // Disabled — Shippo provides live rates per shipment. The sentinel makes any
+  // `subtotal >= threshold` check fail so "free shipping" UI never triggers.
+  freeShippingThreshold: Number.MAX_SAFE_INTEGER,
+
   shippingRates: { standard: 5.99, express: 12.99, overnight: 24.99 },
+
+  // ═══ SHIPPING (Shippo) ═══
+  shipping: {
+    flatRateThresholdOz: 32,
+    flatRateCents: 699,
+    flatRateLabel: "Standard Shipping",
+    defaultProductWeightOz: 4,
+    carriersEnabled: { usps: true, ups: true, fedex: true },
+    origin: {
+      name: "Color Crush Candy Co.",
+      street1: "1605 Gentry Blvd",
+      street2: "",
+      city: "Gering",
+      state: "NE",
+      zip: "69341",
+      country: "US",
+      phone: "", // TODO: fill in business phone
+      email: "hello@colorcrushcandy.com",
+    },
+  },
 
   // ═══ SOCIAL ═══
   social: {
@@ -67,7 +90,27 @@ export const siteConfig = {
   },
 } as const;
 
-export type SiteConfig = typeof siteConfig & {
+export type ShippingConfig = {
+  flatRateThresholdOz: number;
+  flatRateCents: number;
+  flatRateLabel: string;
+  defaultProductWeightOz: number;
+  carriersEnabled: { usps: boolean; ups: boolean; fedex: boolean };
+  origin: {
+    name: string;
+    street1: string;
+    street2: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    phone: string;
+    email: string;
+  };
+};
+
+export type SiteConfig = Omit<typeof siteConfig, "shipping"> & {
+  shipping: ShippingConfig;
   logoUrl?: string;
   faviconUrl?: string;
   maintenanceMode?: {

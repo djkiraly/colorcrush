@@ -84,8 +84,9 @@ export async function sendOrderShippedEmail(
   const html = orderShippedEmail({
     customerName: user.name,
     orderNumber: order.orderNumber,
-    trackingNumber,
-    trackingCarrier,
+    trackingNumber: trackingNumber || order.shippoTrackingNumber || "",
+    trackingCarrier: trackingCarrier || order.shippingCarrier || "",
+    trackingUrl: order.shippoTrackingUrl || null,
     orderId: order.id,
   });
 

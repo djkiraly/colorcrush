@@ -55,9 +55,15 @@ export async function POST(request: NextRequest) {
       const orderNumber = `SH-${date.toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
 
       const subtotal = (session.amount_total || 0) / 100;
-      const shippingCost = (session.total_details?.amount_shipping || 0) / 100;
       const taxAmount = (session.total_details?.amount_tax || 0) / 100;
       const total = subtotal;
+
+      // Shipping cost comes from the Shippo line item we passed in metadata
+      const shippingRateCents = parseInt(metadata.shippingRateCents || "0", 10);
+      const shippingCost = shippingRateCents / 100;
+      const shippingEstimatedDays = metadata.shippingEstimatedDays
+        ? parseInt(metadata.shippingEstimatedDays, 10)
+        : null;
 
       const [order] = await db
         .insert(orders)
@@ -71,6 +77,11 @@ export async function POST(request: NextRequest) {
           discountAmount: discountAmount.toFixed(2),
           total: total.toFixed(2),
           shippingMethod: "standard",
+          shippingCarrier: metadata.shippingCarrier || null,
+          shippingService: metadata.shippingService || null,
+          shippingRateCents: shippingRateCents || null,
+          shippingEstimatedDays,
+          shippoRateId: metadata.shippoRateId || null,
           stripeSessionId: session.id,
           stripePaymentIntentId: session.payment_intent as string,
           isGift: metadata.isGift === "true",

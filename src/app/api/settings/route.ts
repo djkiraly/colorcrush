@@ -67,6 +67,7 @@ export async function PUT(request: NextRequest) {
     "privacyPolicy",
     "maintenanceMode",
     "colors",
+    "shipping",
   ];
 
   if (!allowedKeys.includes(key)) {

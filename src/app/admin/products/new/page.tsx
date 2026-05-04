@@ -34,6 +34,7 @@ export default function NewProductPage() {
     price: "",
     compareAtPrice: "",
     costPrice: "",
+    weightOz: "4",
     sku: "",
     manufacturer: "",
     weight: "",
@@ -65,6 +66,7 @@ export default function NewProductPage() {
           compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
           weight: form.weight ? parseFloat(form.weight) : null,
+          weightOz: form.weightOz ? parseInt(form.weightOz, 10) : 4,
           tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a) => a.trim()) : [],
           categoryIds: form.categoryIds,
@@ -162,6 +164,23 @@ export default function NewProductPage() {
             <div className="space-y-2">
               <Label htmlFor="weight">Weight per item (oz)</Label>
               <Input id="weight" type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="weightOz">Shipping weight (oz)</Label>
+              <Input
+                id="weightOz"
+                type="number"
+                step="1"
+                min="0"
+                value={form.weightOz}
+                onChange={(e) => setForm({ ...form, weightOz: e.target.value })}
+                placeholder="4"
+              />
+              {(!form.weightOz || parseInt(form.weightOz, 10) === 0) && (
+                <p className="text-xs text-amber-700">
+                  ⚠️ Using default weight — set actual weight for accurate shipping rates.
+                </p>
+              )}
             </div>
           </div>
           <div className="space-y-2">

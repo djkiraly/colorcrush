@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCart } from "@/hooks/use-cart";
+import { useCartStore } from "@/stores/cart-store";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,30 +10,68 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+import { ShippingRateSelector } from "@/components/storefront/checkout/shipping-rate-selector";
+import type { ShippingDestination } from "@/lib/validators/shipping";
 import { toast } from "sonner";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { AlertTriangle, Mail } from "lucide-react";
 
 export default function CheckoutPage() {
-  const { items, subtotal, shippingCost, taxAmount, total, discount, couponCode } = useCart();
+  const { items, subtotal, taxAmount, discount, couponCode } = useCart();
+  const selectedRate = useCartStore((s) => s.selectedRate);
   const { data: session } = useSession();
   const siteConfig = useSiteSettings();
   const emailVerified = (session?.user as { emailVerified?: string | null })?.emailVerified;
   const isVerified = !!emailVerified;
   const [resending, setResending] = useState(false);
-  const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "overnight">("standard");
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const shippingOptions = [
-    { id: "standard", label: "Standard (5-7 business days)", price: siteConfig.shippingRates.standard },
-    { id: "express", label: "Express (2-3 business days)", price: siteConfig.shippingRates.express },
-    { id: "overnight", label: "Overnight (1 business day)", price: siteConfig.shippingRates.overnight },
-  ];
+  const [shipAddr, setShipAddr] = useState({
+    street1: "",
+    street2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "US",
+  });
+
+  const destination: ShippingDestination | null = useMemo(() => {
+    if (
+      !shipAddr.street1.trim() ||
+      !shipAddr.city.trim() ||
+      shipAddr.state.length !== 2 ||
+      shipAddr.zip.length < 5
+    ) {
+      return null;
+    }
+    return {
+      street1: shipAddr.street1.trim(),
+      street2: shipAddr.street2.trim() || undefined,
+      city: shipAddr.city.trim(),
+      state: shipAddr.state.toUpperCase(),
+      zip: shipAddr.zip.trim(),
+      country: "US",
+    };
+  }, [shipAddr]);
+
+  const cartLines = useMemo(
+    () => items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+    [items]
+  );
+
+  const shippingCostCents = selectedRate?.amountCents ?? 0;
+  const shippingCost = shippingCostCents / 100;
+  const total =
+    Math.max(0, subtotal - discount) + shippingCost + (subtotal - discount) * siteConfig.taxRate;
 
   const handleCheckout = async () => {
+    if (!selectedRate) {
+      toast.error("Please select a shipping option");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -40,7 +79,15 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-          shippingMethod,
+          shippingMethod: "standard", // legacy field; carrier/service comes from selectedRate
+          shippingRate: {
+            rateId: selectedRate.rateId,
+            carrier: selectedRate.carrier,
+            service: selectedRate.service,
+            amountCents: selectedRate.amountCents,
+            estimatedDays: selectedRate.estimatedDays,
+          },
+          shippingAddress: destination,
           couponCode,
           giftMessage: isGift ? giftMessage : undefined,
           isGift,
@@ -66,18 +113,23 @@ export default function CheckoutPage() {
         <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-2">
           Your cart is empty
         </h1>
-        <Link href="/products" className={buttonVariants({ className: "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 mt-4" })}>
+        <Link
+          href="/products"
+          className={buttonVariants({
+            className: "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 mt-4",
+          })}
+        >
           Shop Now
         </Link>
       </div>
     );
   }
 
+  const canPay = !!selectedRate && !!destination && (!session?.user || isVerified);
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-heading font-bold text-brand-secondary mb-8">
-        Checkout
-      </h1>
+      <h1 className="text-3xl font-heading font-bold text-brand-secondary mb-8">Checkout</h1>
 
       {session?.user && !isVerified && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-6 flex items-start gap-3">
@@ -85,7 +137,8 @@ export default function CheckoutPage() {
           <div className="flex-1">
             <p className="font-medium text-yellow-800">Email verification required</p>
             <p className="text-sm text-yellow-700 mt-1">
-              Please verify your email address before completing your purchase. Check your inbox for a verification link.
+              Please verify your email address before completing your purchase. Check your inbox for a
+              verification link.
             </p>
             <Button
               variant="outline"
@@ -117,38 +170,63 @@ export default function CheckoutPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-3 space-y-6">
-          {/* Shipping Method */}
+          {/* Shipping Address */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-heading font-semibold mb-4">Shipping Address</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="street1">Street address</Label>
+                <Input
+                  id="street1"
+                  value={shipAddr.street1}
+                  onChange={(e) => setShipAddr({ ...shipAddr, street1: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="street2">Apartment, suite (optional)</Label>
+                <Input
+                  id="street2"
+                  value={shipAddr.street2}
+                  onChange={(e) => setShipAddr({ ...shipAddr, street2: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={shipAddr.city}
+                  onChange={(e) => setShipAddr({ ...shipAddr, city: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  maxLength={2}
+                  placeholder="NE"
+                  value={shipAddr.state}
+                  onChange={(e) => setShipAddr({ ...shipAddr, state: e.target.value.toUpperCase() })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="zip">ZIP</Label>
+                <Input
+                  id="zip"
+                  value={shipAddr.zip}
+                  onChange={(e) => setShipAddr({ ...shipAddr, zip: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input id="country" value={shipAddr.country} disabled />
+              </div>
+            </div>
+          </div>
+
+          {/* Shipping Method (live rates) */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <h2 className="text-lg font-heading font-semibold mb-4">Shipping Method</h2>
-            <div className="space-y-3">
-              {shippingOptions.map((opt) => (
-                <label
-                  key={opt.id}
-                  className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-colors ${
-                    shippingMethod === opt.id
-                      ? "border-brand-primary bg-brand-primary/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shipping"
-                      value={opt.id}
-                      checked={shippingMethod === opt.id}
-                      onChange={() => setShippingMethod(opt.id as "standard" | "express" | "overnight")}
-                      className="accent-brand-primary"
-                    />
-                    <span className="text-sm font-medium">{opt.label}</span>
-                  </div>
-                  <span className="font-semibold text-sm">
-                    {subtotal >= siteConfig.freeShippingThreshold && opt.id === "standard"
-                      ? "FREE"
-                      : `$${opt.price.toFixed(2)}`}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <ShippingRateSelector destination={destination} items={cartLines} />
           </div>
 
           {/* Gift Options */}
@@ -192,9 +270,7 @@ export default function CheckoutPage() {
         {/* Summary */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl p-6 shadow-sm sticky top-20 sm:top-24">
-            <h2 className="text-lg font-heading font-semibold text-brand-secondary mb-4">
-              Summary
-            </h2>
+            <h2 className="text-lg font-heading font-semibold text-brand-secondary mb-4">Summary</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-brand-text-secondary">Subtotal</span>
@@ -208,7 +284,9 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-brand-text-secondary">Shipping</span>
-                <span>{shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}</span>
+                <span>
+                  {selectedRate ? `$${shippingCost.toFixed(2)}` : "—"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-brand-text-secondary">Tax</span>
@@ -221,10 +299,18 @@ export default function CheckoutPage() {
             </div>
             <Button
               onClick={handleCheckout}
-              disabled={loading || (!!session?.user && !isVerified)}
+              disabled={loading || !canPay}
               className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white h-12 text-base mt-4"
             >
-              {loading ? "Redirecting..." : (session?.user && !isVerified) ? "Verify Email to Continue" : "Pay with Stripe"}
+              {loading
+                ? "Redirecting..."
+                : !destination
+                ? "Enter Shipping Address"
+                : !selectedRate
+                ? "Select a Shipping Option"
+                : session?.user && !isVerified
+                ? "Verify Email to Continue"
+                : "Pay with Stripe"}
             </Button>
             <p className="text-xs text-brand-text-muted text-center mt-3">
               You&apos;ll be redirected to Stripe for secure payment

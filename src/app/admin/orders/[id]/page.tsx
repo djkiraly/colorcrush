@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { Clock, UserCircle, ArrowRight, Send, FileText, MessageSquare, ShoppingCart } from "lucide-react";
 import { ManualOrderActions } from "@/components/admin/ManualOrderActions";
+import { PrintLabelButton } from "@/components/admin/orders/print-label-button";
 
 const ORDER_STATUSES = ["draft", "pending_payment", "pending", "confirmed", "paid_offline", "processing", "shipped", "delivered", "cancelled", "refunded"];
 
@@ -221,6 +222,40 @@ export default function AdminOrderDetailPage() {
               {updating ? "Updating..." : "Update Order"}
             </Button>
           </div>
+          )}
+
+          {/* Shipping (carrier/service/label) */}
+          {(order.shippingCarrier || order.shippoRateId) && (
+            <div className="bg-white rounded-xl p-6 shadow-sm space-y-3">
+              <h2 className="font-heading font-semibold">Shipping</h2>
+              {order.shippingCarrier && (
+                <div className="text-sm">
+                  <span className="text-brand-text-muted">Carrier:</span>{" "}
+                  <span className="font-medium uppercase">{order.shippingCarrier}</span>
+                </div>
+              )}
+              {order.shippingService && (
+                <div className="text-sm">
+                  <span className="text-brand-text-muted">Service:</span>{" "}
+                  <span className="font-medium">{order.shippingService}</span>
+                </div>
+              )}
+              {order.shippingRateCents != null && (
+                <div className="text-sm">
+                  <span className="text-brand-text-muted">Rate:</span>{" "}
+                  <span className="font-medium">
+                    ${(order.shippingRateCents / 100).toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <PrintLabelButton
+                orderId={order.id}
+                hasLabel={!!order.shippoTransactionId}
+                labelUrl={order.shippoLabelUrl}
+                trackingNumber={order.shippoTrackingNumber || order.trackingNumber}
+                trackingUrl={order.shippoTrackingUrl}
+              />
+            </div>
           )}
 
           {/* Shipping Address */}

@@ -34,6 +34,26 @@ export type SiteSettingsOverrides = {
     wishlist?: boolean;
     loyaltyPoints?: boolean;
   };
+  shipping?: {
+    flatRateThresholdOz?: number;
+    flatRateCents?: number;
+    carriersEnabled?: {
+      usps?: boolean;
+      ups?: boolean;
+      fedex?: boolean;
+    };
+    origin?: {
+      name?: string;
+      street1?: string;
+      street2?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      country?: string;
+      phone?: string;
+      email?: string;
+    };
+  };
   maintenanceMode?: {
     enabled?: boolean;
     heading?: string;

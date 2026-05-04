@@ -1,12 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem } from "@/types";
+import type { ShippingRateOption } from "@/lib/shipping/rates";
 
 interface CartStore {
   items: CartItem[];
   couponCode: string | null;
   couponDiscount: number;
   isOpen: boolean;
+  selectedRate: ShippingRateOption | null;
 
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeItem: (productId: string) => void;
@@ -14,6 +16,7 @@ interface CartStore {
   clearCart: () => void;
   setOpen: (open: boolean) => void;
   setCoupon: (code: string | null, discount: number) => void;
+  setSelectedRate: (rate: ShippingRateOption | null) => void;
 
   totalItems: () => number;
   subtotal: () => number;
@@ -26,6 +29,7 @@ export const useCartStore = create<CartStore>()(
       couponCode: null,
       couponDiscount: 0,
       isOpen: false,
+      selectedRate: null,
 
       addItem: (item, quantity = 1) => {
         set((state) => {
@@ -39,15 +43,20 @@ export const useCartStore = create<CartStore>()(
                   ? { ...i, quantity: i.quantity + quantity }
                   : i
               ),
+              selectedRate: null,
             };
           }
-          return { items: [...state.items, { ...item, quantity }] };
+          return {
+            items: [...state.items, { ...item, quantity }],
+            selectedRate: null,
+          };
         });
       },
 
       removeItem: (productId) => {
         set((state) => ({
           items: state.items.filter((i) => i.productId !== productId),
+          selectedRate: null,
         }));
       },
 
@@ -60,17 +69,20 @@ export const useCartStore = create<CartStore>()(
           items: state.items.map((i) =>
             i.productId === productId ? { ...i, quantity } : i
           ),
+          selectedRate: null,
         }));
       },
 
       clearCart: () => {
-        set({ items: [], couponCode: null, couponDiscount: 0 });
+        set({ items: [], couponCode: null, couponDiscount: 0, selectedRate: null });
       },
 
       setOpen: (open) => set({ isOpen: open }),
 
       setCoupon: (code, discount) =>
         set({ couponCode: code, couponDiscount: discount }),
+
+      setSelectedRate: (rate) => set({ selectedRate: rate }),
 
       totalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 

@@ -7,6 +7,7 @@ import {
   boolean,
   integer,
   decimal,
+  numeric,
   jsonb,
   pgEnum,
   uniqueIndex,
@@ -144,6 +145,7 @@ export const products = pgTable(
     barcode: varchar("barcode", { length: 100 }),
     manufacturer: varchar("manufacturer", { length: 255 }),
     weight: decimal("weight", { precision: 8, scale: 2 }),
+    weightOz: integer("weight_oz").notNull().default(4),
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",
     }),
@@ -284,6 +286,15 @@ export const orders = pgTable(
     paymentLinkExpiresAt: timestamp("payment_link_expires_at"),
     paymentLinkSentAt: timestamp("payment_link_sent_at"),
     taxOverride: decimal("tax_override", { precision: 10, scale: 2 }),
+    shippingCarrier: text("shipping_carrier"),
+    shippingService: text("shipping_service"),
+    shippingRateCents: integer("shipping_rate_cents"),
+    shippingEstimatedDays: integer("shipping_estimated_days"),
+    shippoRateId: text("shippo_rate_id"),
+    shippoTransactionId: text("shippo_transaction_id"),
+    shippoLabelUrl: text("shippo_label_url"),
+    shippoTrackingNumber: text("shippo_tracking_number"),
+    shippoTrackingUrl: text("shippo_tracking_url"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -423,6 +434,21 @@ export const siteSettings = pgTable("site_settings", {
   value: jsonb("value").notNull(),
   updatedBy: uuid("updated_by").references(() => users.id),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ═══ SHIPPING BOXES ═══
+
+export const shippingBoxes = pgTable("shipping_boxes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  lengthIn: numeric("length_in", { precision: 5, scale: 2 }).notNull(),
+  widthIn: numeric("width_in", { precision: 5, scale: 2 }).notNull(),
+  heightIn: numeric("height_in", { precision: 5, scale: 2 }).notNull(),
+  maxWeightOz: integer("max_weight_oz").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // ═══ SCHEDULED ALERTS (admin reminders) ═══

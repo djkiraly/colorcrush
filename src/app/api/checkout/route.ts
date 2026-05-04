@@ -5,23 +5,48 @@ import { products, coupons } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { siteConfig } from "../../../../site.config";
 
+interface SelectedRateInput {
+  rateId: string;
+  carrier: string;
+  service: string;
+  amountCents: number;
+  estimatedDays: number | null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { items, shippingMethod, couponCode, giftMessage, isGift, userId } = body;
+    const {
+      items,
+      couponCode,
+      giftMessage,
+      isGift,
+      userId,
+      shippingRate,
+    }: {
+      items: { productId: string; quantity: number }[];
+      couponCode?: string;
+      giftMessage?: string;
+      isGift?: boolean;
+      userId?: string;
+      shippingRate?: SelectedRateInput;
+    } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
+    if (!shippingRate || !shippingRate.rateId) {
+      return NextResponse.json({ error: "Shipping option not selected" }, { status: 400 });
+    }
 
     // Fetch products
-    const productIds = items.map((i: { productId: string }) => i.productId);
+    const productIds = items.map((i) => i.productId);
     const productRows = await db
       .select()
       .from(products)
       .where(inArray(products.id, productIds));
 
-    const lineItems = items.map((item: { productId: string; quantity: number }) => {
+    const lineItems = items.map((item) => {
       const product = productRows.find((p) => p.id === item.productId);
       if (!product) throw new Error(`Product ${item.productId} not found`);
 
@@ -48,7 +73,7 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (coupon && coupon.isActive) {
-        const subtotal = items.reduce((sum: number, item: { productId: string; quantity: number }) => {
+        const subtotal = items.reduce((sum, item) => {
           const product = productRows.find((p) => p.id === item.productId);
           return sum + (product ? parseFloat(product.price) * item.quantity : 0);
         }, 0);
@@ -61,36 +86,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Shipping
-    const shippingRate = siteConfig.shippingRates[shippingMethod as keyof typeof siteConfig.shippingRates] || siteConfig.shippingRates.standard;
-
-    const shippingOptions = [
-      {
-        shipping_rate_data: {
-          type: "fixed_amount" as const,
-          fixed_amount: {
-            amount: Math.round(shippingRate * 100),
-            currency: siteConfig.currency.toLowerCase(),
-          },
-          display_name: shippingMethod === "express" ? "Express Shipping" : shippingMethod === "overnight" ? "Overnight Shipping" : "Standard Shipping",
-          delivery_estimate: {
-            minimum: { unit: "business_day" as const, value: shippingMethod === "overnight" ? 1 : shippingMethod === "express" ? 2 : 5 },
-            maximum: { unit: "business_day" as const, value: shippingMethod === "overnight" ? 1 : shippingMethod === "express" ? 3 : 7 },
-          },
+    // Shipping line item from selected Shippo (or flat) rate
+    const shippingLineItem = {
+      price_data: {
+        currency: siteConfig.currency.toLowerCase(),
+        product_data: {
+          name:
+            shippingRate.carrier === "flat"
+              ? `Shipping — ${shippingRate.service}`
+              : `Shipping — ${shippingRate.carrier.toUpperCase()} ${shippingRate.service}`,
         },
+        unit_amount: shippingRate.amountCents,
       },
-    ];
+      quantity: 1,
+    };
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: lineItems,
-      shipping_options: shippingOptions,
+      line_items: [...lineItems, shippingLineItem],
       metadata: {
         userId: userId || "",
         couponCode: couponCode || "",
         giftMessage: giftMessage || "",
         isGift: isGift ? "true" : "false",
         discountAmount: discountAmount.toFixed(2),
+        shippoRateId: shippingRate.rateId,
+        shippingCarrier: shippingRate.carrier,
+        shippingService: shippingRate.service,
+        shippingRateCents: String(shippingRate.amountCents),
+        shippingEstimatedDays:
+          shippingRate.estimatedDays != null ? String(shippingRate.estimatedDays) : "",
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,

@@ -40,6 +40,22 @@ export default function AdminSettingsPage() {
     express: "",
     overnight: "",
   });
+  const [shippoSettings, setShippoSettings] = useState({
+    flatRateCents: "699",
+    flatRateThresholdOz: "32",
+    carriersEnabled: { usps: true, ups: true, fedex: true },
+    origin: {
+      name: "",
+      street1: "",
+      street2: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "US",
+      phone: "",
+      email: "",
+    },
+  });
   const [contact, setContact] = useState({
     email: "",
     phone: "",
@@ -135,6 +151,28 @@ export default function AdminSettingsPage() {
           express: String(m.shippingRates.express),
           overnight: String(m.shippingRates.overnight),
         });
+        if (m.shipping) {
+          setShippoSettings({
+            flatRateCents: String(m.shipping.flatRateCents),
+            flatRateThresholdOz: String(m.shipping.flatRateThresholdOz),
+            carriersEnabled: {
+              usps: !!m.shipping.carriersEnabled?.usps,
+              ups: !!m.shipping.carriersEnabled?.ups,
+              fedex: !!m.shipping.carriersEnabled?.fedex,
+            },
+            origin: {
+              name: m.shipping.origin?.name || "",
+              street1: m.shipping.origin?.street1 || "",
+              street2: m.shipping.origin?.street2 || "",
+              city: m.shipping.origin?.city || "",
+              state: m.shipping.origin?.state || "",
+              zip: m.shipping.origin?.zip || "",
+              country: m.shipping.origin?.country || "US",
+              phone: m.shipping.origin?.phone || "",
+              email: m.shipping.origin?.email || "",
+            },
+          });
+        }
         setContact({ ...m.contact });
         setSocial({ ...m.social });
         setFeatures({ ...m.features });
@@ -254,6 +292,16 @@ export default function AdminSettingsPage() {
           express: String(defaults.shippingRates.express),
           overnight: String(defaults.shippingRates.overnight),
         });
+        break;
+      case "shipping":
+        if (defaults.shipping) {
+          setShippoSettings({
+            flatRateCents: String(defaults.shipping.flatRateCents),
+            flatRateThresholdOz: String(defaults.shipping.flatRateThresholdOz),
+            carriersEnabled: { ...defaults.shipping.carriersEnabled },
+            origin: { ...defaults.shipping.origin },
+          });
+        }
         break;
       case "contact":
         setContact({ ...defaults.contact });
@@ -857,6 +905,230 @@ export default function AdminSettingsPage() {
             <Button
               variant="outline"
               onClick={() => resetKey("shippingRates")}
+              disabled={saving !== null}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+          </div>
+        </section>
+
+        {/* Shipping (Shippo) */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-lg">Shipping (Shippo)</h2>
+            {isOverridden("shipping") && (
+              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                Modified
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            Live carrier rates and flat-rate fallback. The Shippo API key and test-mode flag stay in
+            environment variables — they are never read from the database.
+          </p>
+
+          {/* Flat-rate */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
+              <Label>Flat-rate threshold (oz)</Label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={shippoSettings.flatRateThresholdOz}
+                onChange={(e) =>
+                  setShippoSettings({ ...shippoSettings, flatRateThresholdOz: e.target.value })
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                Carts at or below this weight skip the carrier API and use the flat rate.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Flat-rate price ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={(parseInt(shippoSettings.flatRateCents || "0", 10) / 100).toFixed(2)}
+                onChange={(e) =>
+                  setShippoSettings({
+                    ...shippoSettings,
+                    flatRateCents: String(Math.round((parseFloat(e.target.value) || 0) * 100)),
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          {/* Carriers */}
+          <div className="mb-6">
+            <Label className="mb-3 block">Carriers shown for live rates</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(["usps", "ups", "fedex"] as const).map((key) => (
+                <label
+                  key={key}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                >
+                  <span className="text-sm font-medium uppercase">{key}</span>
+                  <Switch
+                    checked={shippoSettings.carriersEnabled[key]}
+                    onCheckedChange={(checked) =>
+                      setShippoSettings({
+                        ...shippoSettings,
+                        carriersEnabled: {
+                          ...shippoSettings.carriersEnabled,
+                          [key]: checked,
+                        },
+                      })
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Origin address */}
+          <div>
+            <Label className="mb-3 block">Origin (ship-from address)</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label>Business name</Label>
+                <Input
+                  value={shippoSettings.origin.name}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, name: e.target.value },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Street address</Label>
+                <Input
+                  value={shippoSettings.origin.street1}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, street1: e.target.value },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Suite / unit (optional)</Label>
+                <Input
+                  value={shippoSettings.origin.street2}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, street2: e.target.value },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>City</Label>
+                <Input
+                  value={shippoSettings.origin.city}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, city: e.target.value },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>State</Label>
+                <Input
+                  maxLength={2}
+                  value={shippoSettings.origin.state}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: {
+                        ...shippoSettings.origin,
+                        state: e.target.value.toUpperCase(),
+                      },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>ZIP</Label>
+                <Input
+                  value={shippoSettings.origin.zip}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, zip: e.target.value },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Country</Label>
+                <Input
+                  value={shippoSettings.origin.country}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, country: e.target.value.toUpperCase() },
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  value={shippoSettings.origin.phone}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, phone: e.target.value },
+                    })
+                  }
+                  placeholder="Required for some carriers (e.g. FedEx)"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={shippoSettings.origin.email}
+                  onChange={(e) =>
+                    setShippoSettings({
+                      ...shippoSettings,
+                      origin: { ...shippoSettings.origin, email: e.target.value },
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <Button
+              onClick={() =>
+                saveKey("shipping", {
+                  flatRateCents: parseInt(shippoSettings.flatRateCents, 10) || 0,
+                  flatRateThresholdOz: parseInt(shippoSettings.flatRateThresholdOz, 10) || 0,
+                  carriersEnabled: shippoSettings.carriersEnabled,
+                  origin: shippoSettings.origin,
+                })
+              }
+              disabled={saving !== null}
+              className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Shipping
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => resetKey("shipping")}
               disabled={saving !== null}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
