@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, getWebhookSecret } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { orders, orderItems, inventory, inventoryLog, coupons, products } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { orders, orderItems, products } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import Stripe from "stripe";
-import { sendOrderConfirmationEmail, sendLowStockAlerts } from "@/lib/email-notifications";
 import { logOrderAction } from "@/lib/order-audit";
+import { finalizeOrderAfterPayment } from "@/lib/admin-orders/finalize";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -15,11 +15,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const webhookSecret = await getWebhookSecret();
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -28,40 +24,47 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
-    // Check idempotency
+    // Idempotency: did we already create an order for this session?
     const existingOrders = await db
-      .select({ id: orders.id })
+      .select({ id: orders.id, paidAt: orders.paidAt })
       .from(orders)
       .where(eq(orders.stripeSessionId, session.id))
       .limit(1);
 
-    if (existingOrders.length > 0) {
+    if (existingOrders.length > 0 && existingOrders[0].paidAt) {
       return NextResponse.json({ received: true });
     }
 
     const metadata = session.metadata || {};
     const userId = metadata.userId;
-    const couponCode = metadata.couponCode;
+    const couponCode = metadata.couponCode || null;
     const discountAmount = parseFloat(metadata.discountAmount || "0");
 
-    // Get line items
-    const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+    if (!userId) {
+      // Self-checkout requires a userId in metadata
+      return NextResponse.json({ received: true });
+    }
 
-    const date = new Date();
-    const orderNumber = `SH-${date.toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
+    // Build the order if it doesn't exist yet (self-checkout path).
+    let orderId = existingOrders[0]?.id;
 
-    const subtotal = (session.amount_total || 0) / 100;
-    const shippingCost = (session.total_details?.amount_shipping || 0) / 100;
-    const taxAmount = (session.total_details?.amount_tax || 0) / 100;
-    const total = subtotal;
+    if (!orderId) {
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
 
-    if (userId) {
+      const date = new Date();
+      const orderNumber = `SH-${date.toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
+
+      const subtotal = (session.amount_total || 0) / 100;
+      const shippingCost = (session.total_details?.amount_shipping || 0) / 100;
+      const taxAmount = (session.total_details?.amount_tax || 0) / 100;
+      const total = subtotal;
+
       const [order] = await db
         .insert(orders)
         .values({
           orderNumber,
           userId,
-          status: "confirmed",
+          status: "pending_payment", // bumped to confirmed by finalize
           subtotal: (subtotal - shippingCost - taxAmount + discountAmount).toFixed(2),
           shippingCost: shippingCost.toFixed(2),
           taxAmount: taxAmount.toFixed(2),
@@ -75,9 +78,9 @@ export async function POST(request: NextRequest) {
         })
         .returning();
 
-      // Create order items and decrement inventory
+      orderId = order.id;
+
       for (const item of lineItems.data) {
-        // Find matching product by name
         const [product] = await db
           .select()
           .from(products)
@@ -93,54 +96,48 @@ export async function POST(request: NextRequest) {
             unitPrice: product.price,
             totalPrice: ((item.quantity || 1) * parseFloat(product.price)).toFixed(2),
           });
-
-          // Decrement inventory
-          await db
-            .update(inventory)
-            .set({
-              quantity: sql`${inventory.quantity} - ${item.quantity || 1}`,
-              updatedAt: new Date(),
-            })
-            .where(eq(inventory.productId, product.id));
-
-          // Log inventory change
-          const [inv] = await db
-            .select()
-            .from(inventory)
-            .where(eq(inventory.productId, product.id))
-            .limit(1);
-
-          if (inv) {
-            await db.insert(inventoryLog).values({
-              productId: product.id,
-              previousQty: inv.quantity + (item.quantity || 1),
-              newQty: inv.quantity,
-              changeReason: "sale",
-              notes: `Order ${orderNumber}`,
-            });
-          }
         }
       }
 
-      // Update coupon usage
-      if (couponCode) {
-        await db
-          .update(coupons)
-          .set({ usedCount: sql`${coupons.usedCount} + 1` })
-          .where(eq(coupons.code, couponCode.toUpperCase()));
-      }
-
-      // Audit log for order creation
-      logOrderAction({
+      await logOrderAction({
         orderId: order.id,
         action: "order_created",
         details: `Order ${orderNumber} created via Stripe checkout`,
-        newValue: "confirmed",
+        newValue: "pending_payment",
       }).catch(() => {});
+    }
 
-      // Send order confirmation and check low stock (fire-and-forget)
-      sendOrderConfirmationEmail(order.id).catch(() => {});
-      sendLowStockAlerts().catch(() => {});
+    await finalizeOrderAfterPayment(orderId, {
+      method: "stripe_checkout",
+      sessionId: session.id,
+      paymentIntentId: (session.payment_intent as string) || null,
+      couponCode,
+    });
+  }
+
+  // Manual-order pay paths (admin charge OR customer pay link) emit payment_intent.succeeded
+  if (event.type === "payment_intent.succeeded") {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    const orderId = intent.metadata?.orderId;
+    const mode = intent.metadata?.mode;
+
+    if (orderId && (mode === "admin_charge" || mode === "customer_pay")) {
+      await finalizeOrderAfterPayment(orderId, {
+        method: mode === "admin_charge" ? "stripe_admin_charge" : "stripe_customer_pay",
+        paymentIntentId: intent.id,
+      });
+    }
+  }
+
+  if (event.type === "payment_intent.payment_failed") {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    const orderId = intent.metadata?.orderId;
+    if (orderId) {
+      await logOrderAction({
+        orderId,
+        action: "order_payment_failed",
+        details: intent.last_payment_error?.message || "Payment failed",
+      }).catch(() => {});
     }
   }
 

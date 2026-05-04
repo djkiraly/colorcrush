@@ -23,8 +23,11 @@ export const userRoleEnum = pgEnum("user_role", [
   "super_admin",
 ]);
 export const orderStatusEnum = pgEnum("order_status", [
+  "draft",
+  "pending_payment",
   "pending",
   "confirmed",
+  "paid_offline",
   "processing",
   "shipped",
   "delivered",
@@ -86,6 +89,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   emailVerified: timestamp("email_verified"),
   lastLoginAt: timestamp("last_login_at"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -103,6 +107,7 @@ export const addresses = pgTable("addresses", {
   zip: varchar("zip", { length: 20 }).notNull(),
   country: varchar("country", { length: 2 }).default("US").notNull(),
   isDefault: boolean("is_default").default(false).notNull(),
+  isGuest: boolean("is_guest").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -262,6 +267,23 @@ export const orders = pgTable(
     deliveredAt: timestamp("delivered_at"),
     cancelledAt: timestamp("cancelled_at"),
     cancelReason: text("cancel_reason"),
+    createdByAdminId: uuid("created_by_admin_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    paymentMethod: varchar("payment_method", { length: 30 }),
+    offlinePaymentNotes: text("offline_payment_notes"),
+    paidAt: timestamp("paid_at"),
+    manualDiscountAmount: decimal("manual_discount_amount", {
+      precision: 10,
+      scale: 2,
+    })
+      .default("0")
+      .notNull(),
+    manualDiscountReason: text("manual_discount_reason"),
+    paymentLinkToken: varchar("payment_link_token", { length: 64 }),
+    paymentLinkExpiresAt: timestamp("payment_link_expires_at"),
+    paymentLinkSentAt: timestamp("payment_link_sent_at"),
+    taxOverride: decimal("tax_override", { precision: 10, scale: 2 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -269,6 +291,7 @@ export const orders = pgTable(
     index("orders_user_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
     index("orders_created_idx").on(table.createdAt),
+    uniqueIndex("orders_payment_link_token_idx").on(table.paymentLinkToken),
   ]
 );
 
@@ -279,14 +302,15 @@ export const orderItems = pgTable(
     orderId: uuid("order_id")
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
-    productId: uuid("product_id")
-      .notNull()
-      .references(() => products.id),
+    productId: uuid("product_id").references(() => products.id),
     productName: varchar("product_name", { length: 255 }).notNull(),
     productImage: text("product_image"),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
     totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+    isCustom: boolean("is_custom").default(false).notNull(),
+    customDescription: text("custom_description"),
+    priceOverride: boolean("price_override").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("order_items_order_idx").on(table.orderId)]

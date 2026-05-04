@@ -129,7 +129,15 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-6">Orders</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-heading font-bold text-brand-secondary">Orders</h1>
+        <Link
+          href="/admin/orders/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-2 text-sm font-medium"
+        >
+          + Create Order
+        </Link>
+      </div>
       <DataTable
         columns={columns}
         data={orders}

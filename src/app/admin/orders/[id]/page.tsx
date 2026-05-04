@@ -11,8 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Clock, UserCircle, ArrowRight, Send, FileText, MessageSquare, ShoppingCart } from "lucide-react";
+import { ManualOrderActions } from "@/components/admin/ManualOrderActions";
 
-const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"];
+const ORDER_STATUSES = ["draft", "pending_payment", "pending", "confirmed", "paid_offline", "processing", "shipped", "delivered", "cancelled", "refunded"];
+
+const PRE_PAYMENT_STATUSES = new Set(["draft", "pending_payment"]);
 
 export default function AdminOrderDetailPage() {
   const params = useParams();
@@ -25,22 +28,24 @@ export default function AdminOrderDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [auditLog, setAuditLog] = useState<any[]>([]);
 
+  async function fetchOrder() {
+    const [orderRes, auditRes] = await Promise.all([
+      fetch(`/api/orders/${params.id}`),
+      fetch(`/api/orders/${params.id}/audit`),
+    ]);
+    const data = await orderRes.json();
+    setOrder(data);
+    setNewStatus(data.status);
+    setTrackingNumber(data.trackingNumber || "");
+    setTrackingCarrier(data.trackingCarrier || "");
+    setNotes(data.notes || "");
+    if (auditRes.ok) setAuditLog(await auditRes.json());
+    setLoading(false);
+  }
+
   useEffect(() => {
-    async function fetchOrder() {
-      const [orderRes, auditRes] = await Promise.all([
-        fetch(`/api/orders/${params.id}`),
-        fetch(`/api/orders/${params.id}/audit`),
-      ]);
-      const data = await orderRes.json();
-      setOrder(data);
-      setNewStatus(data.status);
-      setTrackingNumber(data.trackingNumber || "");
-      setTrackingCarrier(data.trackingCarrier || "");
-      setNotes(data.notes || "");
-      if (auditRes.ok) setAuditLog(await auditRes.json());
-      setLoading(false);
-    }
     fetchOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const handleUpdateStatus = async () => {
@@ -181,6 +186,11 @@ export default function AdminOrderDetailPage() {
 
         {/* Actions */}
         <div className="space-y-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <ManualOrderActions order={order} onChange={fetchOrder} />
+          </div>
+
+          {!PRE_PAYMENT_STATUSES.has(order.status) && (
           <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
             <h2 className="font-heading font-semibold">Update Order</h2>
             <div className="space-y-2">
@@ -211,6 +221,7 @@ export default function AdminOrderDetailPage() {
               {updating ? "Updating..." : "Update Order"}
             </Button>
           </div>
+          )}
 
           {/* Shipping Address */}
           {order.shippingAddress && (
