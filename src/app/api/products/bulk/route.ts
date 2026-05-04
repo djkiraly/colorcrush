@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, categories, inventory } from "@/lib/db/schema";
+import { products, categories, inventory, shippingBoxes } from "@/lib/db/schema";
 import { eq, asc, inArray } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
@@ -17,6 +17,7 @@ export async function GET() {
       costPrice: products.costPrice,
       manufacturer: products.manufacturer,
       weight: products.weight,
+      defaultBoxId: products.defaultBoxId,
       categoryId: products.categoryId,
       shortDescription: products.shortDescription,
       description: products.description,
@@ -49,7 +50,21 @@ export async function GET() {
     .from(categories)
     .orderBy(asc(categories.name));
 
-  return NextResponse.json({ products: withStock, categories: allCategories });
+  const allBoxes = await db
+    .select({
+      id: shippingBoxes.id,
+      name: shippingBoxes.name,
+      maxWeightOz: shippingBoxes.maxWeightOz,
+      isActive: shippingBoxes.isActive,
+    })
+    .from(shippingBoxes)
+    .orderBy(asc(shippingBoxes.sortOrder), asc(shippingBoxes.maxWeightOz));
+
+  return NextResponse.json({
+    products: withStock,
+    categories: allCategories,
+    boxes: allBoxes,
+  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -78,6 +93,7 @@ export async function PUT(request: NextRequest) {
         costPrice: item.costPrice ? String(item.costPrice) : null,
         manufacturer: item.manufacturer || null,
         weight: item.weight ? String(item.weight) : null,
+        defaultBoxId: item.defaultBoxId || null,
         categoryId: item.categoryId || null,
         shortDescription: item.shortDescription || null,
         description: item.description || null,

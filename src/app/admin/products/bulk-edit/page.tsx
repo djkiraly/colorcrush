@@ -19,6 +19,7 @@ interface Product {
   costPrice: string | null;
   manufacturer: string | null;
   weight: string | null;
+  defaultBoxId: string | null;
   categoryId: string | null;
   shortDescription: string | null;
   description: string | null;
@@ -36,10 +37,18 @@ interface Category {
   name: string;
 }
 
+interface ShippingBox {
+  id: string;
+  name: string;
+  maxWeightOz: number;
+  isActive: boolean;
+}
+
 export default function BulkEditPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [boxes, setBoxes] = useState<ShippingBox[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState<Set<string>>(new Set());
@@ -52,6 +61,7 @@ export default function BulkEditPage() {
         const data = await res.json();
         setProducts(data.products);
         setCategories(data.categories);
+        setBoxes((data.boxes || []).filter((b: ShippingBox) => b.isActive));
       }
       setLoading(false);
     }
@@ -174,6 +184,7 @@ export default function BulkEditPage() {
                 <th className="px-3 py-3 font-medium min-w-[90px]">Cost</th>
                 <th className="px-3 py-3 font-medium min-w-[140px]">Manufacturer</th>
                 <th className="px-3 py-3 font-medium min-w-[80px]">Weight</th>
+                <th className="px-3 py-3 font-medium min-w-[160px]">Default Box</th>
                 <th className="px-3 py-3 font-medium min-w-[80px]">Stock</th>
                 <th className="px-3 py-3 font-medium min-w-[140px]">Category</th>
                 <th className="px-3 py-3 font-medium w-14 text-center">Active</th>
@@ -187,6 +198,7 @@ export default function BulkEditPage() {
                   key={p.id}
                   product={p}
                   categories={categories}
+                  boxes={boxes}
                   expanded={expandedRows.has(p.id)}
                   isDirty={dirty.has(p.id)}
                   onToggleExpand={() => toggleExpanded(p.id)}
@@ -204,6 +216,7 @@ export default function BulkEditPage() {
 function ProductRow({
   product,
   categories,
+  boxes,
   expanded,
   isDirty,
   onToggleExpand,
@@ -211,6 +224,7 @@ function ProductRow({
 }: {
   product: Product;
   categories: Category[];
+  boxes: ShippingBox[];
   expanded: boolean;
   isDirty: boolean;
   onToggleExpand: () => void;
@@ -304,6 +318,22 @@ function ProductRow({
           />
         </td>
         <td className="px-3 py-2">
+          <select
+            value={p.defaultBoxId || ""}
+            onChange={(e) =>
+              onChange(id, "defaultBoxId", e.target.value || null)
+            }
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="">Auto (by weight)</option>
+            {boxes.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} (≤ {b.maxWeightOz} oz)
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="px-3 py-2">
           <Input
             type="number"
             step="1"
@@ -353,7 +383,7 @@ function ProductRow({
       {expanded && (
         <tr className={`border-b ${isDirty ? "bg-brand-primary/5" : "bg-gray-50/50"}`}>
           <td></td>
-          <td colSpan={11} className="px-3 py-3">
+          <td colSpan={12} className="px-3 py-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-brand-text-muted">
