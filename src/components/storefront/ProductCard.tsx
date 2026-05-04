@@ -7,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
 import { useCartStore } from "@/stores/cart-store";
-import { useSession } from "next-auth/react";
-import { AuthPromptModal } from "./AuthPromptModal";
 import { toast } from "sonner";
-import { useState } from "react";
-import type { CartItem } from "@/types";
 
 interface ProductCardProps {
   product: {
@@ -32,9 +28,6 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
-  const { data: session } = useSession();
-  const [authPromptOpen, setAuthPromptOpen] = useState(false);
-  const [pendingItem, setPendingItem] = useState<{ item: Omit<CartItem, "quantity">; quantity: number } | null>(null);
   const price = parseFloat(product.price);
   const comparePrice = product.compareAtPrice
     ? parseFloat(product.compareAtPrice)
@@ -51,12 +44,6 @@ export function ProductCard({ product }: ProductCardProps) {
       image: product.image || "",
       slug: product.slug,
     };
-
-    if (!session?.user) {
-      setPendingItem({ item, quantity: 1 });
-      setAuthPromptOpen(true);
-      return;
-    }
 
     addItem(item);
     setCartOpen(true);
@@ -158,11 +145,6 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
       </div>
 
-      <AuthPromptModal
-        open={authPromptOpen}
-        onClose={() => setAuthPromptOpen(false)}
-        pendingItem={pendingItem}
-      />
     </Link>
   );
 }

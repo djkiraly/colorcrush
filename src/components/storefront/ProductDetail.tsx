@@ -11,10 +11,7 @@ import { StarRating } from "./StarRating";
 import { QuantitySelector } from "./QuantitySelector";
 import { ProductReviews } from "./ProductReviews";
 import { useCartStore } from "@/stores/cart-store";
-import { useSession } from "next-auth/react";
-import { AuthPromptModal } from "./AuthPromptModal";
 import { toast } from "sonner";
-import type { CartItem } from "@/types";
 
 interface ProductDetailProps {
   product: {
@@ -42,11 +39,8 @@ interface ProductDetailProps {
 export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [authPromptOpen, setAuthPromptOpen] = useState(false);
-  const [pendingItem, setPendingItem] = useState<{ item: Omit<CartItem, "quantity">; quantity: number } | null>(null);
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
-  const { data: session } = useSession();
 
   const price = parseFloat(product.price);
   const comparePrice = product.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
@@ -62,12 +56,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
       image: product.images[0]?.url || "",
       slug: product.slug,
     };
-
-    if (!session?.user) {
-      setPendingItem({ item, quantity });
-      setAuthPromptOpen(true);
-      return;
-    }
 
     addItem(item, quantity);
     setCartOpen(true);
@@ -273,11 +261,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
         </TabsContent>
       </Tabs>
 
-      <AuthPromptModal
-        open={authPromptOpen}
-        onClose={() => setAuthPromptOpen(false)}
-        pendingItem={pendingItem}
-      />
     </div>
   );
 }
