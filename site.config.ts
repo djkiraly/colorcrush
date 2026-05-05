@@ -87,6 +87,10 @@ export const siteConfig = {
     reviews: true,
     wishlist: true,
     loyaltyPoints: false,
+    // Dev-only escape hatch. When true, admins gain a "Delete customer + all
+    // their orders" action. Keep false in production — no audit trail, no
+    // recovery.
+    customerDeletion: false,
   },
 } as const;
 

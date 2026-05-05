@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 
 export default function AdminCustomerDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const settings = useSiteSettings();
+  const canDelete = !!settings.features?.customerDeletion;
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchCustomer() {
@@ -22,6 +30,33 @@ export default function AdminCustomerDetailPage() {
     fetchCustomer();
   }, [params.id]);
 
+  const handleDelete = async () => {
+    const orderCount = customer?.orders?.length || 0;
+    const confirmText = `delete ${customer.email}`;
+    const entered = window.prompt(
+      `This will permanently delete ${customer.name} (${customer.email}) and all ${orderCount} of their orders. This cannot be undone.\n\nType "${confirmText}" to confirm:`
+    );
+    if (entered !== confirmText) {
+      if (entered !== null) toast.error("Confirmation text did not match. Cancelled.");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/customers/${params.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Customer deleted (${data.deletedOrders} orders).`);
+        router.push("/admin/customers");
+      } else {
+        toast.error(data.error || "Failed to delete customer");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>;
   if (!customer) return <p>Customer not found</p>;
 
@@ -32,7 +67,21 @@ export default function AdminCustomerDetailPage() {
           <h1 className="text-2xl font-heading font-bold text-brand-secondary">{customer.name}</h1>
           <p className="text-sm text-brand-text-muted">{customer.email}</p>
         </div>
-        <Badge>Customer</Badge>
+        <div className="flex items-center gap-3">
+          <Badge>Customer</Badge>
+          {canDelete && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              {deleting ? "Deleting…" : "Delete Customer"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

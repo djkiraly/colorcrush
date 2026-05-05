@@ -75,6 +75,7 @@ export default function AdminSettingsPage() {
     reviews: true,
     wishlist: true,
     loyaltyPoints: false,
+    customerDeletion: false,
   });
   const [maintenanceMode, setMaintenanceMode] = useState({
     enabled: false,
@@ -1361,10 +1362,18 @@ export default function AdminSettingsPage() {
           </div>
           <div className="space-y-4">
             {Object.entries(features).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between">
-                <Label className="capitalize">
-                  {key.replace(/([A-Z])/g, " $1").trim()}
-                </Label>
+              <div key={key} className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <Label className="capitalize">
+                    {key.replace(/([A-Z])/g, " $1").trim()}
+                  </Label>
+                  {key === "customerDeletion" && (
+                    <p className="text-xs text-red-700 mt-1">
+                      ⚠️ Dev only. When on, admins can permanently delete customers and all their
+                      orders. No audit trail, no recovery.
+                    </p>
+                  )}
+                </div>
                 <Switch
                   checked={value}
                   onCheckedChange={(checked) =>

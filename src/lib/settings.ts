@@ -33,6 +33,7 @@ export type SiteSettingsOverrides = {
     reviews?: boolean;
     wishlist?: boolean;
     loyaltyPoints?: boolean;
+    customerDeletion?: boolean;
   };
   shipping?: {
     flatRateThresholdOz?: number;
