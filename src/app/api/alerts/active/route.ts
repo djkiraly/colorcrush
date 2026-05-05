@@ -61,8 +61,29 @@ export async function GET() {
     (r) => r.thresholdQuantity != null && r.currentQuantity <= r.thresholdQuantity
   );
 
+  const systemRows = await db
+    .select({
+      id: scheduledAlerts.id,
+      type: scheduledAlerts.type,
+      severity: scheduledAlerts.severity,
+      title: scheduledAlerts.title,
+      message: scheduledAlerts.message,
+      triggerAt: scheduledAlerts.triggerAt,
+      productId: scheduledAlerts.productId,
+      thresholdQuantity: scheduledAlerts.thresholdQuantity,
+      createdAt: scheduledAlerts.createdAt,
+    })
+    .from(scheduledAlerts)
+    .where(
+      and(
+        eq(scheduledAlerts.isAcknowledged, false),
+        eq(scheduledAlerts.type, "system")
+      )
+    )
+    .orderBy(desc(scheduledAlerts.createdAt));
+
   return NextResponse.json({
-    alerts: [...dateRows, ...firingInventory],
-    count: dateRows.length + firingInventory.length,
+    alerts: [...systemRows, ...dateRows, ...firingInventory],
+    count: systemRows.length + dateRows.length + firingInventory.length,
   });
 }

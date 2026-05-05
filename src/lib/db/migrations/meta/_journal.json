@@ -78,6 +78,13 @@
       "when": 1777934567286,
       "tag": "0010_smiling_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777954377791,
+      "tag": "0011_stale_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }

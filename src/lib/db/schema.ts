@@ -474,7 +474,7 @@ export const shippingBoxes = pgTable("shipping_boxes", {
 
 // ═══ SCHEDULED ALERTS (admin reminders) ═══
 
-export const alertTypeEnum = pgEnum("alert_type", ["date", "inventory"]);
+export const alertTypeEnum = pgEnum("alert_type", ["date", "inventory", "system"]);
 export const alertSeverityEnum = pgEnum("alert_severity", ["info", "warning", "critical"]);
 
 export const scheduledAlerts = pgTable(

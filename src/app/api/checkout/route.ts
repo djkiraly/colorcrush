@@ -6,6 +6,7 @@ import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { siteConfig } from "../../../../site.config";
+import { recordSystemAlert } from "@/lib/system-alerts";
 
 interface SelectedRateInput {
   rateId: string;
@@ -218,6 +219,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: stripeSession.url });
   } catch (error) {
     console.error("Checkout error:", error);
+
+    // Surface to the admin dashboard + email admins. Stripe auth/key
+    // problems are the most common cause and the most urgent to fix.
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errType =
+      (error as { type?: string })?.type || (error as { name?: string })?.name || "";
+    const isStripeAuth =
+      errType === "StripeAuthenticationError" ||
+      /Invalid API Key|api_key/i.test(errMsg);
+
+    recordSystemAlert({
+      severity: "critical",
+      title: isStripeAuth
+        ? "Stripe checkout failing — invalid API key"
+        : "Failed to create Stripe checkout session",
+      message: [
+        `Error: ${errMsg}`,
+        errType ? `Type: ${errType}` : "",
+        isStripeAuth
+          ? "The Stripe secret key the server is using was rejected by Stripe. Check Admin → Settings → Stripe (or STRIPE_SECRET_KEY env var) and ensure the running process has the correct value."
+          : "Customers cannot complete checkout until this is resolved.",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    }).catch(() => {});
+
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }
