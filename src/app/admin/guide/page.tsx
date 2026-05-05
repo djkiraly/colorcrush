@@ -183,7 +183,10 @@ const guides: { category: string; sections: GuideSection[] }[] = [
       {
         title: "Customer Management",
         content: [
-          "The Customers page shows all registered customers (not staff). View their name, email, join date, order count, and total spending.",
+          "The Customers page shows all registered customers (not staff). View their name, email, join date, order count, total spending, and email verification status.",
+          "The Verified column shows a green 'Verified' badge if the customer has confirmed their email address, or an 'Unverified' badge if they have not.",
+          "For unverified customers, an Actions column shows a 'Resend' button (mail icon). Clicking it sends a new verification email to that customer immediately. Verified customers show a dash in the Actions column.",
+          "Note: the resend action bypasses the 60-second rate limit that applies when customers request verification emails themselves. There is no cooldown for admin-triggered resends.",
           "Click a customer name to view their full profile including order history and saved addresses.",
         ],
       },
