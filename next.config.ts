@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_HASH: gitCommitHash,
   },
   images: {
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "placehold.co" },
