@@ -18,6 +18,20 @@ const ORDER_STATUSES = ["draft", "pending_payment", "pending", "confirmed", "pai
 
 const PRE_PAYMENT_STATUSES = new Set(["draft", "pending_payment"]);
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  stripe_checkout: "Stripe Checkout",
+  stripe_admin_charge: "Stripe (admin charge)",
+  stripe_customer_pay: "Stripe (customer pay link)",
+  offline_cash: "Cash",
+  offline_check: "Check",
+  offline_other: "Offline (other)",
+};
+
+function formatPaymentMethod(method: string | null | undefined) {
+  if (!method) return "—";
+  return PAYMENT_METHOD_LABELS[method] || method.replace(/_/g, " ");
+}
+
 export default function AdminOrderDetailPage() {
   const params = useParams();
   const [order, setOrder] = useState<any>(null);
@@ -124,6 +138,84 @@ export default function AdminOrderDetailPage() {
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Total</span><span className="text-brand-primary">${order.total}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Payment */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="font-heading font-semibold mb-4">Payment</h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-brand-text-muted">Method</span>
+                <span className="font-medium">{formatPaymentMethod(order.paymentMethod)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-brand-text-muted">Status</span>
+                <span className="font-medium">{order.paidAt ? "Paid" : "Unpaid"}</span>
+              </div>
+              {order.paidAt && (
+                <div className="flex justify-between">
+                  <span className="text-brand-text-muted">Paid at</span>
+                  <span className="font-medium">{new Date(order.paidAt).toLocaleString()}</span>
+                </div>
+              )}
+              {order.stripePaymentIntentId && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-brand-text-muted">Payment Intent</span>
+                  <span className="font-mono text-xs truncate">{order.stripePaymentIntentId}</span>
+                </div>
+              )}
+              {order.stripeSessionId && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-brand-text-muted">Stripe Session</span>
+                  <span className="font-mono text-xs truncate">{order.stripeSessionId}</span>
+                </div>
+              )}
+              {order.offlinePaymentNotes && (
+                <div className="pt-2 border-t">
+                  <p className="text-brand-text-muted mb-1">Offline notes</p>
+                  <p className="whitespace-pre-wrap">{order.offlinePaymentNotes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Order Timestamps */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="font-heading font-semibold mb-4">Timestamps</h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-brand-text-muted">Created</span>
+                <span className="font-medium">{new Date(order.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-brand-text-muted">Updated</span>
+                <span className="font-medium">{new Date(order.updatedAt).toLocaleString()}</span>
+              </div>
+              {order.paidAt && (
+                <div className="flex justify-between">
+                  <span className="text-brand-text-muted">Paid</span>
+                  <span className="font-medium">{new Date(order.paidAt).toLocaleString()}</span>
+                </div>
+              )}
+              {order.shippedAt && (
+                <div className="flex justify-between">
+                  <span className="text-brand-text-muted">Shipped</span>
+                  <span className="font-medium">{new Date(order.shippedAt).toLocaleString()}</span>
+                </div>
+              )}
+              {order.deliveredAt && (
+                <div className="flex justify-between">
+                  <span className="text-brand-text-muted">Delivered</span>
+                  <span className="font-medium">{new Date(order.deliveredAt).toLocaleString()}</span>
+                </div>
+              )}
+              {order.cancelledAt && (
+                <div className="flex justify-between">
+                  <span className="text-brand-text-muted">Cancelled</span>
+                  <span className="font-medium">{new Date(order.cancelledAt).toLocaleString()}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -262,11 +354,13 @@ export default function AdminOrderDetailPage() {
           {order.shippingAddress && (
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h2 className="font-heading font-semibold mb-3">Shipping Address</h2>
-              <div className="text-sm text-brand-text-secondary">
+              <address className="not-italic text-sm text-brand-text-secondary">
+                {order.user?.name && <p className="font-medium text-brand-secondary">{order.user.name}</p>}
                 <p>{order.shippingAddress.line1}</p>
                 {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
                 <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</p>
-              </div>
+                {order.shippingAddress.country && <p>{order.shippingAddress.country}</p>}
+              </address>
             </div>
           )}
 

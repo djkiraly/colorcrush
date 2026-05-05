@@ -6,6 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  stripe_checkout: "Credit/Debit Card (Stripe Checkout)",
+  stripe_admin_charge: "Credit/Debit Card",
+  stripe_customer_pay: "Credit/Debit Card",
+  offline_cash: "Cash",
+  offline_check: "Check",
+  offline_other: "Offline (Other)",
+};
+
+function formatPaymentMethod(method: string | null | undefined) {
+  if (!method) return "—";
+  return PAYMENT_METHOD_LABELS[method] || method.replace(/_/g, " ");
+}
+
 export default function OrderDetailPage() {
   const params = useParams();
   const [order, setOrder] = useState<any>(null);
@@ -79,7 +93,7 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Summary */}
-      <div className="bg-white rounded-xl p-6 shadow-sm">
+      <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
         <h2 className="font-heading font-semibold mb-4">Summary</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between"><span>Subtotal</span><span>${order.subtotal}</span></div>
@@ -92,10 +106,88 @@ export default function OrderDetailPage() {
             <span>Total</span><span className="text-brand-primary">${order.total}</span>
           </div>
         </div>
+      </div>
+
+      {/* Payment */}
+      <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+        <h2 className="font-heading font-semibold mb-4">Payment</h2>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-brand-text-muted">Method</span>
+            <span className="font-medium">{formatPaymentMethod(order.paymentMethod)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-brand-text-muted">Status</span>
+            <span className="font-medium">{order.paidAt ? "Paid" : "Unpaid"}</span>
+          </div>
+          {order.paidAt && (
+            <div className="flex justify-between">
+              <span className="text-brand-text-muted">Paid on</span>
+              <span className="font-medium">{new Date(order.paidAt).toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Shipping */}
+      <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+        <h2 className="font-heading font-semibold mb-4">Shipping</h2>
+        {order.shippingAddress ? (
+          <address className="not-italic text-sm text-brand-text-secondary mb-4">
+            <p>{order.shippingAddress.line1}</p>
+            {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
+            <p>
+              {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}
+            </p>
+            {order.shippingAddress.country && <p>{order.shippingAddress.country}</p>}
+          </address>
+        ) : (
+          <p className="text-sm text-brand-text-muted mb-4">No shipping address on file.</p>
+        )}
+
+        <div className="space-y-2 text-sm">
+          {(order.shippingCarrier || order.trackingCarrier) && (
+            <div className="flex justify-between">
+              <span className="text-brand-text-muted">Carrier</span>
+              <span className="font-medium uppercase">{order.shippingCarrier || order.trackingCarrier}</span>
+            </div>
+          )}
+          {order.shippingService && (
+            <div className="flex justify-between">
+              <span className="text-brand-text-muted">Service</span>
+              <span className="font-medium">{order.shippingService}</span>
+            </div>
+          )}
+          {order.shippedAt && (
+            <div className="flex justify-between">
+              <span className="text-brand-text-muted">Shipped on</span>
+              <span className="font-medium">{new Date(order.shippedAt).toLocaleString()}</span>
+            </div>
+          )}
+          {order.deliveredAt && (
+            <div className="flex justify-between">
+              <span className="text-brand-text-muted">Delivered on</span>
+              <span className="font-medium">{new Date(order.deliveredAt).toLocaleString()}</span>
+            </div>
+          )}
+        </div>
 
         {order.trackingNumber && (
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm font-medium">Tracking: {order.trackingCarrier} — {order.trackingNumber}</p>
+            <p className="text-sm font-medium">
+              Tracking: {order.trackingCarrier || order.shippingCarrier} — {order.shippoTrackingUrl ? (
+                <a
+                  href={order.shippoTrackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-brand-primary"
+                >
+                  {order.trackingNumber}
+                </a>
+              ) : (
+                order.trackingNumber
+              )}
+            </p>
           </div>
         )}
       </div>
