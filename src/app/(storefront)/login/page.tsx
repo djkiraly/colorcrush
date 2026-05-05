@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,19 @@ import { Label } from "@/components/ui/label";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/account";
+  const prefillEmail = searchParams.get("email") || "";
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const siteConfig = useSiteSettings();
+
+  useEffect(() => {
+    if (prefillEmail) setEmail(prefillEmail);
+  }, [prefillEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +37,7 @@ export default function LoginPage() {
     if (result?.error) {
       toast.error("Invalid email or password");
     } else {
-      router.push("/account");
+      router.push(next);
       router.refresh();
     }
   };
@@ -92,7 +99,7 @@ export default function LoginPage() {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => signIn("google", { callbackUrl: "/account" })}
+            onClick={() => signIn("google", { callbackUrl: next })}
           >
             Continue with Google
           </Button>
@@ -106,5 +113,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center">Loading…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
