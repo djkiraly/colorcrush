@@ -4,28 +4,39 @@ import { getSettings } from "@/lib/settings";
  * Resolve the public base URL of this deployment for outbound links
  * (verification emails, Stripe success/cancel URLs, etc).
  *
- * Priority — environment variables come first because they are
- * deployment-specific and the most reliable signal of where this
- * particular running process is exposed:
- *   1. NEXTAUTH_URL
- *   2. AUTH_URL
- *   3. NEXT_PUBLIC_APP_URL
- *   4. settings.url   (DB; can be stale across env imports)
- *   5. ""             (caller responsible for handling)
+ * In production, env vars pointing at localhost are skipped — they're a
+ * common footgun (a real .env.local left over from dev gets copied into
+ * a prod deploy and poisons every customer-facing link). In development
+ * mode localhost is fine, so we keep it.
+ *
+ * Priority:
+ *   1. NEXTAUTH_URL          (skipped in prod if localhost)
+ *   2. AUTH_URL              (skipped in prod if localhost)
+ *   3. NEXT_PUBLIC_APP_URL   (skipped in prod if localhost)
+ *   4. settings.url          (DB)
+ *   5. ""
  *
  * Always returns the value with no trailing slash.
  */
 export async function getPublicBaseUrl(): Promise<string> {
-  const fromEnv =
-    process.env.NEXTAUTH_URL ||
-    process.env.AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "";
-  if (fromEnv) return stripTrailingSlash(fromEnv);
+  const isProd = process.env.NODE_ENV === "production";
+  const candidates = [
+    process.env.NEXTAUTH_URL,
+    process.env.AUTH_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+  ];
+
+  for (const c of candidates) {
+    if (!c) continue;
+    if (isProd && isLocalhost(c)) continue;
+    return stripTrailingSlash(c);
+  }
 
   try {
     const settings = await getSettings();
-    if (settings.url) return stripTrailingSlash(settings.url);
+    if (settings.url && (!isProd || !isLocalhost(settings.url))) {
+      return stripTrailingSlash(settings.url);
+    }
   } catch {
     // ignore — fall through
   }
@@ -38,12 +49,32 @@ export async function getPublicBaseUrl(): Promise<string> {
  * in non-async contexts.
  */
 export function getPublicBaseUrlSync(): string {
-  return stripTrailingSlash(
-    process.env.NEXTAUTH_URL ||
-      process.env.AUTH_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      ""
-  );
+  const isProd = process.env.NODE_ENV === "production";
+  const candidates = [
+    process.env.NEXTAUTH_URL,
+    process.env.AUTH_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    if (isProd && isLocalhost(c)) continue;
+    return stripTrailingSlash(c);
+  }
+  return "";
+}
+
+function isLocalhost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0" ||
+      host === "::1"
+    );
+  } catch {
+    return /\blocalhost\b|\b127\.0\.0\.1\b/.test(url);
+  }
 }
 
 function stripTrailingSlash(s: string): string {
