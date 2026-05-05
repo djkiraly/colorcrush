@@ -45,6 +45,22 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  // The site_settings.value column is NOT NULL. Reject null and non-finite
+  // numbers (NaN/Infinity round-trip to null in JSON) up front so we return
+  // a clear 400 instead of letting the DB blow up.
+  if (value === null) {
+    return NextResponse.json(
+      { error: `Value for "${key}" cannot be null` },
+      { status: 400 }
+    );
+  }
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    return NextResponse.json(
+      { error: `Value for "${key}" must be a finite number` },
+      { status: 400 }
+    );
+  }
+
   // Validate key is an allowed setting
   const allowedKeys = [
     "name",

@@ -816,11 +816,22 @@ export default function AdminSettingsPage() {
           <div className="flex gap-2 mt-4">
             <Button
               onClick={async () => {
-                await saveKey("taxRate", parseFloat(business.taxRate));
-                await saveKey(
-                  "freeShippingThreshold",
-                  parseFloat(business.freeShippingThreshold)
-                );
+                const taxRate = parseFloat(business.taxRate);
+                if (!Number.isFinite(taxRate)) {
+                  toast.error("Tax rate must be a number");
+                  return;
+                }
+                // Empty / non-numeric threshold means "no free shipping" — store
+                // a sentinel large number so the `subtotal >= threshold` check
+                // in the storefront never trips.
+                const rawThreshold = business.freeShippingThreshold.trim();
+                const parsedThreshold = parseFloat(rawThreshold);
+                const threshold =
+                  rawThreshold === "" || !Number.isFinite(parsedThreshold)
+                    ? Number.MAX_SAFE_INTEGER
+                    : parsedThreshold;
+                await saveKey("taxRate", taxRate);
+                await saveKey("freeShippingThreshold", threshold);
               }}
               disabled={saving !== null}
               className="bg-brand-primary hover:bg-brand-primary-hover text-white"

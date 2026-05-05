@@ -75,7 +75,7 @@ export function Header() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {siteConfig.logoUrl && (
-            <Link href="/" className={`hidden lg:block absolute left-8 top-[calc(50%+15px)] -translate-y-1/2 z-10`}>
+            <Link href="/" className={`hidden lg:block absolute left-8 top-[calc(50%+25px)] -translate-y-1/2 z-10`}>
               <Image
                 src={siteConfig.logoUrl}
                 alt={siteConfig.name}
