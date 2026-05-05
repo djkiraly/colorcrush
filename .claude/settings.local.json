@@ -18,7 +18,8 @@
       "Bash(npx tsc:*)",
       "Bash(npx drizzle-kit:*)",
       "Bash(npx tsx *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(git *)"
     ]
   }
 }

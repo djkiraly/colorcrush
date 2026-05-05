@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
 import { getSettings } from "@/lib/settings";
 import { db } from "@/lib/db";
