@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders, orderItems, products, users, addresses, customerInteractions, emailLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getAuthSession();
+  const sessionUserId = session?.user?.id;
+  if (!sessionUserId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
 
   const [order] = await db
@@ -16,6 +23,11 @@ export async function GET(
     .limit(1);
 
   if (!order) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  }
+
+  // Customers can only read their own orders.
+  if (!isAdmin(session) && order.userId !== sessionUserId) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
@@ -39,6 +51,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getAuthSession();
+  if (!isAdmin(session)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { id } = await params;
 
   const [order] = await db

@@ -2,17 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders, orderItems, users } from "@/lib/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
 export async function GET(request: NextRequest) {
+  const session = await getAuthSession();
+  const sessionUserId = session?.user?.id;
+  if (!sessionUserId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const admin = isAdmin(session);
+
   const searchParams = request.nextUrl.searchParams;
-  const userId = searchParams.get("userId");
+  const requestedUserId = searchParams.get("userId");
   const status = searchParams.get("status");
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
   const offset = (page - 1) * limit;
 
+  // Customers see only their own orders. Admins may filter by userId, or
+  // omit it to see all orders.
+  const effectiveUserId = admin ? requestedUserId : sessionUserId;
+
   const conditions = [];
-  if (userId) conditions.push(eq(orders.userId, userId));
+  if (effectiveUserId) conditions.push(eq(orders.userId, effectiveUserId));
   if (status) conditions.push(eq(orders.status, status as any));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
