@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ShoppingBag, Search, Menu, X, User, Heart, Shield, ChevronDown } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { ShoppingBag, Search, Menu, X, User, Heart, Shield, ChevronDown, LogOut, Package, Settings as SettingsIcon } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 import { useCartStore } from "@/stores/cart-store";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
@@ -188,11 +196,56 @@ export function Header() {
                   </Button>
                 </Link>
               )}
-              <Link href="/account">
-                <Button variant="ghost" size="icon" aria-label="Account">
-                  <User className="h-5 w-5" />
-                </Button>
-              </Link>
+              {session?.user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="ghost" size="icon" aria-label="Account menu" />
+                    }
+                  >
+                    <User className="h-5 w-5" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {session.user.name || "Account"}
+                        </span>
+                        <span className="text-xs text-brand-text-muted truncate">
+                          {session.user.email}
+                        </span>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem render={<Link href="/account" />}>
+                      <User className="h-4 w-4 mr-2" />
+                      My Account
+                    </DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href="/account/orders" />}>
+                      <Package className="h-4 w-4 mr-2" />
+                      Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href="/account/settings" />}>
+                      <SettingsIcon className="h-4 w-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="text-red-700 focus:text-red-700"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/login">
+                  <Button variant="ghost" size="icon" aria-label="Sign in">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -274,6 +327,37 @@ export function Header() {
                   Admin Dashboard
                 </Link>
               )}
+              <div className="border-t mt-2 pt-2">
+                {session?.user ? (
+                  <>
+                    <Link
+                      href="/account"
+                      className="block py-2 text-base font-medium text-brand-text hover:text-brand-primary"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      My Account
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        signOut({ callbackUrl: "/" });
+                      }}
+                      className="block w-full text-left py-2 text-base font-medium text-red-700 hover:text-red-800"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="block py-2 text-base font-medium text-brand-text hover:text-brand-primary"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Sign in
+                  </Link>
+                )}
+              </div>
             </nav>
           </div>
         )}
