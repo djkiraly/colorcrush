@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       email: users.email,
       phone: users.phone,
       createdAt: users.createdAt,
+      emailVerified: users.emailVerified,
       totalOrders: sql<number>`(SELECT count(*) FROM orders WHERE orders.user_id = ${users.id})`,
       totalSpent: sql<number>`(SELECT COALESCE(sum(total::numeric), 0) FROM orders WHERE orders.user_id = ${users.id} AND orders.status != 'cancelled')`,
     })
