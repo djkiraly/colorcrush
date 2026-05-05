@@ -73,10 +73,12 @@ export const siteConfig = {
   },
 
   // ═══ CONTACT ═══
+  // Empty by default. Email templates derive contact info from
+  // shipping.origin when these aren't set in Admin → Settings → Contact.
   contact: {
-    email: "hello@sweethaven.com",
-    phone: "(555) 123-4567",
-    address: "123 Candy Lane, Sweet City, SC 29401",
+    email: "",
+    phone: "",
+    address: "",
   },
 
   // ═══ FEATURE FLAGS ═══

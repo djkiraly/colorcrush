@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { sendWelcomeEmail } from "@/lib/email-notifications";
+import { issueVerificationEmail } from "@/lib/auth-verification";
 
 const registerSchema = z.object({
   name: z.string().min(1),
@@ -84,12 +85,14 @@ export async function POST(request: NextRequest) {
     // Send welcome email (fire-and-forget)
     sendWelcomeEmail(user.id, email, name).catch(() => {});
 
-    // Send verification email (fire-and-forget)
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/verify-email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    }).catch(() => {});
+    // Send verification email — await it so the email actually queues before
+    // we return. Bypass the per-user rate limit since this is the first
+    // email this user will see.
+    try {
+      await issueVerificationEmail(email, { bypassRateLimit: true });
+    } catch (e) {
+      console.error("Failed to send verification email on register:", e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

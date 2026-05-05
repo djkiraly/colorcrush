@@ -136,12 +136,8 @@ export async function POST(request: NextRequest) {
           .where(eq(users.id, userId))
           .limit(1);
         if (u && !u.emailVerified) {
-          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
-          await fetch(`${baseUrl}/api/auth/verify-email`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: u.email }),
-          });
+          const { issueVerificationEmail } = await import("@/lib/auth-verification");
+          await issueVerificationEmail(u.email, { bypassRateLimit: true });
         }
       } catch (e) {
         console.error("Failed to trigger post-checkout verify email:", e);

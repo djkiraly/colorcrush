@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { siteConfig } from "../../../../site.config";
 import { recordSystemAlert } from "@/lib/system-alerts";
+import { getPublicBaseUrl } from "@/lib/app-url";
 
 interface SelectedRateInput {
   rateId: string;
@@ -212,8 +213,8 @@ export async function POST(request: NextRequest) {
           shippingRate.estimatedDays != null ? String(shippingRate.estimatedDays) : "",
         triggerVerifyEmail: triggerVerifyEmail ? "true" : "false",
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
+      success_url: `${await getPublicBaseUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${await getPublicBaseUrl()}/cart`,
     });
 
     return NextResponse.json({ url: stripeSession.url });

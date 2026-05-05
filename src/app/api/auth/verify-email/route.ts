@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, emailVerificationTokens } from "@/lib/db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import crypto from "crypto";
-import { sendEmail } from "@/lib/gmail";
-import { verifyEmailTemplate } from "@/lib/email-templates/verify-email";
-import { getSettings } from "@/lib/settings";
-
-const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const RESEND_COOLDOWN_MS = 60 * 1000; // 1 per minute per user
+import { issueVerificationEmail } from "@/lib/auth-verification";
 
 export async function POST(request: NextRequest) {
   const { email } = await request.json();
@@ -17,69 +11,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
 
-  const [user] = await db
-    .select({ id: users.id, name: users.name, emailVerified: users.emailVerified })
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const result = await issueVerificationEmail(email);
 
-  if (!user) {
-    // Don't reveal whether user exists
-    return NextResponse.json({ success: true });
-  }
-
-  if (user.emailVerified) {
-    return NextResponse.json({ success: true, alreadyVerified: true });
-  }
-
-  // Rate limit: refuse if a token was issued in the last RESEND_COOLDOWN_MS
-  const recent = await db
-    .select({ createdAt: emailVerificationTokens.createdAt })
-    .from(emailVerificationTokens)
-    .where(eq(emailVerificationTokens.userId, user.id))
-    .orderBy(emailVerificationTokens.createdAt)
-    .limit(1);
-
-  const mostRecent = recent[recent.length - 1];
-  if (mostRecent && Date.now() - mostRecent.createdAt.getTime() < RESEND_COOLDOWN_MS) {
-    const secondsLeft = Math.ceil(
-      (RESEND_COOLDOWN_MS - (Date.now() - mostRecent.createdAt.getTime())) / 1000
-    );
+  if (result.status === "rate-limited") {
     return NextResponse.json(
-      { error: `Please wait ${secondsLeft}s before requesting another email.` },
+      {
+        error: `Please wait ${result.retryAfterSeconds}s before requesting another email.`,
+      },
       { status: 429 }
     );
   }
 
-  const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
-
-  await db.insert(emailVerificationTokens).values({
-    token,
-    userId: user.id,
-    email,
-    expiresAt,
+  // For already-verified or user-not-found, return success without revealing
+  // which to avoid email enumeration.
+  return NextResponse.json({
+    success: true,
+    alreadyVerified: result.status === "already-verified" || undefined,
   });
-
-  const settings = await getSettings();
-  const baseUrl =
-    settings.url ||
-    process.env.NEXTAUTH_URL ||
-    process.env.AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "";
-  const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
-
-  const html = await verifyEmailTemplate(user.name, verifyUrl);
-  sendEmail({
-    to: email,
-    subject: `Verify your email — ${settings.name}`,
-    html,
-    templateName: "verify-email",
-    userId: user.id,
-  }).catch(() => {});
-
-  return NextResponse.json({ success: true });
 }
 
 export async function GET(request: NextRequest) {

@@ -81,6 +81,20 @@ interface SendEmailOptions {
   orderId?: string;
 }
 
+/**
+ * RFC 2047 encoded-word for header values. Mail headers are 7-bit ASCII;
+ * non-ASCII chars (em dashes, accented letters, smart quotes) must be
+ * wrapped as `=?UTF-8?B?<base64>?=` or recipients see mojibake. ASCII-only
+ * values pass through unchanged so legacy clients aren't confused.
+ */
+function encodeHeaderWord(value: string): string {
+  // Fast path: pure ASCII, no encoding needed.
+  // eslint-disable-next-line no-control-regex
+  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  const base64 = Buffer.from(value, "utf8").toString("base64");
+  return `=?UTF-8?B?${base64}?=`;
+}
+
 export async function sendEmail({
   to,
   subject,
@@ -94,9 +108,9 @@ export async function sendEmail({
     const settings = await getSettings();
 
     const message = [
-      `From: ${settings.name} <${sendFrom}>`,
+      `From: ${encodeHeaderWord(settings.name)} <${sendFrom}>`,
       `To: ${to}`,
-      `Subject: ${subject}`,
+      `Subject: ${encodeHeaderWord(subject)}`,
       "MIME-Version: 1.0",
       'Content-Type: text/html; charset="UTF-8"',
       "",

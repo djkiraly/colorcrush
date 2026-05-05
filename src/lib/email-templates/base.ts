@@ -7,11 +7,48 @@ export async function loadEmailSettings(): Promise<EmailSettings> {
   return getSettings();
 }
 
+/**
+ * Build the footer contact block from settings, preferring values the
+ * admin has actually configured. Source of truth order:
+ *   1. settings.contact.* (if set in Admin → Settings → Contact)
+ *   2. settings.shipping.origin.* (always set — required for Shippo rates)
+ *
+ * Returns empty strings for anything still missing so the layout can
+ * gracefully omit lines.
+ */
+function resolveFooterContact(settings: EmailSettings): {
+  address: string;
+  email: string;
+  phone: string;
+} {
+  const contact = settings.contact || ({} as { address?: string; email?: string; phone?: string });
+  const origin = settings.shipping?.origin;
+
+  const originAddress = origin
+    ? [
+        origin.street1,
+        origin.street2,
+        [origin.city, origin.state, origin.zip].filter(Boolean).join(" "),
+        origin.country !== "US" ? origin.country : "",
+      ]
+        .filter((p) => p && p.trim())
+        .join(", ")
+    : "";
+
+  return {
+    address: contact.address?.trim() || originAddress,
+    email: contact.email?.trim() || origin?.email || "",
+    phone: contact.phone?.trim() || origin?.phone || "",
+  };
+}
+
 export function emailLayout(
   settings: EmailSettings,
   content: string,
   preheader?: string
 ): string {
+  const footer = resolveFooterContact(settings);
+  const contactLine = [footer.email, footer.phone].filter(Boolean).join(" | ");
   return `
 <!DOCTYPE html>
 <html>
@@ -41,12 +78,16 @@ export function emailLayout(
         <!-- Footer -->
         <tr>
           <td style="padding:24px 32px;background-color:#F3F4F6;text-align:center;border-top:1px solid #E5E7EB;">
-            <p style="margin:0 0 8px;font-size:14px;color:#6B7280;">
-              ${settings.contact.address}
-            </p>
-            <p style="margin:0 0 8px;font-size:14px;color:#6B7280;">
-              ${settings.contact.email} | ${settings.contact.phone}
-            </p>
+            ${
+              footer.address
+                ? `<p style="margin:0 0 8px;font-size:14px;color:#6B7280;">${footer.address}</p>`
+                : ""
+            }
+            ${
+              contactLine
+                ? `<p style="margin:0 0 8px;font-size:14px;color:#6B7280;">${contactLine}</p>`
+                : ""
+            }
             <p style="margin:0;font-size:12px;color:#9CA3AF;">
               &copy; ${new Date().getFullYear()} ${settings.name}. All rights reserved.
             </p>
