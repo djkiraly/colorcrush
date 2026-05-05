@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
-import { Trash2 } from "lucide-react";
+import { Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -19,6 +19,7 @@ export default function AdminCustomerDetailPage() {
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     async function fetchCustomer() {
@@ -29,6 +30,26 @@ export default function AdminCustomerDetailPage() {
     }
     fetchCustomer();
   }, [params.id]);
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const res = await fetch(
+        `/api/admin/customers/${params.id}/resend-verification`,
+        { method: "POST" }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Verification email sent to ${customer.email}`);
+      } else {
+        toast.error(data.error || "Failed to send verification email");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleDelete = async () => {
     const orderCount = customer?.orders?.length || 0;
@@ -69,6 +90,18 @@ export default function AdminCustomerDetailPage() {
         </div>
         <div className="flex items-center gap-3">
           <Badge>Customer</Badge>
+          {!customer.emailVerified && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResendVerification}
+              disabled={resending}
+              className="border-yellow-300 text-yellow-800 hover:bg-yellow-50"
+            >
+              <Mail className="h-4 w-4 mr-1" />
+              {resending ? "Sending…" : "Resend Verification"}
+            </Button>
+          )}
           {canDelete && (
             <Button
               variant="outline"
