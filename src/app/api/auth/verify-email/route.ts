@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { users, emailVerificationTokens } from "@/lib/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { issueVerificationEmail } from "@/lib/auth-verification";
+import { getPublicBaseUrl } from "@/lib/app-url";
 
 export async function POST(request: NextRequest) {
   const { email } = await request.json();
@@ -31,10 +32,17 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // Build redirect URLs from the configured public base URL rather than
+  // request.url — when this app sits behind a reverse proxy, request.url
+  // reflects the upstream connection (e.g. http://localhost:3007/...)
+  // and would point customers at an unreachable internal address.
+  const baseUrl = (await getPublicBaseUrl()) || new URL(request.url).origin;
+  const redirectTo = (path: string) => NextResponse.redirect(new URL(path, baseUrl));
+
   const token = request.nextUrl.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login?error=invalid-token", request.url));
+    return redirectTo("/login?error=invalid-token");
   }
 
   const [row] = await db
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
     .limit(1);
 
   if (!row) {
-    return NextResponse.redirect(new URL("/login?error=expired-token", request.url));
+    return redirectTo("/login?error=expired-token");
   }
 
   await db
@@ -62,5 +70,5 @@ export async function GET(request: NextRequest) {
     .delete(emailVerificationTokens)
     .where(eq(emailVerificationTokens.userId, row.userId));
 
-  return NextResponse.redirect(new URL("/login?verified=true", request.url));
+  return redirectTo("/login?verified=true");
 }
