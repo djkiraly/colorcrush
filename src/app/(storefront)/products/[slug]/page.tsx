@@ -1,63 +1,142 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { ProductDetail } from "@/components/storefront/ProductDetail";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getProductBySlug } from "@/lib/queries/product";
+import { getSettings } from "@/lib/settings";
+import { getSiteUrl, absoluteUrl } from "@/lib/site-url";
 
-export default function ProductPage() {
-  const params = useParams();
-  const slug = params.slug as string;
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) return { title: "Product not found" };
 
-  useEffect(() => {
-    async function fetchProduct() {
-      try {
-        const res = await fetch(`/api/products/${slug}`);
-        if (!res.ok) throw new Error("Not found");
-        const data = await res.json();
-        setProduct(data);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProduct();
-  }, [slug]);
+  const settings = await getSettings();
+  const title = product.metaTitle || product.name;
+  const description =
+    product.metaDescription ||
+    product.shortDescription ||
+    product.description?.slice(0, 160) ||
+    settings.description;
+  const primaryImage =
+    product.images.find((i) => i.isPrimary)?.url ?? product.images[0]?.url;
+  const canonical = `/products/${product.slug}`;
 
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <Skeleton className="aspect-square rounded-2xl" />
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-12 w-64" />
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: absoluteUrl(canonical),
+      images: primaryImage ? [{ url: primaryImage, alt: product.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: primaryImage ? [primaryImage] : undefined,
+    },
+  };
+}
+
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) notFound();
+
+  const siteUrl = getSiteUrl();
+  const settings = await getSettings();
+  const canonical = `${siteUrl}/products/${product.slug}`;
+  const inStock = (product.inventory?.quantity ?? 0) > 0;
+
+  // Serialize Date fields for client component boundary
+  const detailProduct = {
+    ...product,
+    reviews: product.reviews.map((r) => ({
+      ...r,
+      createdAt:
+        r.createdAt instanceof Date
+          ? r.createdAt.toISOString()
+          : (r.createdAt as unknown as string),
+    })),
+  };
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description:
+      product.description || product.shortDescription || product.name,
+    sku: product.sku,
+    image: product.images.map((i) => i.url),
+    brand: product.manufacturer
+      ? { "@type": "Brand", name: product.manufacturer }
+      : { "@type": "Brand", name: settings.name },
+    offers: {
+      "@type": "Offer",
+      url: canonical,
+      priceCurrency: settings.currency || "USD",
+      price: Number(product.price).toFixed(2),
+      availability: inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+    ...(product.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: product.averageRating.toFixed(2),
+            reviewCount: product.reviewCount,
+          },
+        }
+      : {}),
+  };
+
+  const breadcrumbs: { name: string; url: string }[] = [
+    { name: "Home", url: `${siteUrl}/` },
+    { name: "Products", url: `${siteUrl}/products` },
+  ];
+  if (product.category) {
+    breadcrumbs.push({
+      name: product.category.name,
+      url: `${siteUrl}/categories/${product.category.slug}`,
+    });
   }
+  breadcrumbs.push({ name: product.name, url: canonical });
 
-  if (error || !product) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <p className="text-4xl mb-4">😢</p>
-        <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-2">
-          Product Not Found
-        </h1>
-        <p className="text-brand-text-muted">
-          The product you&apos;re looking for doesn&apos;t exist or has been removed.
-        </p>
-      </div>
-    );
-  }
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: breadcrumbs.map((b, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: b.name,
+      item: b.url,
+    })),
+  };
 
-  return <ProductDetail product={product} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <ProductDetail product={detailProduct as never} />
+    </>
+  );
 }

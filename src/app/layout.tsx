@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { getSettings } from "@/lib/settings";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,12 +25,42 @@ export const viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
+  const siteUrl = getSiteUrl();
   return {
+    metadataBase: new URL(siteUrl),
     title: {
       default: settings.name,
       template: `%s | ${settings.name}`,
     },
     description: settings.description,
+    applicationName: settings.name,
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      type: "website",
+      siteName: settings.name,
+      title: settings.name,
+      description: settings.description,
+      url: siteUrl,
+      locale: settings.locale?.replace("-", "_") || "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: settings.name,
+      description: settings.description,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
     icons: settings.faviconUrl
       ? { icon: settings.faviconUrl }
       : undefined,
@@ -42,6 +73,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const settings = await getSettings();
+  const siteUrl = getSiteUrl();
   const c = settings.colors;
   const safe = (v: string | undefined) => (v && /^#[0-9A-Fa-f]{3,8}$/.test(v) ? v : "");
   const themeCss = `:root{
@@ -59,6 +91,43 @@ export default async function RootLayout({
     ${safe(c.warning) && `--brand-warning:${c.warning};`}
     ${safe(c.error) && `--brand-error:${c.error};--destructive:${c.error};`}
   }`;
+
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: settings.name,
+    url: siteUrl,
+    logo: settings.logoUrl
+      ? (settings.logoUrl.startsWith("http") ? settings.logoUrl : `${siteUrl}${settings.logoUrl}`)
+      : undefined,
+    sameAs: [
+      settings.social?.instagram,
+      settings.social?.facebook,
+      settings.social?.tiktok,
+      settings.social?.twitter,
+    ].filter(Boolean),
+    contactPoint: settings.contact?.email
+      ? {
+          "@type": "ContactPoint",
+          email: settings.contact.email,
+          telephone: settings.contact.phone || undefined,
+          contactType: "customer service",
+        }
+      : undefined,
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: settings.name,
+    url: siteUrl,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteUrl}/products?search={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html
       lang="en"
@@ -66,6 +135,14 @@ export default async function RootLayout({
     >
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeCss }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         {children}

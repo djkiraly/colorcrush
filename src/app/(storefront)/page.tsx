@@ -1,19 +1,36 @@
-"use client";
-
-import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button";
 import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
+import { getSettings } from "@/lib/settings";
+import { db } from "@/lib/db";
+import { categories } from "@/lib/db/schema";
+import { eq, asc } from "drizzle-orm";
 
-type CategoryNode = {
-  id: string;
-  name: string;
-  slug: string;
-  imageUrl: string | null;
-  parentId: string | null;
-  children: CategoryNode[];
-};
+type CategoryRow = typeof categories.$inferSelect;
+type CategoryNode = CategoryRow & { children: CategoryNode[] };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const title = `${settings.name} — Handcrafted Candy, Chocolate & Gift Boxes`;
+  const description =
+    settings.description ||
+    `Shop premium handcrafted candies, chocolates, and customizable gift boxes from ${settings.name}.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: "/",
+      siteName: settings.name,
+    },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 const TYPE_EMOJI: Record<string, string> = {
   "chocolate-bars": "🍫",
@@ -21,16 +38,16 @@ const TYPE_EMOJI: Record<string, string> = {
   "hard-candies": "🍬",
   "chocolate-covered": "🍓",
   "chocolate-boxes": "📦",
-  "fudge": "🍮",
-  "licorice": "🖤",
+  fudge: "🍮",
+  licorice: "🖤",
   "lollipops-suckers": "🍭",
-  "marshmallows": "☁️",
+  marshmallows: "☁️",
   "caramels-toffees": "🍯",
-  "taffy": "🌈",
-  "mints": "🌿",
-  "novelty": "✨",
+  taffy: "🌈",
+  mints: "🌿",
+  novelty: "✨",
   "freeze-dried": "❄️",
-  "nostalgic": "🎞️",
+  nostalgic: "🎞️",
   "sugar-free": "🌱",
 };
 
@@ -40,92 +57,132 @@ const TYPE_COLOR: Record<string, string> = {
   "hard-candies": "bg-brand-lavender/20",
   "chocolate-covered": "bg-brand-peach/20",
   "chocolate-boxes": "bg-brand-sky/20",
-  "fudge": "bg-brand-pink/30",
-  "licorice": "bg-brand-lavender/30",
+  fudge: "bg-brand-pink/30",
+  licorice: "bg-brand-lavender/30",
   "lollipops-suckers": "bg-brand-peach/30",
-  "marshmallows": "bg-brand-sky/30",
+  marshmallows: "bg-brand-sky/30",
   "caramels-toffees": "bg-brand-peach/20",
-  "taffy": "bg-brand-mint/30",
-  "mints": "bg-brand-mint/40",
-  "novelty": "bg-brand-lavender/20",
+  taffy: "bg-brand-mint/30",
+  mints: "bg-brand-mint/40",
+  novelty: "bg-brand-lavender/20",
   "freeze-dried": "bg-brand-sky/20",
-  "nostalgic": "bg-brand-pink/20",
+  nostalgic: "bg-brand-pink/20",
   "sugar-free": "bg-brand-mint/30",
 };
 
 const EVENT_EMOJI: Record<string, string> = {
-  "birthday": "🎂",
-  "wedding": "💍",
+  birthday: "🎂",
+  wedding: "💍",
   "bridal-shower": "💐",
   "baby-shower": "🍼",
-  "graduation": "🎓",
+  graduation: "🎓",
   "team-sports": "🏆",
-  "school": "🎒",
-  "corporate": "💼",
-  "fundraiser": "🎟️",
+  school: "🎒",
+  corporate: "💼",
+  fundraiser: "🎟️",
   "party-favors": "🎉",
   "candy-buffet": "🍭",
-  "seasonal": "🌸",
-  "valentines": "💝",
-  "easter": "🐰",
-  "halloween": "🎃",
-  "christmas": "🎄",
+  seasonal: "🌸",
+  valentines: "💝",
+  easter: "🐰",
+  halloween: "🎃",
+  christmas: "🎄",
   "back-to-school": "📚",
   "game-day": "🏈",
-  "prom": "👑",
+  prom: "👑",
 };
 
-export default function HomePage() {
-  const siteConfig = useSiteSettings();
-  const [tree, setTree] = useState<CategoryNode[]>([]);
+async function getCategoryTree(): Promise<CategoryNode[]> {
+  try {
+    const all = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.isActive, true))
+      .orderBy(asc(categories.sortOrder));
+    const byId = new Map<string, CategoryNode>();
+    for (const c of all) byId.set(c.id, { ...c, children: [] });
+    const roots: CategoryNode[] = [];
+    for (const node of byId.values()) {
+      if (node.parentId && byId.has(node.parentId)) {
+        byId.get(node.parentId)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+    return roots;
+  } catch {
+    return [];
+  }
+}
 
-  useEffect(() => {
-    fetch("/api/categories?tree=true")
-      .then((r) => r.json())
-      .then((data) => setTree(data.categories ?? []))
-      .catch(() => {});
-  }, []);
+export default async function HomePage() {
+  const settings = await getSettings();
+  const tree = await getCategoryTree();
 
   const typeRoot = tree.find((r) => r.slug === "shop-by-type");
   const eventRoot = tree.find((r) => r.slug === "shop-by-event");
   const typeChildren = (typeRoot?.children ?? []).slice(0, 8);
-  // Show a curated set of event chips; prioritize the most recognizable occasions
-  const eventSlugOrder = ["birthday", "wedding", "valentines", "easter", "halloween", "christmas", "party-favors", "corporate"];
+  const eventSlugOrder = [
+    "birthday",
+    "wedding",
+    "valentines",
+    "easter",
+    "halloween",
+    "christmas",
+    "party-favors",
+    "corporate",
+  ];
   const eventChildren = eventSlugOrder
     .map((slug) => (eventRoot?.children ?? []).find((c) => c.slug === slug))
     .filter((c): c is CategoryNode => !!c);
 
+  const showFreeShipping =
+    settings.freeShippingThreshold &&
+    settings.freeShippingThreshold < Number.MAX_SAFE_INTEGER;
+
   return (
     <div>
-      {/* Hero Section */}
+      {/* Hero */}
       <section className="relative bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold text-brand-secondary leading-tight">
-              {siteConfig.tagline}
+              Handcrafted Candy, Chocolate &amp; Gift Boxes
             </h1>
+            <p className="mt-4 text-xl text-brand-secondary/80 font-medium">
+              {settings.tagline}
+            </p>
             <p className="mt-6 text-lg text-brand-text-secondary max-w-xl mx-auto">
-              {siteConfig.description}
+              {settings.description}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/products"
-                className={buttonVariants({ size: "lg", className: "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 h-12 text-base rounded-xl" })}
+                className={buttonVariants({
+                  size: "lg",
+                  className:
+                    "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 h-12 text-base rounded-xl",
+                })}
               >
                 Shop All Candy
               </Link>
               <Link
                 href="/build-your-box"
-                className={buttonVariants({ variant: "outline", size: "lg", className: "border-brand-secondary text-brand-secondary hover:bg-brand-secondary hover:text-white px-8 h-12 text-base rounded-xl" })}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "lg",
+                  className:
+                    "border-brand-secondary text-brand-secondary hover:bg-brand-secondary hover:text-white px-8 h-12 text-base rounded-xl",
+                })}
               >
                 Build Your Box
               </Link>
             </div>
           </div>
         </div>
-        <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-brand-pink/40 blur-xl" />
-        <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-brand-mint/40 blur-xl" />
-        <div className="absolute top-1/2 right-1/4 w-16 h-16 rounded-full bg-brand-peach/40 blur-xl" />
+        <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-brand-pink/40 blur-xl" aria-hidden="true" />
+        <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-brand-mint/40 blur-xl" aria-hidden="true" />
+        <div className="absolute top-1/2 right-1/4 w-16 h-16 rounded-full bg-brand-peach/40 blur-xl" aria-hidden="true" />
       </section>
 
       {/* Trust Badges */}
@@ -133,13 +190,15 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
             {[
-              { icon: "🚚", text: `Free Shipping Over $${siteConfig.freeShippingThreshold}` },
+              showFreeShipping
+                ? { icon: "🚚", text: `Free Shipping Over $${settings.freeShippingThreshold}` }
+                : { icon: "🚚", text: "Fast Shipping" },
               { icon: "🍬", text: "Handcrafted with Love" },
               { icon: "🔒", text: "Secure Checkout" },
               { icon: "😊", text: "Satisfaction Guaranteed" },
             ].map((badge) => (
               <div key={badge.text} className="flex items-center justify-center gap-2">
-                <span className="text-2xl">{badge.icon}</span>
+                <span className="text-2xl" aria-hidden="true">{badge.icon}</span>
                 <span className="text-sm font-medium text-brand-text-secondary">{badge.text}</span>
               </div>
             ))}
@@ -162,7 +221,7 @@ export default function HomePage() {
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {typeChildren.map((cat) => {
+            {typeChildren.map((cat, idx) => {
               const imageUrl = cat.imageUrl;
               if (imageUrl) {
                 return (
@@ -171,10 +230,13 @@ export default function HomePage() {
                     href={`/categories/${cat.slug}`}
                     className="relative rounded-2xl overflow-hidden h-48 sm:h-56 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group"
                   >
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={cat.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      priority={idx < 4}
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                     <div className="relative h-full flex items-end justify-center p-5">
@@ -191,7 +253,7 @@ export default function HomePage() {
                   href={`/categories/${cat.slug}`}
                   className={`${TYPE_COLOR[cat.slug] ?? "bg-brand-pink/20"} rounded-2xl p-5 sm:p-8 text-center hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group`}
                 >
-                  <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                  <div className="text-5xl mb-4 group-hover:scale-110 transition-transform" aria-hidden="true">
                     {TYPE_EMOJI[cat.slug] ?? "🍬"}
                   </div>
                   <h3 className="text-lg font-heading font-semibold text-brand-secondary">
@@ -225,7 +287,7 @@ export default function HomePage() {
                 href={`/categories/${evt.slug}`}
                 className="flex items-center gap-2 px-6 py-3 bg-gray-50 rounded-full hover:bg-brand-primary/10 hover:text-brand-primary transition-colors text-brand-text-secondary font-medium"
               >
-                <span className="text-xl">{EVENT_EMOJI[evt.slug] ?? "🎉"}</span>
+                <span className="text-xl" aria-hidden="true">{EVENT_EMOJI[evt.slug] ?? "🎉"}</span>
                 {evt.name}
               </Link>
             ))}

@@ -1,100 +1,88 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import CategoryClient from "./CategoryClient";
+import { getCategoryBySlug } from "@/lib/queries/category";
+import { getSettings } from "@/lib/settings";
+import { getSiteUrl } from "@/lib/site-url";
 
-import { useEffect, useState, Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { ProductGrid } from "@/components/storefront/ProductGrid";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const cat = await getCategoryBySlug(slug);
+  if (!cat) return { title: "Category not found" };
 
-function CategoryContent() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const slug = params.slug as string;
-  const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState<{ name: string; description: string | null; parentId: string | null } | null>(null);
-  const [ancestors, setAncestors] = useState<{ name: string; slug: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const settings = await getSettings();
+  const title = `${cat.name} — Shop ${cat.name}`;
+  const description =
+    cat.description ||
+    `Shop our selection of ${cat.name.toLowerCase()} from ${settings.name}. Handcrafted, premium quality.`;
+  const canonical = `/categories/${cat.slug}`;
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const sort = searchParams.get("sort") || "featured";
-      const page = searchParams.get("page") || "1";
-      const [productsRes, categoriesRes] = await Promise.all([
-        fetch(`/api/products?category=${slug}&sort=${sort}&page=${page}`),
-        fetch("/api/categories"),
-      ]);
-      const productsData = await productsRes.json();
-      const categoriesData = await categoriesRes.json();
-      setProducts(productsData.products || []);
-
-      const all: { id: string; name: string; slug: string; description: string | null; parentId: string | null }[] =
-        categoriesData.categories || [];
-      const byId = new Map(all.map((c) => [c.id, c]));
-      const cat = all.find((c) => c.slug === slug) || null;
-      setCategory(cat);
-
-      const chain: { name: string; slug: string }[] = [];
-      let cursor = cat?.parentId ?? null;
-      while (cursor) {
-        const parent = byId.get(cursor);
-        if (!parent) break;
-        chain.unshift({ name: parent.name, slug: parent.slug });
-        cursor = parent.parentId;
-      }
-      setAncestors(chain);
-      setLoading(false);
-    }
-    fetchData();
-  }, [slug, searchParams]);
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-sm text-brand-text-muted mb-6 flex-wrap">
-        <Link href="/" className="hover:text-brand-primary">Home</Link>
-        {ancestors.map((a) => (
-          <span key={a.slug} className="flex items-center gap-2">
-            <ChevronRight className="h-3 w-3" />
-            <Link href={`/categories/${a.slug}`} className="hover:text-brand-primary">{a.name}</Link>
-          </span>
-        ))}
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-brand-text">{category?.name || slug}</span>
-      </nav>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-heading font-bold text-brand-secondary">
-          {category?.name || slug}
-        </h1>
-        {category?.description && (
-          <p className="text-brand-text-secondary mt-2">{category.description}</p>
-        )}
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
-              <div className="aspect-square bg-gray-200" />
-              <div className="p-4 space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <ProductGrid products={products} />
-      )}
-    </div>
-  );
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: canonical,
+      images: cat.imageUrl ? [{ url: cat.imageUrl, alt: cat.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: cat.imageUrl ? [cat.imageUrl] : undefined,
+    },
+  };
 }
 
-export default function CategoryPage() {
+export default async function CategoryPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const cat = await getCategoryBySlug(slug);
+  if (!cat) notFound();
+
+  const siteUrl = getSiteUrl();
+  const breadcrumbs = [
+    { name: "Home", url: `${siteUrl}/` },
+    ...cat.ancestors.map((a) => ({
+      name: a.name,
+      url: `${siteUrl}/categories/${a.slug}`,
+    })),
+    { name: cat.name, url: `${siteUrl}/categories/${cat.slug}` },
+  ];
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: breadcrumbs.map((b, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: b.name,
+      item: b.url,
+    })),
+  };
+
   return (
-    <Suspense fallback={<div className="max-w-7xl mx-auto px-4 py-8"><div className="h-8 bg-gray-200 rounded w-48 animate-pulse" /></div>}>
-      <CategoryContent />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <CategoryClient
+        slug={cat.slug}
+        name={cat.name}
+        description={cat.description}
+        ancestors={cat.ancestors}
+      />
+    </>
   );
 }

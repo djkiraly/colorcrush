@@ -1,18 +1,30 @@
-"use client";
+import type { Metadata } from "next";
+import { getSettings } from "@/lib/settings";
 
-import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const title = `About ${settings.name}`;
+  const description = `Learn about ${settings.name} — our story, mission, and commitment to handcrafted candy and chocolate made with premium ingredients.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: "/about" },
+    openGraph: { type: "website", title, description, url: "/about" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
-export default function AboutPage() {
-  const siteConfig = useSiteSettings();
+export default async function AboutPage() {
+  const settings = await getSettings();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <h1 className="text-4xl font-heading font-bold text-brand-secondary mb-6">
-        About {siteConfig.name}
+        About {settings.name}
       </h1>
       <div className="prose max-w-none text-brand-text-secondary space-y-6">
         <p className="text-lg">
-          Welcome to {siteConfig.name}, where every piece of candy tells a story of craftsmanship,
+          Welcome to {settings.name}, where every piece of candy tells a story of craftsmanship,
           quality, and pure joy. Founded with a passion for creating extraordinary sweets,
           we source the finest ingredients from around the world to bring you candies that
           are as beautiful as they are delicious.
@@ -40,9 +52,9 @@ export default function AboutPage() {
           Visit Us
         </h2>
         <p>
-          {siteConfig.contact.address}<br />
-          Phone: {siteConfig.contact.phone}<br />
-          Email: {siteConfig.contact.email}
+          {settings.contact.address}<br />
+          Phone: {settings.contact.phone}<br />
+          Email: {settings.contact.email}
         </p>
       </div>
     </div>

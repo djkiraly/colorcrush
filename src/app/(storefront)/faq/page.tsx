@@ -1,9 +1,21 @@
-"use client";
+import type { Metadata } from "next";
+import { getSettings } from "@/lib/settings";
 
-import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const title = "Frequently Asked Questions";
+  const description = `Common questions about shipping, returns, gift boxes, allergens, and bulk orders at ${settings.name}.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: "/faq" },
+    openGraph: { type: "website", title, description, url: "/faq" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
-export default function FAQPage() {
-  const siteConfig = useSiteSettings();
+export default async function FAQPage() {
+  const settings = await getSettings();
 
   const faqs = [
     {
@@ -11,8 +23,8 @@ export default function FAQPage() {
       a: "Standard shipping takes 5-7 business days. Express shipping is 2-3 business days, and overnight is available for next-day delivery.",
     },
     {
-      q: `Do you offer free shipping?`,
-      a: `Yes! We offer free standard shipping on all orders over $${siteConfig.freeShippingThreshold}.`,
+      q: "Do you offer free shipping?",
+      a: `Yes! We offer free standard shipping on all orders over $${settings.freeShippingThreshold}.`,
     },
     {
       q: "Can I customize a gift box?",
@@ -32,7 +44,7 @@ export default function FAQPage() {
     },
     {
       q: "Do you offer corporate or bulk orders?",
-      a: "Yes! We love working with businesses for corporate gifts, events, and party favors. Contact us at " + siteConfig.contact.email + " for custom quotes.",
+      a: `Yes! We love working with businesses for corporate gifts, events, and party favors. Contact us at ${settings.contact.email} for custom quotes.`,
     },
     {
       q: "How do I track my order?",
@@ -40,30 +52,46 @@ export default function FAQPage() {
     },
   ];
 
-  return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-4xl font-heading font-bold text-brand-secondary mb-6 text-center">
-        Frequently Asked Questions
-      </h1>
-      <p className="text-brand-text-secondary text-center mb-12">
-        Can&apos;t find what you&apos;re looking for?{" "}
-        <a href="/contact" className="text-brand-primary hover:underline">
-          Contact us
-        </a>
-      </p>
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
 
-      <div className="space-y-6">
-        {faqs.map((faq, i) => (
-          <div key={i} className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="font-heading font-semibold text-brand-secondary mb-2">
-              {faq.q}
-            </h3>
-            <p className="text-brand-text-secondary text-sm leading-relaxed">
-              {faq.a}
-            </p>
-          </div>
-        ))}
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h1 className="text-4xl font-heading font-bold text-brand-secondary mb-6 text-center">
+          Frequently Asked Questions
+        </h1>
+        <p className="text-brand-text-secondary text-center mb-12">
+          Can&apos;t find what you&apos;re looking for?{" "}
+          <a href="/contact" className="text-brand-primary hover:underline">
+            Contact us
+          </a>
+        </p>
+
+        <div className="space-y-6">
+          {faqs.map((faq, i) => (
+            <div key={i} className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-heading font-semibold text-brand-secondary mb-2">
+                {faq.q}
+              </h3>
+              <p className="text-brand-text-secondary text-sm leading-relaxed">
+                {faq.a}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
