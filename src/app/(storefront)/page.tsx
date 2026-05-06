@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
+import { ConfigurableHero } from "@/components/storefront/ConfigurableHero";
 import { getSettings } from "@/lib/settings";
 import { db } from "@/lib/db";
 import { categories } from "@/lib/db/schema";
@@ -143,6 +144,9 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero */}
+      {settings.hero?.enabled ? (
+        <ConfigurableHero hero={settings.hero} />
+      ) : (
       <section className="relative bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center max-w-3xl mx-auto">
@@ -184,6 +188,7 @@ export default async function HomePage() {
         <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-brand-mint/40 blur-xl" aria-hidden="true" />
         <div className="absolute top-1/2 right-1/4 w-16 h-16 rounded-full bg-brand-peach/40 blur-xl" aria-hidden="true" />
       </section>
+      )}
 
       {/* Trust Badges */}
       <section className="border-b bg-white">

@@ -77,6 +77,18 @@ export type SiteSettingsOverrides = {
     warning?: string;
     error?: string;
   };
+  hero?: {
+    enabled?: boolean;
+    headline?: string;
+    subheadline?: string;
+    imageDesktopUrl?: string;
+    imageMobileUrl?: string;
+    imageAlt?: string;
+    ctaLabel?: string;
+    ctaHref?: string;
+    textAlign?: "left" | "center" | "right";
+    overlay?: "dark" | "light" | "none";
+  };
 };
 
 /**

@@ -88,6 +88,20 @@ export default function AdminSettingsPage() {
     enabled: true,
     text: "",
   });
+  const [hero, setHero] = useState({
+    enabled: false,
+    headline: "",
+    subheadline: "",
+    imageDesktopUrl: "",
+    imageMobileUrl: "",
+    imageAlt: "",
+    ctaLabel: "",
+    ctaHref: "",
+    textAlign: "center" as "left" | "center" | "right",
+    overlay: "dark" as "dark" | "light" | "none",
+  });
+  const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
+  const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
   const [gcs, setGcs] = useState({
     projectId: "",
     bucketName: "",
@@ -205,6 +219,24 @@ export default function AdminSettingsPage() {
           enabled:
             typeof announcementOverride.enabled === "boolean" ? (announcementOverride.enabled as boolean) : true,
           text: (announcementOverride.text as string) || "",
+        });
+
+        const heroOverride = (data.overrides?.hero || {}) as Record<string, unknown>;
+        const align = heroOverride.textAlign;
+        const overlay = heroOverride.overlay;
+        setHero({
+          enabled: (heroOverride.enabled as boolean) || false,
+          headline: (heroOverride.headline as string) || "",
+          subheadline: (heroOverride.subheadline as string) || "",
+          imageDesktopUrl: (heroOverride.imageDesktopUrl as string) || "",
+          imageMobileUrl: (heroOverride.imageMobileUrl as string) || "",
+          imageAlt: (heroOverride.imageAlt as string) || "",
+          ctaLabel: (heroOverride.ctaLabel as string) || "",
+          ctaHref: (heroOverride.ctaHref as string) || "",
+          textAlign:
+            align === "left" || align === "center" || align === "right" ? align : "center",
+          overlay:
+            overlay === "dark" || overlay === "light" || overlay === "none" ? overlay : "dark",
         });
 
         setLogoUrl((data.overrides?.logoUrl as string) || "");
@@ -349,6 +381,41 @@ export default function AdminSettingsPage() {
       setUrl(publicUrl);
     } catch {
       toast.error(`Failed to upload ${settingKey === "logoUrl" ? "logo" : "favicon"}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const uploadHeroImage = async (
+    file: File,
+    field: "imageDesktopUrl" | "imageMobileUrl",
+    setUploading: (v: boolean) => void
+  ) => {
+    setUploading(true);
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          pathPrefix: "hero",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to get upload URL");
+      const { uploadUrl, publicUrl } = await res.json();
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      const next = { ...hero, [field]: publicUrl };
+      setHero(next);
+      await saveKey("hero", next);
+    } catch {
+      toast.error(`Failed to upload ${field === "imageDesktopUrl" ? "desktop" : "mobile"} image`);
     } finally {
       setUploading(false);
     }
@@ -581,6 +648,268 @@ export default function AdminSettingsPage() {
                   const reset = { enabled: true, text: "" };
                   setAnnouncementBar(reset);
                   await saveKey("announcementBar", reset);
+                }}
+                disabled={saving !== null}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </section>
+
+        {/* Home Page Hero */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-brand-primary" />
+              <h2 className="font-heading font-semibold text-lg">Home Page Hero</h2>
+            </div>
+            {isOverridden("hero") && (
+              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                Modified
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            Replaces the default hero on the home page with a configurable image, headline, and CTA.
+            When disabled, the original gradient hero is shown.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Enable hero section</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Turn on to show the configured hero on the storefront home page
+                </p>
+              </div>
+              <Switch
+                checked={hero.enabled}
+                onCheckedChange={(checked) => setHero((prev) => ({ ...prev, enabled: checked }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Desktop image */}
+              <div className="space-y-2">
+                <Label>Desktop image</Label>
+                <p className="text-xs text-brand-text-muted">
+                  Recommended: <strong>1920 × 800 px</strong> (≈2.4:1), JPG or WebP, under 400&nbsp;KB.
+                </p>
+                <div className="flex items-center gap-4">
+                  {hero.imageDesktopUrl ? (
+                    <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 flex-1">
+                      <Image
+                        src={hero.imageDesktopUrl}
+                        alt="Hero desktop preview"
+                        width={160}
+                        height={67}
+                        className="h-16 w-auto object-cover rounded"
+                        unoptimized
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-brand-error hover:text-brand-error ml-auto"
+                        onClick={async () => {
+                          const next = { ...hero, imageDesktopUrl: "" };
+                          setHero(next);
+                          await saveKey("hero", next);
+                        }}
+                        disabled={saving !== null}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 rounded-lg p-3 flex-1 hover:bg-gray-100 transition-colors">
+                      <ImageIcon className="h-5 w-5 text-brand-text-muted" />
+                      <span className="text-sm text-brand-text-muted">
+                        {uploadingHeroDesktop ? "Uploading..." : "Upload desktop image"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={uploadingHeroDesktop}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadHeroImage(file, "imageDesktopUrl", setUploadingHeroDesktop);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile image */}
+              <div className="space-y-2">
+                <Label>Mobile image</Label>
+                <p className="text-xs text-brand-text-muted">
+                  Recommended: <strong>750 × 1000 px</strong> (3:4 portrait), JPG or WebP, under 200&nbsp;KB. Falls back to desktop image if not set.
+                </p>
+                <div className="flex items-center gap-4">
+                  {hero.imageMobileUrl ? (
+                    <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 flex-1">
+                      <Image
+                        src={hero.imageMobileUrl}
+                        alt="Hero mobile preview"
+                        width={60}
+                        height={80}
+                        className="h-16 w-auto object-cover rounded"
+                        unoptimized
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-brand-error hover:text-brand-error ml-auto"
+                        onClick={async () => {
+                          const next = { ...hero, imageMobileUrl: "" };
+                          setHero(next);
+                          await saveKey("hero", next);
+                        }}
+                        disabled={saving !== null}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 rounded-lg p-3 flex-1 hover:bg-gray-100 transition-colors">
+                      <ImageIcon className="h-5 w-5 text-brand-text-muted" />
+                      <span className="text-sm text-brand-text-muted">
+                        {uploadingHeroMobile ? "Uploading..." : "Upload mobile image"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={uploadingHeroMobile}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadHeroImage(file, "imageMobileUrl", setUploadingHeroMobile);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Image alt text</Label>
+              <p className="text-xs text-brand-text-muted">
+                Describes the image for screen readers and when images fail to load.
+              </p>
+              <Input
+                value={hero.imageAlt}
+                onChange={(e) => setHero((prev) => ({ ...prev, imageAlt: e.target.value }))}
+                placeholder="A spread of handcrafted candy and chocolates"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Headline</Label>
+              <Input
+                value={hero.headline}
+                onChange={(e) => setHero((prev) => ({ ...prev, headline: e.target.value }))}
+                placeholder="Handcrafted Candy, Chocolate & Gift Boxes"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Subheadline</Label>
+              <Input
+                value={hero.subheadline}
+                onChange={(e) => setHero((prev) => ({ ...prev, subheadline: e.target.value }))}
+                placeholder="Handcrafted Sweetness, Delivered to Your Door."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Button label</Label>
+                <Input
+                  value={hero.ctaLabel}
+                  onChange={(e) => setHero((prev) => ({ ...prev, ctaLabel: e.target.value }))}
+                  placeholder="Shop All Candy"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button link</Label>
+                <Input
+                  value={hero.ctaHref}
+                  onChange={(e) => setHero((prev) => ({ ...prev, ctaHref: e.target.value }))}
+                  placeholder="/products"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Text alignment</Label>
+                <select
+                  value={hero.textAlign}
+                  onChange={(e) =>
+                    setHero((prev) => ({
+                      ...prev,
+                      textAlign: e.target.value as "left" | "center" | "right",
+                    }))
+                  }
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Overlay</Label>
+                <select
+                  value={hero.overlay}
+                  onChange={(e) =>
+                    setHero((prev) => ({
+                      ...prev,
+                      overlay: e.target.value as "dark" | "light" | "none",
+                    }))
+                  }
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="dark">Dark (light text)</option>
+                  <option value="light">Light (dark text)</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() => saveKey("hero", hero)}
+              disabled={saving !== null}
+              className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Hero
+            </Button>
+            {isOverridden("hero") && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const reset = {
+                    enabled: false,
+                    headline: "",
+                    subheadline: "",
+                    imageDesktopUrl: "",
+                    imageMobileUrl: "",
+                    imageAlt: "",
+                    ctaLabel: "",
+                    ctaHref: "",
+                    textAlign: "center" as const,
+                    overlay: "dark" as const,
+                  };
+                  setHero(reset);
+                  await saveKey("hero", reset);
                 }}
                 disabled={saving !== null}
               >
