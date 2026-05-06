@@ -141,5 +141,6 @@ export type SiteConfig = Omit<typeof siteConfig, "shipping"> & {
     ctaHref: string;
     textAlign: "left" | "center" | "right";
     overlay: "dark" | "light" | "none";
+    hideHeaderLogoOnHome: boolean;
   };
 };

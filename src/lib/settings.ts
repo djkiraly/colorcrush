@@ -88,6 +88,7 @@ export type SiteSettingsOverrides = {
     ctaHref?: string;
     textAlign?: "left" | "center" | "right";
     overlay?: "dark" | "light" | "none";
+    hideHeaderLogoOnHome?: boolean;
   };
 };
 

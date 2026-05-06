@@ -35,6 +35,8 @@ export function Header() {
   const setCartOpen = useCartStore((s) => s.setOpen);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const isSuperAdmin = (session?.user as { role?: string })?.role === "super_admin";
+  const hideLogo =
+    isHome && !!siteConfig.hero?.enabled && !!siteConfig.hero?.hideHeaderLogoOnHome;
 
   useEffect(() => {
     fetch("/api/categories?tree=true")
@@ -75,7 +77,7 @@ export function Header() {
         )}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {siteConfig.logoUrl && (
+          {siteConfig.logoUrl && !hideLogo && (
             <Link href="/" className={`hidden lg:block absolute left-8 top-[calc(50%+25px)] -translate-y-1/2 z-10`}>
               <Image
                 src={siteConfig.logoUrl}
@@ -97,8 +99,8 @@ export function Header() {
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
 
-            <Link href="/" className="flex items-center gap-2">
-              {siteConfig.logoUrl ? (
+            <Link href="/" className="flex items-center gap-2" aria-label={siteConfig.name}>
+              {hideLogo ? null : siteConfig.logoUrl ? (
                 <>
                   <Image
                     src={siteConfig.logoUrl}

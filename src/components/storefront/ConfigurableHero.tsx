@@ -38,7 +38,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
     : "text-white/90";
 
   return (
-    <section className="relative overflow-hidden min-h-[480px] sm:min-h-[560px] lg:min-h-[640px] flex">
+    <section className="relative overflow-hidden w-full aspect-[3/4] sm:aspect-[12/5] flex">
       {desktop && (
         <picture>
           {hero.imageMobileUrl && (
@@ -62,7 +62,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           aria-hidden="true"
         />
       )}
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 flex">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 flex items-center">
         <div
           className={`flex flex-col w-full max-w-3xl ${
             align === "center" ? "mx-auto" : align === "right" ? "ml-auto" : ""

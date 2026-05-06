@@ -99,6 +99,7 @@ export default function AdminSettingsPage() {
     ctaHref: "",
     textAlign: "center" as "left" | "center" | "right",
     overlay: "dark" as "dark" | "light" | "none",
+    hideHeaderLogoOnHome: false,
   });
   const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
   const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
@@ -237,6 +238,7 @@ export default function AdminSettingsPage() {
             align === "left" || align === "center" || align === "right" ? align : "center",
           overlay:
             overlay === "dark" || overlay === "light" || overlay === "none" ? overlay : "dark",
+          hideHeaderLogoOnHome: (heroOverride.hideHeaderLogoOnHome as boolean) || false,
         });
 
         setLogoUrl((data.overrides?.logoUrl as string) || "");
@@ -846,41 +848,51 @@ export default function AdminSettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Text alignment</Label>
-                <select
-                  value={hero.textAlign}
-                  onChange={(e) =>
-                    setHero((prev) => ({
-                      ...prev,
-                      textAlign: e.target.value as "left" | "center" | "right",
-                    }))
-                  }
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
+            <div className="space-y-2">
+              <Label>Text alignment</Label>
+              <select
+                value={hero.textAlign}
+                onChange={(e) =>
+                  setHero((prev) => ({
+                    ...prev,
+                    textAlign: e.target.value as "left" | "center" | "right",
+                  }))
+                }
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Darken image for text readability</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Adds a dark overlay so light text stays legible. Turn off to show the image untouched.
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label>Overlay</Label>
-                <select
-                  value={hero.overlay}
-                  onChange={(e) =>
-                    setHero((prev) => ({
-                      ...prev,
-                      overlay: e.target.value as "dark" | "light" | "none",
-                    }))
-                  }
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="dark">Dark (light text)</option>
-                  <option value="light">Light (dark text)</option>
-                  <option value="none">None</option>
-                </select>
+              <Switch
+                checked={hero.overlay === "dark"}
+                onCheckedChange={(checked) =>
+                  setHero((prev) => ({ ...prev, overlay: checked ? "dark" : "none" }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Hide header logo on home page</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Turn on if your hero image already includes the logo. Other pages still show the header logo normally.
+                </p>
               </div>
+              <Switch
+                checked={hero.hideHeaderLogoOnHome}
+                onCheckedChange={(checked) =>
+                  setHero((prev) => ({ ...prev, hideHeaderLogoOnHome: checked }))
+                }
+              />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
@@ -907,6 +919,7 @@ export default function AdminSettingsPage() {
                     ctaHref: "",
                     textAlign: "center" as const,
                     overlay: "dark" as const,
+                    hideHeaderLogoOnHome: false,
                   };
                   setHero(reset);
                   await saveKey("hero", reset);
