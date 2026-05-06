@@ -30,7 +30,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
   const align = hero.textAlign ?? "center";
   const overlay = hero.overlay ?? "dark";
   const desktop = hero.imageDesktopUrl;
-  const mobile = hero.imageMobileUrl || desktop;
+  const fallbackImg = desktop || hero.imageMobileUrl;
   const isLightOverlay = overlay === "light";
   const textColor = isLightOverlay ? "text-brand-secondary" : "text-white";
   const subTextColor = isLightOverlay
@@ -39,16 +39,16 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
 
   return (
     <section className="relative overflow-hidden w-full bg-brand-pink/10">
-      {desktop ? (
+      {fallbackImg ? (
         <picture>
-          {hero.imageMobileUrl && (
+          {hero.imageMobileUrl && hero.imageDesktopUrl && (
             <source
               media="(max-width: 640px)"
               srcSet={hero.imageMobileUrl}
             />
           )}
           <img
-            src={mobile}
+            src={fallbackImg}
             alt={hero.imageAlt ?? ""}
             className="block mx-auto w-auto h-auto max-w-full max-h-[60vw] sm:max-h-[420px] lg:max-h-[520px]"
             loading="eager"
@@ -58,7 +58,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
       ) : (
         <div className="aspect-[3/4] sm:aspect-[12/5] w-full" aria-hidden="true" />
       )}
-      {overlay !== "none" && desktop && (
+      {overlay !== "none" && fallbackImg && (
         <div
           className={`absolute inset-0 ${OVERLAY_CLASSES[overlay]}`}
           aria-hidden="true"
