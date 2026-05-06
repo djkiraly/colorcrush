@@ -696,7 +696,7 @@ export default function AdminSettingsPage() {
               <div className="space-y-2">
                 <Label>Desktop image</Label>
                 <p className="text-xs text-brand-text-muted">
-                  Recommended: <strong>1920 × 800 px</strong> (≈2.4:1), JPG or WebP, under 400&nbsp;KB.
+                  Recommended: <strong>1920 × 600 px</strong> (16:5 banner ratio), JPG or WebP, under 400&nbsp;KB. Hero height auto-caps at ~520&nbsp;px so taller uploads still display fully — they just letterbox on wide screens.
                 </p>
                 <div className="flex items-center gap-4">
                   {hero.imageDesktopUrl ? (

@@ -38,7 +38,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
     : "text-white/90";
 
   return (
-    <section className="relative overflow-hidden w-full">
+    <section className="relative overflow-hidden w-full bg-brand-pink/10">
       {desktop ? (
         <picture>
           {hero.imageMobileUrl && (
@@ -50,7 +50,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           <img
             src={mobile}
             alt={hero.imageAlt ?? ""}
-            className="block w-full h-auto"
+            className="block mx-auto w-auto h-auto max-w-full max-h-[60vw] sm:max-h-[420px] lg:max-h-[520px]"
             loading="eager"
             fetchPriority="high"
           />
