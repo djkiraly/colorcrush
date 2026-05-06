@@ -1,0 +1,1 @@
+ALTER TABLE "categories" ADD COLUMN "color_hex" varchar(9);

@@ -16,11 +16,9 @@ import { neon } from "@neondatabase/serverless";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const TAGS_TO_BACKFILL = [
-  "0002_slimy_bishop",
-  "0003_stiff_joshua_kane",
-  "0004_color_crush_taxonomy",
-  "0005_scheduled_alerts",
-  "0006_alerts_notified_at",
+  "0009_absent_scalphunter",
+  "0010_smiling_lucky_pierre",
+  "0011_stale_scarlet_spider",
 ];
 
 async function main() {

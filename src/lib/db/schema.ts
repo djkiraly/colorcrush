@@ -142,6 +142,7 @@ export const categories = pgTable(
       onDelete: "set null",
     }),
     sortOrder: integer("sort_order").default(0).notNull(),
+    colorHex: varchar("color_hex", { length: 9 }),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

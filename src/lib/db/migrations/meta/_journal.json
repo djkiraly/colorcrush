@@ -85,6 +85,13 @@
       "when": 1777954377791,
       "tag": "0011_stale_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1778089683123,
+      "tag": "0012_tan_ink",
+      "breakpoints": true
     }
   ]
 }

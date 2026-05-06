@@ -38,8 +38,8 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
     : "text-white/90";
 
   return (
-    <section className="relative overflow-hidden w-full aspect-[3/4] sm:aspect-[12/5] flex">
-      {desktop && (
+    <section className="relative overflow-hidden w-full">
+      {desktop ? (
         <picture>
           {hero.imageMobileUrl && (
             <source
@@ -50,11 +50,13 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           <img
             src={mobile}
             alt={hero.imageAlt ?? ""}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="block w-full h-auto"
             loading="eager"
             fetchPriority="high"
           />
         </picture>
+      ) : (
+        <div className="aspect-[3/4] sm:aspect-[12/5] w-full" aria-hidden="true" />
       )}
       {overlay !== "none" && desktop && (
         <div
@@ -62,38 +64,40 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           aria-hidden="true"
         />
       )}
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 flex items-center">
-        <div
-          className={`flex flex-col w-full max-w-3xl ${
-            align === "center" ? "mx-auto" : align === "right" ? "ml-auto" : ""
-          } ${ALIGN_CLASSES[align]}`}
-        >
-          {hero.headline && (
-            <h1
-              className={`text-4xl sm:text-5xl lg:text-6xl font-heading font-bold leading-tight ${textColor}`}
-            >
-              {hero.headline}
-            </h1>
-          )}
-          {hero.subheadline && (
-            <p className={`mt-4 text-xl font-medium ${subTextColor}`}>
-              {hero.subheadline}
-            </p>
-          )}
-          {hero.ctaLabel && hero.ctaHref && (
-            <div className="mt-8">
-              <Link
-                href={hero.ctaHref}
-                className={buttonVariants({
-                  size: "lg",
-                  className:
-                    "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 h-12 text-base rounded-xl",
-                })}
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+          <div
+            className={`flex flex-col w-full max-w-3xl ${
+              align === "center" ? "mx-auto" : align === "right" ? "ml-auto" : ""
+            } ${ALIGN_CLASSES[align]}`}
+          >
+            {hero.headline && (
+              <h1
+                className={`text-2xl sm:text-4xl lg:text-6xl font-heading font-bold leading-tight ${textColor}`}
               >
-                {hero.ctaLabel}
-              </Link>
-            </div>
-          )}
+                {hero.headline}
+              </h1>
+            )}
+            {hero.subheadline && (
+              <p className={`mt-2 sm:mt-4 text-sm sm:text-lg lg:text-xl font-medium ${subTextColor}`}>
+                {hero.subheadline}
+              </p>
+            )}
+            {hero.ctaLabel && hero.ctaHref && (
+              <div className="mt-4 sm:mt-8">
+                <Link
+                  href={hero.ctaHref}
+                  className={buttonVariants({
+                    size: "lg",
+                    className:
+                      "bg-brand-primary hover:bg-brand-primary-hover text-white px-6 sm:px-8 h-10 sm:h-12 text-sm sm:text-base rounded-xl",
+                  })}
+                >
+                  {hero.ctaLabel}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>

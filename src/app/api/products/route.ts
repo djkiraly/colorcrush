@@ -98,6 +98,9 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("search");
   const category = searchParams.get("category");
+  const typeSlugs = searchParams.get("type")?.split(",").filter(Boolean) || [];
+  const colorSlugs = searchParams.get("color")?.split(",").filter(Boolean) || [];
+  const eventSlugs = searchParams.get("event")?.split(",").filter(Boolean) || [];
   const sort = searchParams.get("sort") || "featured";
   const tags = searchParams.get("tags")?.split(",").filter(Boolean);
   const minPrice = searchParams.get("minPrice");
@@ -140,6 +143,38 @@ export async function GET(request: NextRequest) {
             .select({ id: productCategories.productId })
             .from(productCategories)
             .where(inArray(productCategories.categoryId, categoryIds))
+        )
+      );
+    }
+  }
+
+  // Multi-facet taxonomy filtering: type / color / event
+  // Each facet ANDs across; multiple slugs within a facet OR (any match counts).
+  const facetSlugLists = [typeSlugs, colorSlugs, eventSlugs].filter(
+    (slugs) => slugs.length > 0
+  );
+  if (facetSlugLists.length > 0) {
+    const allSlugs = facetSlugLists.flat();
+    const matchedCats = await db
+      .select({ id: categories.id, slug: categories.slug })
+      .from(categories)
+      .where(inArray(categories.slug, allSlugs));
+    const idBySlug = new Map(matchedCats.map((c) => [c.slug, c.id]));
+
+    for (const slugs of facetSlugLists) {
+      const ids = slugs.map((s) => idBySlug.get(s)).filter((id): id is string => !!id);
+      if (ids.length === 0) {
+        // Slug not found → impossible match → force empty result
+        conditions.push(sql`false`);
+        continue;
+      }
+      conditions.push(
+        inArray(
+          products.id,
+          db
+            .select({ id: productCategories.productId })
+            .from(productCategories)
+            .where(inArray(productCategories.categoryId, ids))
         )
       );
     }

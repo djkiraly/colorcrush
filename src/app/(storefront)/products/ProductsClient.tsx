@@ -25,6 +25,7 @@ interface Category {
   name: string;
   slug: string;
   parentId: string | null;
+  colorHex?: string | null;
 }
 
 function ProductsContent() {

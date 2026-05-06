@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useCallback, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -27,11 +26,18 @@ const SORT_OPTIONS = [
   { value: "name-asc", label: "Name: A-Z" },
 ];
 
+const FACETS: Array<{ rootSlug: string; param: string; label: string }> = [
+  { rootSlug: "shop-by-type", param: "type", label: "Type" },
+  { rootSlug: "shop-by-color", param: "color", label: "Color" },
+  { rootSlug: "shop-by-event", param: "event", label: "Event" },
+];
+
 interface Category {
   id: string;
   name: string;
   slug: string;
   parentId: string | null;
+  colorHex?: string | null;
 }
 
 interface ProductFiltersProps {
@@ -43,7 +49,6 @@ export function ProductFilters({ categories, onClose }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentCategory = searchParams.get("category") || "";
   const currentSort = searchParams.get("sort") || "featured";
   const currentTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
   const minPrice = parseInt(searchParams.get("minPrice") || "0");
@@ -76,15 +81,21 @@ export function ProductFilters({ categories, onClose }: ProductFiltersProps) {
     router.push(window.location.pathname);
   };
 
+  const facetSelections = FACETS.map((f) => ({
+    ...f,
+    selected: searchParams.get(f.param)?.split(",").filter(Boolean) || [],
+  }));
+
   const hasFilters =
-    currentCategory || currentTags.length > 0 || minPrice > 0 || maxPrice < 100;
+    facetSelections.some((f) => f.selected.length > 0) ||
+    currentTags.length > 0 ||
+    minPrice > 0 ||
+    maxPrice < 100;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-heading font-semibold text-brand-secondary">
-          Filters
-        </h3>
+        <h3 className="font-heading font-semibold text-brand-secondary">Filters</h3>
         <div className="flex items-center gap-2">
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -119,18 +130,24 @@ export function ProductFilters({ categories, onClose }: ProductFiltersProps) {
         </div>
       </div>
 
-      {/* Categories (grouped by root) */}
-      <CategorySection
-        categories={categories}
-        currentCategory={currentCategory}
-        onSelect={(slug) => updateParams({ category: slug })}
-      />
+      {/* Taxonomy facets */}
+      {FACETS.map((facet) => (
+        <TaxonomyFacet
+          key={facet.param}
+          label={facet.label}
+          param={facet.param}
+          rootSlug={facet.rootSlug}
+          categories={categories}
+          selected={facetSelections.find((f) => f.param === facet.param)?.selected || []}
+          onChange={(slugs) =>
+            updateParams({ [facet.param]: slugs.length > 0 ? slugs.join(",") : null })
+          }
+        />
+      ))}
 
       {/* Price Range */}
       <div>
-        <h4 className="text-sm font-medium text-brand-text mb-2">
-          Price Range
-        </h4>
+        <h4 className="text-sm font-medium text-brand-text mb-2">Price Range</h4>
         <Slider
           min={0}
           max={100}
@@ -173,95 +190,65 @@ export function ProductFilters({ categories, onClose }: ProductFiltersProps) {
   );
 }
 
-function CategorySection({
+function TaxonomyFacet({
+  label,
+  param,
+  rootSlug,
   categories,
-  currentCategory,
-  onSelect,
+  selected,
+  onChange,
 }: {
+  label: string;
+  param: string;
+  rootSlug: string;
   categories: Category[];
-  currentCategory: string;
-  onSelect: (slug: string | null) => void;
+  selected: string[];
+  onChange: (slugs: string[]) => void;
 }) {
-  const { roots, childrenByParent } = useMemo(() => {
-    const roots = categories.filter((c) => c.parentId === null).sort((a, b) => a.name.localeCompare(b.name));
-    const childrenByParent = new Map<string, Category[]>();
-    for (const c of categories) {
-      if (c.parentId) {
-        const list = childrenByParent.get(c.parentId) ?? [];
-        list.push(c);
-        childrenByParent.set(c.parentId, list);
-      }
-    }
-    for (const list of childrenByParent.values()) list.sort((a, b) => a.name.localeCompare(b.name));
-    return { roots, childrenByParent };
-  }, [categories]);
+  const children = useMemo(() => {
+    const root = categories.find((c) => c.slug === rootSlug && c.parentId === null);
+    if (!root) return [];
+    return categories
+      .filter((c) => c.parentId === root.id)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [categories, rootSlug]);
 
-  // Expand the root that contains the currently-selected category (or the first root)
-  const initialExpanded = useMemo(() => {
-    if (currentCategory) {
-      const selected = categories.find((c) => c.slug === currentCategory);
-      if (selected?.parentId) return selected.parentId;
-      if (selected && selected.parentId === null) return selected.id;
-    }
-    return roots[0]?.id ?? null;
-  }, [categories, currentCategory, roots]);
+  if (children.length === 0) return null;
 
-  const [expanded, setExpanded] = useState<string | null>(initialExpanded);
+  const toggle = (slug: string) => {
+    const next = selected.includes(slug)
+      ? selected.filter((s) => s !== slug)
+      : [...selected, slug];
+    onChange(next);
+  };
 
   return (
     <div>
-      <h4 className="text-sm font-medium text-brand-text mb-2">Category</h4>
-      <div className="space-y-1">
-        <button
-          onClick={() => onSelect(null)}
-          className={`block w-full text-left text-sm px-2 py-1.5 rounded transition-colors ${
-            !currentCategory
-              ? "bg-brand-primary/10 text-brand-primary font-medium"
-              : "text-brand-text-secondary hover:bg-gray-50"
-          }`}
-        >
-          All Categories
-        </button>
-        {roots.map((root) => {
-          const isOpen = expanded === root.id;
-          const children = childrenByParent.get(root.id) ?? [];
+      <h4 className="text-sm font-medium text-brand-text mb-2">{label}</h4>
+      <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+        {children.map((c) => {
+          const isColor = param === "color";
+          const checked = selected.includes(c.slug);
           return (
-            <div key={root.id}>
-              <button
-                type="button"
-                onClick={() => setExpanded(isOpen ? null : root.id)}
-                className="flex items-center justify-between w-full text-left text-sm px-2 py-1.5 rounded text-brand-text hover:bg-gray-50"
-              >
-                <span className="font-medium">{root.name}</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-              </button>
-              {isOpen && (
-                <div className="pl-3 space-y-1 mt-1">
-                  <button
-                    onClick={() => onSelect(root.slug)}
-                    className={`block w-full text-left text-xs px-2 py-1 rounded transition-colors ${
-                      currentCategory === root.slug
-                        ? "bg-brand-primary/10 text-brand-primary font-medium"
-                        : "text-brand-text-secondary hover:bg-gray-50"
-                    }`}
-                  >
-                    All {root.name}
-                  </button>
-                  {children.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => onSelect(c.slug)}
-                      className={`block w-full text-left text-sm px-2 py-1 rounded transition-colors ${
-                        currentCategory === c.slug
-                          ? "bg-brand-primary/10 text-brand-primary font-medium"
-                          : "text-brand-text-secondary hover:bg-gray-50"
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
+            <div key={c.id} className="flex items-center gap-2">
+              <Checkbox
+                id={`${param}-${c.slug}`}
+                checked={checked}
+                onCheckedChange={() => toggle(c.slug)}
+              />
+              {isColor && c.colorHex && (
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-4 w-4 rounded-full border border-gray-300 flex-shrink-0"
+                  style={{ background: c.colorHex }}
+                />
               )}
+              <Label
+                htmlFor={`${param}-${c.slug}`}
+                className="text-sm cursor-pointer"
+              >
+                {c.name}
+              </Label>
             </div>
           );
         })}
