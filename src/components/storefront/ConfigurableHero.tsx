@@ -39,7 +39,14 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
     : "text-white/90";
 
   return (
-    <section className="relative overflow-hidden w-full min-h-[60vw] sm:min-h-[480px] lg:min-h-[600px] bg-brand-pink/10 flex items-center">
+    /*
+     * Sizing strategy:
+     *   Mobile (<640px):  aspect-[4/5] — portrait crop suits the mobile art-directed image.
+     *   Desktop (≥640px): aspect-[16/10] mirrors the 1440×900 source asset; max-h-[900px]
+     *                     caps height on viewports wider than 1440px so the hero never grows
+     *                     beyond the native image height. object-cover only engages past that cap.
+     */
+    <section className="relative overflow-hidden w-full bg-brand-pink/10 flex items-center aspect-[4/5] sm:aspect-[16/10] sm:max-h-[900px]">
       {/* Full-bleed background image with art direction for mobile vs desktop */}
       {fallbackImg ? (
         <picture className="absolute inset-0 w-full h-full">
@@ -60,7 +67,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           <img
             src={fallbackImg}
             alt={hero.imageAlt ?? ""}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-center"
             loading="eager"
             fetchPriority="high"
           />
