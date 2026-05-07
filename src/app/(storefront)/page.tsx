@@ -147,25 +147,25 @@ export default async function HomePage() {
       {settings.hero?.enabled ? (
         <ConfigurableHero hero={settings.hero} />
       ) : (
-      <section className="relative bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+      <section className="relative bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30 overflow-hidden min-h-[60vw] sm:min-h-[480px] lg:min-h-[600px] flex items-center">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold text-brand-secondary leading-tight">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-heading font-bold text-brand-secondary leading-tight">
               Handcrafted Candy, Chocolate &amp; Gift Boxes
             </h1>
-            <p className="mt-4 text-xl text-brand-secondary/80 font-medium">
+            <p className="mt-4 text-xl sm:text-2xl text-brand-secondary/80 font-medium">
               {settings.tagline}
             </p>
-            <p className="mt-6 text-lg text-brand-text-secondary max-w-xl mx-auto">
+            <p className="mt-5 text-base sm:text-lg text-brand-text-secondary max-w-xl mx-auto">
               {settings.description}
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/products"
                 className={buttonVariants({
                   size: "lg",
                   className:
-                    "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 h-12 text-base rounded-xl",
+                    "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 sm:px-10 h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200",
                 })}
               >
                 Shop All Candy
@@ -176,7 +176,7 @@ export default async function HomePage() {
                   variant: "outline",
                   size: "lg",
                   className:
-                    "border-brand-secondary text-brand-secondary hover:bg-brand-secondary hover:text-white px-8 h-12 text-base rounded-xl",
+                    "border-brand-secondary text-brand-secondary hover:bg-brand-secondary hover:text-white px-8 sm:px-10 h-12 sm:h-14 text-base sm:text-lg rounded-xl",
                 })}
               >
                 Build Your Box
@@ -184,9 +184,10 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
-        <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-brand-pink/40 blur-xl" aria-hidden="true" />
-        <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-brand-mint/40 blur-xl" aria-hidden="true" />
-        <div className="absolute top-1/2 right-1/4 w-16 h-16 rounded-full bg-brand-peach/40 blur-xl" aria-hidden="true" />
+        <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-brand-pink/40 blur-2xl" aria-hidden="true" />
+        <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-brand-mint/40 blur-2xl" aria-hidden="true" />
+        <div className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-brand-peach/40 blur-2xl" aria-hidden="true" />
+        <div className="absolute top-1/3 left-1/3 w-40 h-40 rounded-full bg-brand-lavender/30 blur-2xl" aria-hidden="true" />
       </section>
       )}
 

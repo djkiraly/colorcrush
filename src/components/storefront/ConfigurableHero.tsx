@@ -30,7 +30,8 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
   const align = hero.textAlign ?? "center";
   const overlay = hero.overlay ?? "dark";
   const desktop = hero.imageDesktopUrl;
-  const fallbackImg = desktop || hero.imageMobileUrl;
+  const mobile = hero.imageMobileUrl;
+  const fallbackImg = desktop || mobile;
   const isLightOverlay = overlay === "light";
   const textColor = isLightOverlay ? "text-brand-secondary" : "text-white";
   const subTextColor = isLightOverlay
@@ -38,66 +39,77 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
     : "text-white/90";
 
   return (
-    <section className="relative overflow-hidden w-full bg-brand-pink/10">
+    <section className="relative overflow-hidden w-full min-h-[60vw] sm:min-h-[480px] lg:min-h-[600px] bg-brand-pink/10 flex items-center">
+      {/* Full-bleed background image with art direction for mobile vs desktop */}
       {fallbackImg ? (
-        <picture>
-          {hero.imageMobileUrl && hero.imageDesktopUrl && (
+        <picture className="absolute inset-0 w-full h-full">
+          {/* Mobile-specific image: served when viewport is ≤639px */}
+          {mobile && (
             <source
-              media="(max-width: 640px)"
-              srcSet={hero.imageMobileUrl}
+              media="(max-width: 639px)"
+              srcSet={mobile}
+            />
+          )}
+          {/* Desktop-specific image: served for all wider viewports */}
+          {desktop && (
+            <source
+              media="(min-width: 640px)"
+              srcSet={desktop}
             />
           )}
           <img
             src={fallbackImg}
             alt={hero.imageAlt ?? ""}
-            className="block mx-auto w-auto h-auto max-w-full max-h-[60vw] sm:max-h-[420px] lg:max-h-[520px]"
+            className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
             fetchPriority="high"
           />
         </picture>
       ) : (
-        <div className="aspect-[3/4] sm:aspect-[12/5] w-full" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30" aria-hidden="true" />
       )}
-      {overlay !== "none" && fallbackImg && (
+
+      {/* Overlay */}
+      {overlay !== "none" && (
         <div
           className={`absolute inset-0 ${OVERLAY_CLASSES[overlay]}`}
           aria-hidden="true"
         />
       )}
-      <div className="absolute inset-0 flex items-center">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-          <div
-            className={`flex flex-col w-full max-w-3xl ${
-              align === "center" ? "mx-auto" : align === "right" ? "ml-auto" : ""
-            } ${ALIGN_CLASSES[align]}`}
-          >
-            {hero.headline && (
-              <h1
-                className={`text-2xl sm:text-4xl lg:text-6xl font-heading font-bold leading-tight ${textColor}`}
+
+      {/* Text content — positioned above image/overlay */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
+        <div
+          className={`flex flex-col w-full max-w-3xl ${
+            align === "center" ? "mx-auto" : align === "right" ? "ml-auto" : ""
+          } ${ALIGN_CLASSES[align]}`}
+        >
+          {hero.headline && (
+            <h1
+              className={`text-3xl sm:text-5xl lg:text-6xl font-heading font-bold leading-tight drop-shadow-md ${textColor}`}
+            >
+              {hero.headline}
+            </h1>
+          )}
+          {hero.subheadline && (
+            <p className={`mt-3 sm:mt-4 text-base sm:text-xl lg:text-2xl font-medium drop-shadow ${subTextColor}`}>
+              {hero.subheadline}
+            </p>
+          )}
+          {hero.ctaLabel && hero.ctaHref && (
+            <div className="mt-6 sm:mt-8">
+              <Link
+                href={hero.ctaHref}
+                className={buttonVariants({
+                  size: "lg",
+                  className:
+                    "bg-brand-primary hover:bg-brand-primary-hover text-white px-8 sm:px-10 h-12 sm:h-14 text-base sm:text-lg rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200",
+                })}
               >
-                {hero.headline}
-              </h1>
-            )}
-            {hero.subheadline && (
-              <p className={`mt-2 sm:mt-4 text-sm sm:text-lg lg:text-xl font-medium ${subTextColor}`}>
-                {hero.subheadline}
-              </p>
-            )}
-            {hero.ctaLabel && hero.ctaHref && (
-              <div className="mt-4 sm:mt-8">
-                <Link
-                  href={hero.ctaHref}
-                  className={buttonVariants({
-                    size: "lg",
-                    className:
-                      "bg-brand-primary hover:bg-brand-primary-hover text-white px-6 sm:px-8 h-10 sm:h-12 text-sm sm:text-base rounded-xl",
-                  })}
-                >
-                  {hero.ctaLabel}
-                </Link>
-              </div>
-            )}
-          </div>
+                {hero.ctaLabel}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </section>

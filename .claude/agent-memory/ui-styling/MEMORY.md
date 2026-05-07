@@ -4,3 +4,4 @@
 - [Rich Text Styling](rich_text_styling.md) — How Quill editor HTML output is styled; the .rich-text component class and overflow fix pattern
 - [Layout Conventions](layout_conventions.md) — Page wrapper, 2-col product grid, Tabs containment pattern
 - [Recharts Chart Conventions](recharts_conventions.md) — Shared constants, margin rules, anti-patterns for admin analytics charts
+- [Hero Component Conventions](hero_conventions.md) — ConfigurableHero layout pattern, art-direction for mobile/desktop images, min-h sizing approach
