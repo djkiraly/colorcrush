@@ -41,15 +41,16 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
   return (
     /*
      * Sizing strategy:
-     *   Mobile (<640px):  aspect-[4/5] — portrait crop suits the mobile art-directed image.
-     *   Desktop (≥640px): aspect-[16/10] mirrors the 1440×900 source asset; max-h-[900px]
-     *                     caps height on viewports wider than 1440px so the hero never grows
-     *                     beyond the native image height. object-cover only engages past that cap.
+     *   Mobile (<640px):  aspect-[4/5] full-bleed; mobile art-directed image fills the container.
+     *   Desktop (≥640px): section is exactly 900px tall; the image is rendered at its native
+     *                     1440×900 size (no scaling, no skewing), absolutely centered horizontally.
+     *                     On viewports wider than 1440px, the brand-pink background fills the
+     *                     pillar boxes; on viewports narrower than 1440px, sides are clipped
+     *                     by overflow-hidden.
      */
-    <section className="relative overflow-hidden w-full bg-brand-pink/10 flex items-center aspect-[4/5] sm:aspect-[16/10] sm:max-h-[900px]">
-      {/* Full-bleed background image with art direction for mobile vs desktop */}
+    <section className="relative overflow-hidden w-full bg-brand-pink/10 flex items-center aspect-[4/5] sm:aspect-auto sm:h-[900px]">
       {fallbackImg ? (
-        <picture className="absolute inset-0 w-full h-full">
+        <picture className="absolute inset-0 sm:inset-auto sm:left-1/2 sm:top-0 sm:-translate-x-1/2 sm:w-[1440px] sm:h-[900px]">
           {/* Mobile-specific image: served when viewport is ≤639px */}
           {mobile && (
             <source
@@ -57,7 +58,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
               srcSet={mobile}
             />
           )}
-          {/* Desktop-specific image: served for all wider viewports */}
+          {/* Desktop-specific image: served for all wider viewports, displayed at native 1440×900 */}
           {desktop && (
             <source
               media="(min-width: 640px)"
@@ -67,7 +68,9 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           <img
             src={fallbackImg}
             alt={hero.imageAlt ?? ""}
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            width={1440}
+            height={900}
+            className="w-full h-full object-cover object-center sm:object-none"
             loading="eager"
             fetchPriority="high"
           />
