@@ -43,7 +43,12 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
   const overlay = hero.overlay ?? "dark";
   const desktop = hero.imageDesktopUrl;
   const mobile = hero.imageMobileUrl;
-  const fallbackImg = desktop || mobile;
+  // The <img> src is the mobile-first default — small screens load it directly without
+  // having to wait for the browser to evaluate any <source> media queries. Desktop
+  // overrides this upward via a single <source media="(min-width: 640px)">. If only one
+  // image is configured, that one is used for every viewport.
+  const baseImg = mobile || desktop;
+  const hasBoth = !!(mobile && desktop);
   const isLightOverlay = overlay === "light";
   const textColor = isLightOverlay ? "text-brand-secondary" : "text-white";
   const subTextColor = isLightOverlay
@@ -76,27 +81,23 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
       className={`relative overflow-hidden w-full ${fallbackBgClass} flex items-center aspect-[4/5] sm:aspect-auto sm:h-[900px]`}
       style={sectionStyle}
     >
-      {fallbackImg ? (
+      {baseImg ? (
         <picture className="absolute inset-0 sm:inset-auto sm:left-1/2 sm:top-0 sm:-translate-x-1/2 sm:w-[1440px] sm:h-[900px]">
-          {/* Mobile-specific image: served when viewport is ≤639px */}
-          {mobile && (
-            <source
-              media="(max-width: 639px)"
-              srcSet={mobile}
-            />
-          )}
-          {/* Desktop-specific image: served for all wider viewports, displayed at native 1440×900 */}
-          {desktop && (
+          {/* Desktop override: only kicks in at ≥640px. If both mobile and desktop are set,
+              this <source> wins on larger viewports; otherwise the <img> baseImg is used. */}
+          {hasBoth && (
             <source
               media="(min-width: 640px)"
               srcSet={desktop}
+              width={1440}
+              height={900}
             />
           )}
           <img
-            src={fallbackImg}
+            src={baseImg}
             alt={hero.imageAlt ?? ""}
-            width={1440}
-            height={900}
+            width={mobile ? 750 : 1440}
+            height={mobile ? 1000 : 900}
             className="w-full h-full object-cover object-center sm:object-none"
             loading="eager"
             fetchPriority="high"
