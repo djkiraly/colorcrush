@@ -89,6 +89,12 @@ export type SiteSettingsOverrides = {
     textAlign?: "left" | "center" | "right";
     overlay?: "dark" | "light" | "none";
     hideHeaderLogoOnHome?: boolean;
+    backgroundColor?: string;
+    backgroundGradient?: {
+      from?: string;
+      to?: string;
+      angle?: number;
+    };
   };
 };
 

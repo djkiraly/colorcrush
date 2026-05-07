@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button-variants";
 
@@ -12,6 +13,17 @@ export type HeroSettings = {
   ctaHref?: string;
   textAlign?: "left" | "center" | "right";
   overlay?: "dark" | "light" | "none";
+  /**
+   * Background shown behind the hero image. Visible in the pillar boxes on viewports
+   * wider than the 1440px image, and behind transparent regions of a PNG/WEBP hero.
+   * Precedence: gradient (if both from+to set) > color > default brand-pink/10.
+   */
+  backgroundColor?: string; // hex like "#fce4ec"
+  backgroundGradient?: {
+    from?: string; // hex
+    to?: string; // hex
+    angle?: number; // degrees, default 135
+  };
 };
 
 const ALIGN_CLASSES: Record<NonNullable<HeroSettings["textAlign"]>, string> = {
@@ -38,6 +50,18 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
     ? "text-brand-secondary/80"
     : "text-white/90";
 
+  const gradient = hero.backgroundGradient;
+  const hasGradient = !!(gradient?.from && gradient?.to);
+  const sectionStyle: CSSProperties | undefined = hasGradient
+    ? {
+        background: `linear-gradient(${gradient!.angle ?? 135}deg, ${gradient!.from}, ${gradient!.to})`,
+      }
+    : hero.backgroundColor
+      ? { backgroundColor: hero.backgroundColor }
+      : undefined;
+  // Only fall back to the brand-pink tint if no custom background is configured.
+  const fallbackBgClass = sectionStyle ? "" : "bg-brand-pink/10";
+
   return (
     /*
      * Sizing strategy:
@@ -48,7 +72,10 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
      *                     pillar boxes; on viewports narrower than 1440px, sides are clipped
      *                     by overflow-hidden.
      */
-    <section className="relative overflow-hidden w-full bg-brand-pink/10 flex items-center aspect-[4/5] sm:aspect-auto sm:h-[900px]">
+    <section
+      className={`relative overflow-hidden w-full ${fallbackBgClass} flex items-center aspect-[4/5] sm:aspect-auto sm:h-[900px]`}
+      style={sectionStyle}
+    >
       {fallbackImg ? (
         <picture className="absolute inset-0 sm:inset-auto sm:left-1/2 sm:top-0 sm:-translate-x-1/2 sm:w-[1440px] sm:h-[900px]">
           {/* Mobile-specific image: served when viewport is ≤639px */}

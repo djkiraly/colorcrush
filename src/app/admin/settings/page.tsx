@@ -100,6 +100,8 @@ export default function AdminSettingsPage() {
     textAlign: "center" as "left" | "center" | "right",
     overlay: "dark" as "dark" | "light" | "none",
     hideHeaderLogoOnHome: false,
+    backgroundColor: "",
+    backgroundGradient: { from: "", to: "", angle: 135 },
   });
   const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
   const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
@@ -225,6 +227,7 @@ export default function AdminSettingsPage() {
         const heroOverride = (data.overrides?.hero || {}) as Record<string, unknown>;
         const align = heroOverride.textAlign;
         const overlay = heroOverride.overlay;
+        const gradientOverride = (heroOverride.backgroundGradient || {}) as Record<string, unknown>;
         setHero({
           enabled: (heroOverride.enabled as boolean) || false,
           headline: (heroOverride.headline as string) || "",
@@ -239,6 +242,13 @@ export default function AdminSettingsPage() {
           overlay:
             overlay === "dark" || overlay === "light" || overlay === "none" ? overlay : "dark",
           hideHeaderLogoOnHome: (heroOverride.hideHeaderLogoOnHome as boolean) || false,
+          backgroundColor: (heroOverride.backgroundColor as string) || "",
+          backgroundGradient: {
+            from: (gradientOverride.from as string) || "",
+            to: (gradientOverride.to as string) || "",
+            angle:
+              typeof gradientOverride.angle === "number" ? (gradientOverride.angle as number) : 135,
+          },
         });
 
         setLogoUrl((data.overrides?.logoUrl as string) || "");
@@ -880,6 +890,186 @@ export default function AdminSettingsPage() {
               />
             </div>
 
+            {/* Background behind the hero image (visible in pillar boxes on viewports wider
+                than 1440px, or behind transparent regions of the hero image). */}
+            <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Background behind hero image</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Shown beside the 1440&times;900 hero on wider screens. Pick a solid color or a two-stop gradient.
+                </p>
+              </div>
+              {(() => {
+                const bgMode: "none" | "color" | "gradient" =
+                  hero.backgroundGradient.from && hero.backgroundGradient.to
+                    ? "gradient"
+                    : hero.backgroundColor
+                      ? "color"
+                      : "none";
+                return (
+                  <>
+                    <select
+                      value={bgMode}
+                      onChange={(e) => {
+                        const next = e.target.value as "none" | "color" | "gradient";
+                        if (next === "none") {
+                          setHero((prev) => ({
+                            ...prev,
+                            backgroundColor: "",
+                            backgroundGradient: { from: "", to: "", angle: 135 },
+                          }));
+                        } else if (next === "color") {
+                          setHero((prev) => ({
+                            ...prev,
+                            backgroundColor: prev.backgroundColor || "#fce4ec",
+                            backgroundGradient: { from: "", to: "", angle: 135 },
+                          }));
+                        } else {
+                          setHero((prev) => ({
+                            ...prev,
+                            backgroundColor: "",
+                            backgroundGradient: {
+                              from: prev.backgroundGradient.from || "#fce4ec",
+                              to: prev.backgroundGradient.to || "#fff5e6",
+                              angle: prev.backgroundGradient.angle || 135,
+                            },
+                          }));
+                        }
+                      }}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="none">Default (brand pink tint)</option>
+                      <option value="color">Solid color</option>
+                      <option value="gradient">Gradient</option>
+                    </select>
+
+                    {bgMode === "color" && (
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={hero.backgroundColor || "#fce4ec"}
+                          onChange={(e) =>
+                            setHero((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                          }
+                          className="h-10 w-14 rounded-md border border-input cursor-pointer"
+                        />
+                        <Input
+                          value={hero.backgroundColor}
+                          onChange={(e) =>
+                            setHero((prev) => ({ ...prev, backgroundColor: e.target.value }))
+                          }
+                          placeholder="#fce4ec"
+                          className="flex-1"
+                        />
+                      </div>
+                    )}
+
+                    {bgMode === "gradient" && (
+                      <div className="space-y-3">
+                        <div
+                          className="h-12 w-full rounded-md border border-input"
+                          style={{
+                            background: `linear-gradient(${hero.backgroundGradient.angle}deg, ${hero.backgroundGradient.from || "#fce4ec"}, ${hero.backgroundGradient.to || "#fff5e6"})`,
+                          }}
+                          aria-hidden="true"
+                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">From</Label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={hero.backgroundGradient.from || "#fce4ec"}
+                                onChange={(e) =>
+                                  setHero((prev) => ({
+                                    ...prev,
+                                    backgroundGradient: {
+                                      ...prev.backgroundGradient,
+                                      from: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-10 w-14 rounded-md border border-input cursor-pointer"
+                              />
+                              <Input
+                                value={hero.backgroundGradient.from}
+                                onChange={(e) =>
+                                  setHero((prev) => ({
+                                    ...prev,
+                                    backgroundGradient: {
+                                      ...prev.backgroundGradient,
+                                      from: e.target.value,
+                                    },
+                                  }))
+                                }
+                                placeholder="#fce4ec"
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">To</Label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={hero.backgroundGradient.to || "#fff5e6"}
+                                onChange={(e) =>
+                                  setHero((prev) => ({
+                                    ...prev,
+                                    backgroundGradient: {
+                                      ...prev.backgroundGradient,
+                                      to: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-10 w-14 rounded-md border border-input cursor-pointer"
+                              />
+                              <Input
+                                value={hero.backgroundGradient.to}
+                                onChange={(e) =>
+                                  setHero((prev) => ({
+                                    ...prev,
+                                    backgroundGradient: {
+                                      ...prev.backgroundGradient,
+                                      to: e.target.value,
+                                    },
+                                  }))
+                                }
+                                placeholder="#fff5e6"
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">
+                            Angle: {hero.backgroundGradient.angle}&deg;
+                          </Label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={360}
+                            step={5}
+                            value={hero.backgroundGradient.angle}
+                            onChange={(e) =>
+                              setHero((prev) => ({
+                                ...prev,
+                                backgroundGradient: {
+                                  ...prev.backgroundGradient,
+                                  angle: Number(e.target.value),
+                                },
+                              }))
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
                 <Label className="text-sm font-medium">Hide header logo on home page</Label>
@@ -920,6 +1110,8 @@ export default function AdminSettingsPage() {
                     textAlign: "center" as const,
                     overlay: "dark" as const,
                     hideHeaderLogoOnHome: false,
+                    backgroundColor: "",
+                    backgroundGradient: { from: "", to: "", angle: 135 },
                   };
                   setHero(reset);
                   await saveKey("hero", reset);
