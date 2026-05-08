@@ -19,7 +19,9 @@
       "Bash(npx drizzle-kit:*)",
       "Bash(npx tsx *)",
       "Bash(npx eslint *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")"
     ]
   }
 }

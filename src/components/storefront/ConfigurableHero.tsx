@@ -43,12 +43,13 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
   const overlay = hero.overlay ?? "dark";
   const desktop = hero.imageDesktopUrl;
   const mobile = hero.imageMobileUrl;
-  // The <img> src is the mobile-first default — small screens load it directly without
-  // having to wait for the browser to evaluate any <source> media queries. Desktop
-  // overrides this upward via a single <source media="(min-width: 640px)">. If only one
-  // image is configured, that one is used for every viewport.
-  const baseImg = mobile || desktop;
-  const hasBoth = !!(mobile && desktop);
+  // Show/hide each image with Tailwind's sm: (640px) breakpoint. We previously used
+  // <picture><source media=…> but it didn't reliably swap to the desktop image in some
+  // browsers/configs, leaving the mobile image rendered everywhere. Two <img> tags with
+  // hidden/block is deterministic across all browsers and SSR. If only one image is
+  // configured, it falls back across both viewports.
+  const desktopImg = desktop || mobile;
+  const mobileImg = mobile || desktop;
   const isLightOverlay = overlay === "light";
   const textColor = isLightOverlay ? "text-brand-secondary" : "text-white";
   const subTextColor = isLightOverlay
@@ -81,28 +82,33 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
       className={`relative overflow-hidden w-full ${fallbackBgClass} flex items-center aspect-[4/5] sm:aspect-auto sm:h-[900px]`}
       style={sectionStyle}
     >
-      {baseImg ? (
-        <picture className="absolute inset-0 sm:inset-auto sm:left-1/2 sm:top-0 sm:-translate-x-1/2 sm:w-[1440px] sm:h-[900px]">
-          {/* Desktop override: only kicks in at ≥640px. If both mobile and desktop are set,
-              this <source> wins on larger viewports; otherwise the <img> baseImg is used. */}
-          {hasBoth && (
-            <source
-              media="(min-width: 640px)"
-              srcSet={desktop}
-              width={1440}
-              height={900}
+      {mobileImg || desktopImg ? (
+        <>
+          {/* Mobile image: shown <640px, full-bleed cover-cropped to the 4:5 section. */}
+          {mobileImg && (
+            <img
+              src={mobileImg}
+              alt={hero.imageAlt ?? ""}
+              width={750}
+              height={1000}
+              className="block sm:hidden absolute inset-0 w-full h-full object-cover object-center"
+              loading="eager"
+              fetchPriority="high"
             />
           )}
-          <img
-            src={baseImg}
-            alt={hero.imageAlt ?? ""}
-            width={mobile ? 750 : 1440}
-            height={mobile ? 1000 : 900}
-            className="w-full h-full object-cover object-center sm:object-none"
-            loading="eager"
-            fetchPriority="high"
-          />
-        </picture>
+          {/* Desktop image: shown ≥640px, native 1440×900 centered in the section. */}
+          {desktopImg && (
+            <img
+              src={desktopImg}
+              alt={hero.imageAlt ?? ""}
+              width={1440}
+              height={900}
+              className="hidden sm:block absolute left-1/2 top-0 -translate-x-1/2 w-[1440px] h-[900px] object-none"
+              loading="eager"
+              fetchPriority="high"
+            />
+          )}
+        </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30" aria-hidden="true" />
       )}
