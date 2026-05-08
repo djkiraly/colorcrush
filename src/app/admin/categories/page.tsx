@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, FolderTree, Upload, Trash2, Loader2 } from "lucide-react";
+import { Plus, Edit, FolderTree, Upload, Trash2, Loader2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -37,8 +37,17 @@ export default function AdminCategoriesPage() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Bulk edit state. `bulkEdits` keys by category id and only contains rows whose
+  // values diverge from the loaded category — so "Save All" sends a minimal payload.
+  type BulkPatch = { name?: string; sortOrder?: number; isActive?: boolean };
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkEdits, setBulkEdits] = useState<Record<string, BulkPatch>>({});
+  const [savingBulk, setSavingBulk] = useState(false);
+
   const fetchCategories = async () => {
-    const res = await fetch("/api/categories");
+    // ?all=true so admins see inactive rows here; the storefront still uses the
+    // default endpoint and stays filtered to active categories.
+    const res = await fetch("/api/categories?all=true");
     const data = await res.json();
     setCategories(data.categories || []);
   };
@@ -137,12 +146,94 @@ export default function AdminCategoriesPage() {
     return categories.filter((c) => !excluded.has(c.id));
   }, [categories, descendantsOf, editingCategory]);
 
+  const setBulkField = <K extends keyof BulkPatch>(
+    cat: Category,
+    field: K,
+    value: BulkPatch[K]
+  ) => {
+    setBulkEdits((prev) => {
+      const current = { ...(prev[cat.id] ?? {}) };
+      // Drop the field from the patch when it matches the original value, so we
+      // never send no-op updates and the changed-row count stays accurate.
+      const original = cat[field as keyof Category] as BulkPatch[K];
+      if (value === original) {
+        delete current[field];
+      } else {
+        current[field] = value;
+      }
+      const next = { ...prev };
+      if (Object.keys(current).length === 0) {
+        delete next[cat.id];
+      } else {
+        next[cat.id] = current;
+      }
+      return next;
+    });
+  };
+
+  const dirtyCount = Object.keys(bulkEdits).length;
+
+  const enterBulkMode = () => {
+    setBulkEdits({});
+    setBulkMode(true);
+  };
+
+  const exitBulkMode = () => {
+    setBulkEdits({});
+    setBulkMode(false);
+  };
+
+  const saveBulk = async () => {
+    if (dirtyCount === 0) {
+      setBulkMode(false);
+      return;
+    }
+    setSavingBulk(true);
+    try {
+      const updates = Object.entries(bulkEdits).map(([id, patch]) => ({ id, ...patch }));
+      const res = await fetch("/api/categories/bulk", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.error || "Bulk save failed");
+        return;
+      }
+      const errs: { id: string; error: string }[] = data.errors ?? [];
+      if (errs.length > 0) {
+        const sample = errs[0];
+        const sampleName = categories.find((c) => c.id === sample.id)?.name ?? sample.id;
+        toast.error(
+          `Saved ${data.updatedCount} • ${errs.length} failed (e.g. "${sampleName}": ${sample.error})`
+        );
+      } else {
+        toast.success(`Updated ${data.updatedCount} categor${data.updatedCount === 1 ? "y" : "ies"}`);
+      }
+      setBulkEdits({});
+      setBulkMode(false);
+      fetchCategories();
+    } catch {
+      toast.error("Bulk save failed");
+    } finally {
+      setSavingBulk(false);
+    }
+  };
+
   const renderRow = (cat: Category, depth: number) => {
     const kids = childrenByParent.get(cat.id) ?? [];
+    const patch = bulkEdits[cat.id] ?? {};
+    const nameValue = patch.name ?? cat.name;
+    const sortValue = patch.sortOrder ?? cat.sortOrder;
+    const activeValue = patch.isActive ?? cat.isActive;
+    const isDirty = !!bulkEdits[cat.id];
     return (
       <div key={cat.id}>
         <div
-          className="flex items-center gap-3 py-2 px-3 rounded hover:bg-gray-50 border-b border-gray-100"
+          className={`flex items-center gap-3 py-2 px-3 rounded border-b border-gray-100 ${
+            bulkMode ? "" : "hover:bg-gray-50"
+          } ${isDirty ? "bg-amber-50" : ""}`}
           style={{ paddingLeft: `${depth * 24 + 12}px` }}
         >
           {cat.imageUrl ? (
@@ -152,17 +243,46 @@ export default function AdminCategoriesPage() {
           ) : (
             <FolderTree className="h-5 w-5 text-brand-text-muted flex-shrink-0" />
           )}
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm">{cat.name}</div>
-            <div className="text-xs font-mono text-brand-text-muted truncate">{cat.slug}</div>
-          </div>
-          <span className="text-xs text-brand-text-muted w-12 text-right">#{cat.sortOrder}</span>
-          <Badge className={cat.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-            {cat.isActive ? "Active" : "Inactive"}
-          </Badge>
-          <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
-            <Edit className="h-4 w-4" />
-          </Button>
+          {bulkMode ? (
+            <>
+              <div className="flex-1 min-w-0">
+                <Input
+                  value={nameValue}
+                  onChange={(e) => setBulkField(cat, "name", e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <div className="text-xs font-mono text-brand-text-muted truncate mt-1">{cat.slug}</div>
+              </div>
+              <Input
+                type="number"
+                value={sortValue}
+                onChange={(e) =>
+                  setBulkField(cat, "sortOrder", parseInt(e.target.value, 10) || 0)
+                }
+                className="h-8 w-20 text-sm text-right"
+              />
+              <div className="w-24 flex justify-end">
+                <Switch
+                  checked={activeValue}
+                  onCheckedChange={(v) => setBulkField(cat, "isActive", v)}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm">{cat.name}</div>
+                <div className="text-xs font-mono text-brand-text-muted truncate">{cat.slug}</div>
+              </div>
+              <span className="text-xs text-brand-text-muted w-12 text-right">#{cat.sortOrder}</span>
+              <Badge className={cat.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                {cat.isActive ? "Active" : "Inactive"}
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
         {kids.map((child) => renderRow(child, depth + 1))}
       </div>
@@ -171,12 +291,47 @@ export default function AdminCategoriesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h1 className="text-2xl font-heading font-bold text-brand-secondary">Categories</h1>
-        <Button onClick={openNew} className="bg-brand-primary hover:bg-brand-primary-hover text-white">
-          <Plus className="h-4 w-4 mr-2" /> Add Category
-        </Button>
+        <div className="flex items-center gap-2">
+          {bulkMode ? (
+            <>
+              <span className="text-sm text-brand-text-muted">
+                {dirtyCount === 0 ? "No changes" : `${dirtyCount} changed`}
+              </span>
+              <Button variant="outline" onClick={exitBulkMode} disabled={savingBulk}>
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </Button>
+              <Button
+                onClick={saveBulk}
+                disabled={savingBulk || dirtyCount === 0}
+                className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+              >
+                {savingBulk ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Save All
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={enterBulkMode}>
+                <Pencil className="h-4 w-4 mr-2" /> Bulk Edit
+              </Button>
+              <Button onClick={openNew} className="bg-brand-primary hover:bg-brand-primary-hover text-white">
+                <Plus className="h-4 w-4 mr-2" /> Add Category
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      {bulkMode && (
+        <div className="flex items-center gap-3 px-3 py-2 mb-2 text-xs font-medium text-brand-text-muted uppercase tracking-wide">
+          <div className="w-8" aria-hidden="true" />
+          <div className="flex-1">Name</div>
+          <div className="w-20 text-right">Sort</div>
+          <div className="w-24 text-right">Active</div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
         {roots.length === 0 ? (
