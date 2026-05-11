@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { orders, orderItems, inventory, inventoryLog, coupons } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { sendOrderConfirmationEmail, sendLowStockAlerts } from "@/lib/email-notifications";
 import { logOrderAction } from "@/lib/order-audit";
 
@@ -55,10 +55,18 @@ export async function finalizeOrderAfterPayment(orderId: string, payment: Paymen
 
   await db.update(orders).set(updateValues).where(eq(orders.id, orderId));
 
-  // Decrement inventory for catalog line items
+  // Decrement inventory for catalog line items. Variant-aware: target the row
+  // matching (productId, variantId) exactly — including the NULL-variant row for
+  // simple products. Composite predicate avoids accidentally decrementing every
+  // variant of a product when only one was purchased.
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   for (const item of items) {
     if (item.isCustom || !item.productId) continue;
+
+    const variantPredicate = item.variantId
+      ? eq(inventory.variantId, item.variantId)
+      : isNull(inventory.variantId);
+    const where = and(eq(inventory.productId, item.productId), variantPredicate);
 
     await db
       .update(inventory)
@@ -66,17 +74,14 @@ export async function finalizeOrderAfterPayment(orderId: string, payment: Paymen
         quantity: sql`${inventory.quantity} - ${item.quantity}`,
         updatedAt: new Date(),
       })
-      .where(eq(inventory.productId, item.productId));
+      .where(where);
 
-    const [inv] = await db
-      .select()
-      .from(inventory)
-      .where(eq(inventory.productId, item.productId))
-      .limit(1);
+    const [inv] = await db.select().from(inventory).where(where).limit(1);
 
     if (inv) {
       await db.insert(inventoryLog).values({
         productId: item.productId,
+        variantId: item.variantId,
         previousQty: inv.quantity + item.quantity,
         newQty: inv.quantity,
         changeReason: "sale",

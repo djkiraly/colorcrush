@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ProductImageManager } from "@/components/admin/ProductImageManager";
 import { AIProductGenerator } from "@/components/admin/AIProductGenerator";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -78,6 +79,7 @@ export default function EditProductPage() {
           isGiftEligible: data.isGiftEligible,
           metaTitle: data.metaTitle || "",
           metaDescription: data.metaDescription || "",
+          hasVariants: data.hasVariants === true,
         });
         setImages(data.images || []);
       }
@@ -332,6 +334,16 @@ export default function EditProductPage() {
             productId={params.id as string}
             images={images}
             onChange={setImages}
+          />
+        </div>
+
+        {/* Variations */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <AdminProductVariantsEditor
+            productId={params.id as string}
+            productImages={images}
+            hasVariants={!!form.hasVariants}
+            onHasVariantsChange={(v) => setForm({ ...form, hasVariants: v })}
           />
         </div>
 

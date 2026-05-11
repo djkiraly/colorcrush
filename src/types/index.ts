@@ -66,6 +66,8 @@ export type OrderWithItems = Order & {
 
 export type CartItem = {
   productId: string;
+  variantId?: string | null;
+  variantDescription?: string | null;
   name: string;
   price: number;
   image: string;

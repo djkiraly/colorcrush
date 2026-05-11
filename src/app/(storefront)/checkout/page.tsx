@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useCart } from "@/hooks/use-cart";
-import { useCartStore } from "@/stores/cart-store";
+import { useCartStore, lineKey } from "@/stores/cart-store";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,12 @@ export default function CheckoutPage() {
   }, [shipAddr]);
 
   const cartLines = useMemo(
-    () => items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+    () =>
+      items.map((i) => ({
+        productId: i.productId,
+        variantId: i.variantId ?? null,
+        quantity: i.quantity,
+      })),
     [items]
   );
 
@@ -102,7 +107,11 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map((i) => ({
+            productId: i.productId,
+            variantId: i.variantId ?? null,
+            quantity: i.quantity,
+          })),
           shippingMethod: "standard", // legacy field; carrier/service comes from selectedRate
           shippingRate: {
             rateId: selectedRate.rateId,
@@ -363,9 +372,11 @@ export default function CheckoutPage() {
             <h2 className="text-lg font-heading font-semibold mb-4">Order Review</h2>
             <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.productId} className="flex justify-between text-sm">
+                <div key={lineKey(item)} className="flex justify-between text-sm">
                   <span>
-                    {item.name} x {item.quantity}
+                    {item.name}
+                    {item.variantDescription ? ` — ${item.variantDescription}` : ""} x{" "}
+                    {item.quantity}
                   </span>
                   <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
                 </div>

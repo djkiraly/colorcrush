@@ -281,6 +281,7 @@ export async function GET(request: NextRequest) {
         isActive: products.isActive,
         sku: products.sku,
         categoryId: products.categoryId,
+        hasVariants: products.hasVariants,
       })
       .from(products)
       .where(where)

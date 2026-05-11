@@ -1,6 +1,6 @@
 "use client";
 
-import { useCartStore } from "@/stores/cart-store";
+import { useCartStore, lineKey } from "@/stores/cart-store";
 import { useCart } from "@/hooks/use-cart";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { buttonVariants } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function CartDrawer() {
 
             <div className="flex-1 overflow-y-auto space-y-4 px-4 py-4">
               {items.map((item) => (
-                <div key={item.productId} className="flex gap-3 items-start">
+                <div key={lineKey(item)} className="flex gap-3 items-start">
                   <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
                     {item.image && (
                       <Image
@@ -68,12 +68,17 @@ export function CartDrawer() {
                     >
                       {item.name}
                     </Link>
+                    {item.variantDescription && (
+                      <p className="text-[11px] text-brand-text-muted line-clamp-1">
+                        {item.variantDescription}
+                      </p>
+                    )}
                     <p className="text-brand-primary font-semibold text-sm mt-0.5">
                       ${item.price.toFixed(2)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        onClick={() => updateQuantity(lineKey(item), item.quantity - 1)}
                         className="p-2 h-9 w-9 flex items-center justify-center rounded hover:bg-gray-100"
                         aria-label="Decrease quantity"
                       >
@@ -83,14 +88,14 @@ export function CartDrawer() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() => updateQuantity(lineKey(item), item.quantity + 1)}
                         className="p-2 h-9 w-9 flex items-center justify-center rounded hover:bg-gray-100"
                         aria-label="Increase quantity"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => removeItem(lineKey(item))}
                         className="p-2 rounded hover:bg-red-50 text-brand-text-muted hover:text-brand-error ml-auto"
                         aria-label="Remove item"
                       >

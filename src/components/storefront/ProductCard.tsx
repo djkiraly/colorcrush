@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +23,12 @@ interface ProductCardProps {
     averageRating?: number;
     reviewCount?: number;
     isFeatured?: boolean;
+    hasVariants?: boolean;
   };
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
   const price = parseFloat(product.price);
@@ -37,6 +40,12 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Products with variants need a per-option selection — route the customer
+    // to the detail page instead of adding the default SKU silently.
+    if (product.hasVariants) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
     const item = {
       productId: product.id,
       name: product.name,
@@ -110,7 +119,7 @@ export function ProductCard({ product }: ProductCardProps) {
             className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white rounded-xl h-10"
           >
             <ShoppingBag className="h-4 w-4 mr-2" />
-            Add to Cart
+            {product.hasVariants ? "Choose Options" : "Add to Cart"}
           </Button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Share2, ChevronRight } from "lucide-react";
@@ -11,6 +11,12 @@ import { StarRating } from "./StarRating";
 import { QuantitySelector } from "./QuantitySelector";
 import { ProductReviews } from "./ProductReviews";
 import { useCartStore } from "@/stores/cart-store";
+import {
+  VariantPicker,
+  findMatchingVariant,
+  type PickerOptionType,
+  type PickerVariant,
+} from "./VariantPicker";
 import { toast } from "sonner";
 
 interface ProductDetailProps {
@@ -27,40 +33,105 @@ interface ProductDetailProps {
     ingredients: string | null;
     nutritionInfo: unknown;
     isGiftEligible: boolean;
+    hasVariants: boolean;
     images: { id: string; url: string; altText: string | null; isPrimary: boolean }[];
     category: { id: string; name: string; slug: string } | null;
     inventory: { quantity: number } | null;
     reviews: { id: string; rating: number; title: string | null; body: string | null; userName: string; createdAt: string; isVerifiedPurchase: boolean; adminResponse: string | null }[];
     averageRating: number;
     reviewCount: number;
+    variants: PickerVariant[];
+    optionTypes: PickerOptionType[];
+    priceRange: { min: number; max: number } | null;
   };
 }
 
 export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selection, setSelection] = useState<Record<string, string>>({});
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
 
-  const price = parseFloat(product.price);
-  const comparePrice = product.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
-  const isOnSale = comparePrice && comparePrice > price;
-  const inStock = (product.inventory?.quantity ?? 0) > 0;
-  const primaryImage = product.images[selectedImage]?.url || product.images[0]?.url;
+  const usesVariants = product.hasVariants && product.variants.length > 0;
+
+  const fullySelected =
+    usesVariants &&
+    product.optionTypes.every((t) => Boolean(selection[t.id]));
+
+  const activeVariant = useMemo(() => {
+    if (!fullySelected) return null;
+    return findMatchingVariant(product.variants, selection);
+  }, [product.variants, selection, fullySelected]);
+
+  const basePrice = parseFloat(product.price);
+  const baseCompare = product.compareAtPrice ? parseFloat(product.compareAtPrice) : null;
+
+  const displayPrice = activeVariant?.priceOverride
+    ? parseFloat(activeVariant.priceOverride)
+    : basePrice;
+  const displayCompare = activeVariant?.compareAtPriceOverride
+    ? parseFloat(activeVariant.compareAtPriceOverride)
+    : baseCompare;
+  const isOnSale = displayCompare !== null && displayCompare > displayPrice;
+
+  // Aggregate stock across active variants if hasVariants, else use the single inventory row.
+  const inStock = usesVariants
+    ? activeVariant
+      ? (activeVariant.inventory?.quantity ?? 0) > 0
+      : product.variants.some(
+          (v) => v.isActive && (v.inventory?.quantity ?? 0) > 0
+        )
+    : (product.inventory?.quantity ?? 0) > 0;
+
+  const variantImageUrl = activeVariant?.imageOverrideId
+    ? product.images.find((i) => i.id === activeVariant.imageOverrideId)?.url
+    : undefined;
+  const primaryImage =
+    variantImageUrl ||
+    product.images[selectedImage]?.url ||
+    product.images[0]?.url;
+
+  const variantDescription = activeVariant
+    ? product.optionTypes
+        .map((t) => {
+          const valueId = selection[t.id];
+          const value = t.values.find((v) => v.id === valueId);
+          return value?.value;
+        })
+        .filter(Boolean)
+        .join(" • ")
+    : null;
+
+  const maxAddable = usesVariants
+    ? activeVariant?.inventory?.quantity ?? 99
+    : product.inventory?.quantity ?? 99;
 
   const handleAddToCart = () => {
+    if (usesVariants && !activeVariant) {
+      toast.error("Pick an option from each list to continue");
+      return;
+    }
     const item = {
       productId: product.id,
+      variantId: activeVariant?.id ?? null,
+      variantDescription,
       name: product.name,
-      price,
-      image: product.images[0]?.url || "",
+      price: displayPrice,
+      image: variantImageUrl || product.images[0]?.url || "",
       slug: product.slug,
     };
-
     addItem(item, quantity);
     setCartOpen(true);
     toast.success(`${product.name} added to cart`);
   };
+
+  const priceRange = product.priceRange;
+  const showPriceRange =
+    usesVariants &&
+    !activeVariant &&
+    priceRange &&
+    priceRange.min !== priceRange.max;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -138,13 +209,21 @@ export function ProductDetail({ product }: ProductDetailProps) {
           )}
 
           <div className="flex items-center gap-3">
-            <span className="text-3xl font-bold text-brand-primary">${price.toFixed(2)}</span>
+            {showPriceRange ? (
+              <span className="text-3xl font-bold text-brand-primary">
+                ${priceRange!.min.toFixed(2)} – ${priceRange!.max.toFixed(2)}
+              </span>
+            ) : (
+              <span className="text-3xl font-bold text-brand-primary">
+                ${displayPrice.toFixed(2)}
+              </span>
+            )}
             {isOnSale && (
-              <span className="text-xl text-brand-text-muted line-through">${comparePrice!.toFixed(2)}</span>
+              <span className="text-xl text-brand-text-muted line-through">${displayCompare!.toFixed(2)}</span>
             )}
             {isOnSale && (
               <Badge className="bg-brand-primary text-white">
-                Save ${(comparePrice! - price).toFixed(2)}
+                Save ${(displayCompare! - displayPrice).toFixed(2)}
               </Badge>
             )}
           </div>
@@ -175,19 +254,35 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </div>
           )}
 
+          {/* Variant picker */}
+          {usesVariants && (
+            <div className="border-t pt-4">
+              <VariantPicker
+                optionTypes={product.optionTypes}
+                variants={product.variants}
+                selected={selection}
+                onChange={setSelection}
+              />
+            </div>
+          )}
+
           {/* Add to Cart */}
           <div className="flex items-center gap-4 pt-4 border-t">
             <QuantitySelector
               quantity={quantity}
               onChange={setQuantity}
-              max={product.inventory?.quantity || 99}
+              max={maxAddable || 99}
             />
             <Button
               onClick={handleAddToCart}
-              disabled={!inStock}
+              disabled={!inStock || (usesVariants && !activeVariant)}
               className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-white h-12 text-base rounded-xl"
             >
-              {inStock ? "Add to Cart" : "Out of Stock"}
+              {!inStock
+                ? "Out of Stock"
+                : usesVariants && !activeVariant
+                ? "Select options"
+                : "Add to Cart"}
             </Button>
           </div>
 

@@ -7,6 +7,31 @@ import Stripe from "stripe";
 import { logOrderAction } from "@/lib/order-audit";
 import { finalizeOrderAfterPayment } from "@/lib/admin-orders/finalize";
 
+type CheckoutCartItem = {
+  productId: string;
+  variantId: string | null;
+  name: string;
+  variantDescription: string | null;
+  unitPrice: number;
+  quantity: number;
+};
+
+function decodeCartItems(metadata: Stripe.Metadata): CheckoutCartItem[] | null {
+  const chunkCount = parseInt(metadata.cartItemsChunks || "0", 10);
+  if (!chunkCount) return null;
+  let json = "";
+  for (let i = 0; i < chunkCount; i++) {
+    const part = metadata[`cartItems_${i}`];
+    if (typeof part !== "string") return null;
+    json += part;
+  }
+  try {
+    return JSON.parse(json) as CheckoutCartItem[];
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature")!;
@@ -91,22 +116,40 @@ export async function POST(request: NextRequest) {
 
       orderId = order.id;
 
-      for (const item of lineItems.data) {
-        const [product] = await db
-          .select()
-          .from(products)
-          .where(eq(products.name, item.description || ""))
-          .limit(1);
-
-        if (product) {
+      // Prefer the cartItems metadata we stuffed into the session — it has variant info.
+      // Fall back to the legacy product-name lookup so in-flight pre-deploy sessions still work.
+      const cartItems = decodeCartItems(session.metadata || {});
+      if (cartItems && cartItems.length > 0) {
+        for (const ci of cartItems) {
           await db.insert(orderItems).values({
             orderId: order.id,
-            productId: product.id,
-            productName: product.name,
-            quantity: item.quantity || 1,
-            unitPrice: product.price,
-            totalPrice: ((item.quantity || 1) * parseFloat(product.price)).toFixed(2),
+            productId: ci.productId,
+            variantId: ci.variantId,
+            productName: ci.name,
+            variantDescription: ci.variantDescription,
+            quantity: ci.quantity,
+            unitPrice: ci.unitPrice.toFixed(2),
+            totalPrice: (ci.unitPrice * ci.quantity).toFixed(2),
           });
+        }
+      } else {
+        for (const item of lineItems.data) {
+          const [product] = await db
+            .select()
+            .from(products)
+            .where(eq(products.name, item.description || ""))
+            .limit(1);
+
+          if (product) {
+            await db.insert(orderItems).values({
+              orderId: order.id,
+              productId: product.id,
+              productName: product.name,
+              quantity: item.quantity || 1,
+              unitPrice: product.price,
+              totalPrice: ((item.quantity || 1) * parseFloat(product.price)).toFixed(2),
+            });
+          }
         }
       }
 

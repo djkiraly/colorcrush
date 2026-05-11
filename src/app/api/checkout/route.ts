@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { products, coupons, users } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import {
+  products,
+  coupons,
+  users,
+  productVariants,
+  productVariantOptions,
+  productOptionValues,
+  productOptionTypes,
+} from "@/lib/db/schema";
+import { asc, eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { siteConfig } from "../../../../site.config";
@@ -24,6 +32,27 @@ interface GuestInfo {
   password?: string;
 }
 
+// Stripe metadata caps each value at 500 chars and the whole object at 50 keys.
+// We split the cart items JSON across cart_items_chunk_<n> keys so a typical
+// cart fits comfortably without truncation, and reassemble in the webhook.
+function buildSessionMetadata(input: Record<string, unknown>): Record<string, string> {
+  const { cartItems, ...rest } = input as { cartItems?: unknown };
+  const meta: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rest)) {
+    meta[k] = typeof v === "string" ? v : String(v);
+  }
+  if (cartItems) {
+    const json = JSON.stringify(cartItems);
+    const CHUNK = 450;
+    const chunks = Math.ceil(json.length / CHUNK);
+    meta.cartItemsChunks = String(chunks);
+    for (let i = 0; i < chunks; i++) {
+      meta[`cartItems_${i}`] = json.slice(i * CHUNK, (i + 1) * CHUNK);
+    }
+  }
+  return meta;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -35,7 +64,7 @@ export async function POST(request: NextRequest) {
       guest,
       shippingRate,
     }: {
-      items: { productId: string; quantity: number }[];
+      items: { productId: string; variantId?: string | null; quantity: number }[];
       couponCode?: string;
       giftMessage?: string;
       isGift?: boolean;
@@ -134,29 +163,92 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch products
+    // Resolve product + variant pricing server-side. The cart's prices are display-only;
+    // authoritative values come from the DB so a tampered client can't underpay.
     const productIds = items.map((i) => i.productId);
-    const productRows = await db
-      .select()
-      .from(products)
-      .where(inArray(products.id, productIds));
+    const variantIds = items
+      .map((i) => i.variantId)
+      .filter((v): v is string => !!v);
 
-    const lineItems = items.map((item) => {
+    const [productRows, variantRows] = await Promise.all([
+      db.select().from(products).where(inArray(products.id, productIds)),
+      variantIds.length > 0
+        ? db.select().from(productVariants).where(inArray(productVariants.id, variantIds))
+        : Promise.resolve([] as (typeof productVariants.$inferSelect)[]),
+    ]);
+
+    // Compose a variantDescription for each variant from its option values, e.g.
+    // "Gummy Bears • Blue & Gold • 8oz". Frozen on the order item at purchase time.
+    const variantOptionRows =
+      variantIds.length > 0
+        ? await db
+            .select({
+              variantId: productVariantOptions.variantId,
+              value: productOptionValues.value,
+              optionTypeSortOrder: productOptionTypes.sortOrder,
+            })
+            .from(productVariantOptions)
+            .innerJoin(
+              productOptionValues,
+              eq(productVariantOptions.optionValueId, productOptionValues.id)
+            )
+            .innerJoin(
+              productOptionTypes,
+              eq(productOptionValues.optionTypeId, productOptionTypes.id)
+            )
+            .where(inArray(productVariantOptions.variantId, variantIds))
+            .orderBy(asc(productOptionTypes.sortOrder))
+        : [];
+
+    const descByVariant = new Map<string, string>();
+    for (const row of variantOptionRows) {
+      const arr = descByVariant.get(row.variantId);
+      descByVariant.set(
+        row.variantId,
+        arr ? `${arr} • ${row.value}` : row.value
+      );
+    }
+
+    const resolved = items.map((item) => {
       const product = productRows.find((p) => p.id === item.productId);
       if (!product) throw new Error(`Product ${item.productId} not found`);
-
+      const variant = item.variantId
+        ? variantRows.find((v) => v.id === item.variantId)
+        : null;
+      if (item.variantId && !variant) {
+        throw new Error(`Variant ${item.variantId} not found`);
+      }
+      const unitPrice = variant?.priceOverride
+        ? parseFloat(variant.priceOverride)
+        : parseFloat(product.price);
+      const variantDescription = variant ? descByVariant.get(variant.id) || null : null;
+      const displayName = variantDescription
+        ? `${product.name} — ${variantDescription}`
+        : product.name;
       return {
-        price_data: {
-          currency: siteConfig.currency.toLowerCase(),
-          product_data: {
-            name: product.name,
-            description: product.shortDescription || undefined,
-          },
-          unit_amount: Math.round(parseFloat(product.price) * 100),
-        },
+        productId: product.id,
+        variantId: variant?.id ?? null,
+        name: product.name,
+        displayName,
+        description: product.shortDescription || undefined,
+        unitPrice,
+        sku: variant?.sku || product.sku,
+        variantDescription,
         quantity: item.quantity,
       };
     });
+
+    const lineItems = resolved.map((r) => ({
+      price_data: {
+        currency: siteConfig.currency.toLowerCase(),
+        product_data: {
+          name: r.displayName,
+          description: r.description,
+        },
+        unit_amount: Math.round(r.unitPrice * 100),
+      },
+      quantity: r.quantity,
+    }));
 
     // Handle coupon
     let discountAmount = 0;
@@ -168,10 +260,10 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (coupon && coupon.isActive) {
-        const subtotal = items.reduce((sum, item) => {
-          const product = productRows.find((p) => p.id === item.productId);
-          return sum + (product ? parseFloat(product.price) * item.quantity : 0);
-        }, 0);
+        const subtotal = resolved.reduce(
+          (sum, r) => sum + r.unitPrice * r.quantity,
+          0
+        );
 
         if (coupon.type === "percentage") {
           discountAmount = subtotal * (parseFloat(coupon.value) / 100);
@@ -199,7 +291,7 @@ export async function POST(request: NextRequest) {
     const stripeSession = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [...lineItems, shippingLineItem],
-      metadata: {
+      metadata: buildSessionMetadata({
         userId,
         couponCode: couponCode || "",
         giftMessage: giftMessage || "",
@@ -212,7 +304,15 @@ export async function POST(request: NextRequest) {
         shippingEstimatedDays:
           shippingRate.estimatedDays != null ? String(shippingRate.estimatedDays) : "",
         triggerVerifyEmail: triggerVerifyEmail ? "true" : "false",
-      },
+        cartItems: resolved.map((r) => ({
+          productId: r.productId,
+          variantId: r.variantId,
+          name: r.name,
+          variantDescription: r.variantDescription,
+          unitPrice: r.unitPrice,
+          quantity: r.quantity,
+        })),
+      }),
       success_url: `${await getPublicBaseUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${await getPublicBaseUrl()}/cart`,
     });

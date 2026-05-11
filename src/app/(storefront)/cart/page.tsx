@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
+import { lineKey } from "@/stores/cart-store";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -83,7 +84,7 @@ export default function CartPage() {
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
             <div
-              key={item.productId}
+              key={lineKey(item)}
               className="bg-white rounded-xl p-4 flex gap-4 items-center shadow-sm"
             >
               <div className="w-20 h-20 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
@@ -104,6 +105,11 @@ export default function CartPage() {
                 >
                   {item.name}
                 </Link>
+                {item.variantDescription && (
+                  <p className="text-xs text-brand-text-muted mt-0.5">
+                    {item.variantDescription}
+                  </p>
+                )}
                 <p className="text-brand-primary font-semibold mt-1">
                   ${item.price.toFixed(2)}
                 </p>
@@ -111,7 +117,7 @@ export default function CartPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center border rounded-lg">
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                    onClick={() => updateQuantity(lineKey(item), item.quantity - 1)}
                     className="p-2 h-10 w-10 flex items-center justify-center hover:bg-gray-50"
                     aria-label="Decrease"
                   >
@@ -119,7 +125,7 @@ export default function CartPage() {
                   </button>
                   <span className="w-10 text-center font-medium">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                    onClick={() => updateQuantity(lineKey(item), item.quantity + 1)}
                     className="p-2 h-10 w-10 flex items-center justify-center hover:bg-gray-50"
                     aria-label="Increase"
                   >
@@ -130,7 +136,7 @@ export default function CartPage() {
                   ${(item.price * item.quantity).toFixed(2)}
                 </p>
                 <button
-                  onClick={() => removeItem(item.productId)}
+                  onClick={() => removeItem(lineKey(item))}
                   className="p-2 text-brand-text-muted hover:text-brand-error transition-colors"
                   aria-label="Remove"
                 >
