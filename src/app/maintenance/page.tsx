@@ -5,12 +5,21 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { MaintenanceVideo } from "@/components/storefront/MaintenanceVideo";
 import { parseYouTubeId } from "@/lib/youtube";
+import { auth } from "@/lib/auth";
+import { isAdmin } from "@/lib/auth-helpers";
 
 export default async function MaintenancePage() {
   const settings = await getSettings();
 
   if (!settings.maintenanceMode?.enabled) {
     redirect("/");
+  }
+
+  // Admins should never be parked on the maintenance page — send them to the
+  // dashboard so they can toggle it off.
+  const session = await auth();
+  if (isAdmin(session)) {
+    redirect("/admin/settings");
   }
 
   const logoUrl = settings.logoUrl || settings.logo;
