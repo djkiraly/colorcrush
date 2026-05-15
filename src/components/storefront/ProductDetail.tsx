@@ -76,13 +76,15 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const isOnSale = displayCompare !== null && displayCompare > displayPrice;
 
   // Aggregate stock across active variants if hasVariants, else use the single inventory row.
-  const inStock = usesVariants
+  const stockQuantity = usesVariants
     ? activeVariant
-      ? (activeVariant.inventory?.quantity ?? 0) > 0
-      : product.variants.some(
-          (v) => v.isActive && (v.inventory?.quantity ?? 0) > 0
-        )
-    : (product.inventory?.quantity ?? 0) > 0;
+      ? activeVariant.inventory?.quantity ?? 0
+      : product.variants
+          .filter((v) => v.isActive)
+          .reduce((sum, v) => sum + (v.inventory?.quantity ?? 0), 0)
+    : product.inventory?.quantity ?? 0;
+  const inStock = stockQuantity > 0;
+  const isLowStock = stockQuantity < 5;
 
   const variantImageUrl = activeVariant?.imageOverrideId
     ? product.images.find((i) => i.id === activeVariant.imageOverrideId)?.url
@@ -266,6 +268,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </div>
           )}
 
+          {/* Low Stock alert */}
+          {isLowStock && (
+            <p className="text-sm font-semibold text-red-600 flex items-center gap-2">
+              <span aria-hidden>⚠️</span>
+              Low Stock
+            </p>
+          )}
+
           {/* Add to Cart */}
           <div className="flex items-center gap-4 pt-4 border-t">
             <QuantitySelector
@@ -279,7 +289,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-white h-12 text-base rounded-xl"
             >
               {!inStock
-                ? "Out of Stock"
+                ? "Low Stock"
                 : usesVariants && !activeVariant
                 ? "Select options"
                 : "Add to Cart"}
