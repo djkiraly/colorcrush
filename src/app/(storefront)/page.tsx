@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { FeaturedProducts } from "@/components/storefront/FeaturedProducts";
 import { ConfigurableHero } from "@/components/storefront/ConfigurableHero";
 import { getSettings } from "@/lib/settings";
+import { isFreeShippingEnabled } from "@/lib/free-shipping";
 import { db } from "@/lib/db";
 import { categories } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -137,9 +138,7 @@ export default async function HomePage() {
     .map((slug) => (eventRoot?.children ?? []).find((c) => c.slug === slug))
     .filter((c): c is CategoryNode => !!c);
 
-  const showFreeShipping =
-    settings.freeShippingThreshold &&
-    settings.freeShippingThreshold < Number.MAX_SAFE_INTEGER;
+  const showFreeShipping = isFreeShippingEnabled(settings.freeShippingThreshold);
 
   return (
     <div>

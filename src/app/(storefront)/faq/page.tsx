@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
+import { isFreeShippingEnabled } from "@/lib/free-shipping";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
@@ -17,15 +18,21 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FAQPage() {
   const settings = await getSettings();
 
+  const freeShippingOn = isFreeShippingEnabled(settings.freeShippingThreshold);
+
   const faqs = [
     {
       q: "How long does shipping take?",
       a: "Standard shipping takes 5-7 business days. Express shipping is 2-3 business days, and overnight is available for next-day delivery.",
     },
-    {
-      q: "Do you offer free shipping?",
-      a: `Yes! We offer free standard shipping on all orders over $${settings.freeShippingThreshold}.`,
-    },
+    ...(freeShippingOn
+      ? [
+          {
+            q: "Do you offer free shipping?",
+            a: `Yes! We offer free standard shipping on all orders over $${settings.freeShippingThreshold}.`,
+          },
+        ]
+      : []),
     {
       q: "Can I customize a gift box?",
       a: "Absolutely! Our Build Your Box feature lets you choose the size and fill each compartment with your favorite treats.",

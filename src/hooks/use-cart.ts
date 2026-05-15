@@ -1,18 +1,24 @@
 import { useCartStore } from "@/stores/cart-store";
-import { siteConfig } from "../../site.config";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+import { isFreeShippingEnabled } from "@/lib/free-shipping";
 
 export function useCart() {
   const store = useCartStore();
+  const settings = useSiteSettings();
 
   const subtotal = store.subtotal();
   const totalItems = store.totalItems();
   const discount = store.couponDiscount;
   const afterDiscount = Math.max(0, subtotal - discount);
+
+  const freeShippingEnabled = isFreeShippingEnabled(settings.freeShippingThreshold);
+  const threshold = freeShippingEnabled ? settings.freeShippingThreshold : null;
+
   const shippingCost =
-    afterDiscount >= siteConfig.freeShippingThreshold
+    freeShippingEnabled && afterDiscount >= (threshold as number)
       ? 0
-      : siteConfig.shippingRates.standard;
-  const taxAmount = afterDiscount * siteConfig.taxRate;
+      : settings.shippingRates.standard;
+  const taxAmount = afterDiscount * settings.taxRate;
   const total = afterDiscount + shippingCost + taxAmount;
 
   return {
@@ -23,10 +29,10 @@ export function useCart() {
     shippingCost,
     taxAmount,
     total,
-    freeShippingThreshold: siteConfig.freeShippingThreshold,
-    freeShippingRemaining: Math.max(
-      0,
-      siteConfig.freeShippingThreshold - afterDiscount
-    ),
+    freeShippingEnabled,
+    freeShippingThreshold: threshold,
+    freeShippingRemaining: freeShippingEnabled
+      ? Math.max(0, (threshold as number) - afterDiscount)
+      : 0,
   };
 }

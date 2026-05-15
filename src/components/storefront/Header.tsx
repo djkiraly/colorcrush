@@ -8,6 +8,7 @@ import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import { useCartStore } from "@/stores/cart-store";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+import { isFreeShippingEnabled } from "@/lib/free-shipping";
 import { Button } from "@/components/ui/button";
 import { SearchOverlay } from "./SearchOverlay";
 import { AccountMenu } from "./AccountMenu";
@@ -63,18 +64,30 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-        {siteConfig.announcementBar?.enabled !== false && (
-          <div className="bg-brand-secondary text-white text-center text-sm py-1.5 px-4">
-            <p>
-              {siteConfig.announcementBar?.text?.trim()
-                ? siteConfig.announcementBar.text.replace(
-                    /\{freeShippingThreshold\}/g,
-                    String(siteConfig.freeShippingThreshold)
-                  )
-                : `Free shipping on orders over $${siteConfig.freeShippingThreshold}!`}
-            </p>
-          </div>
-        )}
+        {(() => {
+          if (siteConfig.announcementBar?.enabled === false) return null;
+          const freeShippingOn = isFreeShippingEnabled(siteConfig.freeShippingThreshold);
+          const customText = siteConfig.announcementBar?.text?.trim();
+          // If admin hasn't set custom text, the default copy is a free-shipping
+          // pitch — suppress it entirely when free shipping is disabled.
+          if (!customText && !freeShippingOn) return null;
+          // If the custom text references the threshold token but free shipping
+          // is disabled, suppress rather than render a nonsensical value.
+          if (customText && !freeShippingOn && /\{freeShippingThreshold\}/.test(customText)) {
+            return null;
+          }
+          const text = customText
+            ? customText.replace(
+                /\{freeShippingThreshold\}/g,
+                String(siteConfig.freeShippingThreshold)
+              )
+            : `Free shipping on orders over $${siteConfig.freeShippingThreshold}!`;
+          return (
+            <div className="bg-brand-secondary text-white text-center text-sm py-1.5 px-4">
+              <p>{text}</p>
+            </div>
+          );
+        })()}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {siteConfig.logoUrl && !hideLogo && (

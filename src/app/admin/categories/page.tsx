@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, FolderTree, Upload, Trash2, Loader2, Pencil, X } from "lucide-react";
+import { Plus, Edit, FolderTree, Upload, Trash2, Loader2, Pencil, X, Package } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { CategoryProductsDialog } from "@/components/admin/CategoryProductsDialog";
 
 type Category = {
   id: string;
@@ -43,6 +44,9 @@ export default function AdminCategoriesPage() {
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkEdits, setBulkEdits] = useState<Record<string, BulkPatch>>({});
   const [savingBulk, setSavingBulk] = useState(false);
+
+  // Bulk product-membership picker (opens from each category row's "Manage Products" button).
+  const [productsCategory, setProductsCategory] = useState<Category | null>(null);
 
   const fetchCategories = async () => {
     // ?all=true so admins see inactive rows here; the storefront still uses the
@@ -278,6 +282,14 @@ export default function AdminCategoriesPage() {
               <Badge className={cat.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
                 {cat.isActive ? "Active" : "Inactive"}
               </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setProductsCategory(cat)}
+                title="Manage products in this category"
+              >
+                <Package className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
                 <Edit className="h-4 w-4" />
               </Button>
@@ -429,6 +441,14 @@ export default function AdminCategoriesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <CategoryProductsDialog
+        category={productsCategory}
+        open={!!productsCategory}
+        onOpenChange={(o) => {
+          if (!o) setProductsCategory(null);
+        }}
+      />
     </div>
   );
 }
