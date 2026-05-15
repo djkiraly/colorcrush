@@ -151,9 +151,9 @@ export function CategoryProductsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] bg-white overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="pr-8 truncate">
             Manage products — {category?.name ?? ""}
           </DialogTitle>
         </DialogHeader>
@@ -164,7 +164,7 @@ export function CategoryProductsDialog({
             Loading products…
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex-1 min-h-0 flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted" />
@@ -207,7 +207,7 @@ export function CategoryProductsDialog({
               </div>
             </div>
 
-            <div className="max-h-[50vh] overflow-y-auto border rounded-lg divide-y">
+            <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg divide-y bg-white">
               {filtered.length === 0 ? (
                 <div className="p-6 text-center text-sm text-brand-text-muted">
                   No products match.
@@ -225,21 +225,21 @@ export function CategoryProductsDialog({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggle(p.id)}
-                        className="h-4 w-4"
+                        className="h-4 w-4 flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium truncate min-w-0">
                             {p.name}
                           </span>
                           {isMember && (
-                            <Badge variant="secondary" className="text-[10px] py-0">
+                            <Badge variant="secondary" className="text-[10px] py-0 flex-shrink-0">
                               <Check className="h-3 w-3 mr-0.5" />
                               In category
                             </Badge>
                           )}
                           {!p.isActive && (
-                            <Badge variant="outline" className="text-[10px] py-0">
+                            <Badge variant="outline" className="text-[10px] py-0 flex-shrink-0">
                               Inactive
                             </Badge>
                           )}
