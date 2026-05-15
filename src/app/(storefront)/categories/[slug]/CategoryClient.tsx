@@ -16,22 +16,34 @@ type Props = {
 function CategoryContent({ slug, name, description, ancestors }: Props) {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const page = parseInt(searchParams.get("page") || "1");
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       const sort = searchParams.get("sort") || "featured";
-      const page = searchParams.get("page") || "1";
+      const pageParam = searchParams.get("page") || "1";
       const res = await fetch(
-        `/api/products?category=${slug}&sort=${sort}&page=${page}`
+        `/api/products?category=${slug}&sort=${sort}&page=${pageParam}`
       );
       const data = await res.json();
       setProducts(data.products || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 0);
       setLoading(false);
     }
     fetchData();
   }, [slug, searchParams]);
+
+  const buildPageHref = (n: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(n));
+    return `?${params.toString()}`;
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -61,6 +73,11 @@ function CategoryContent({ slug, name, description, ancestors }: Props) {
         {description && (
           <p className="text-brand-text-secondary mt-2">{description}</p>
         )}
+        {!loading && total > 0 && (
+          <p className="text-brand-text-muted mt-2 text-sm">
+            {total} product{total !== 1 ? "s" : ""}
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -79,10 +96,79 @@ function CategoryContent({ slug, name, description, ancestors }: Props) {
           ))}
         </div>
       ) : (
-        <ProductGrid products={products} />
+        <>
+          <ProductGrid products={products} />
+
+          {totalPages > 1 && (
+            <nav
+              className="flex flex-wrap justify-center items-center gap-2 mt-10"
+              aria-label="Pagination"
+            >
+              <a
+                href={buildPageHref(Math.max(1, page - 1))}
+                aria-disabled={page <= 1}
+                className={`px-3 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                  page <= 1
+                    ? "bg-gray-100 text-gray-400 pointer-events-none"
+                    : "bg-white text-brand-text-secondary hover:bg-gray-100"
+                }`}
+              >
+                Previous
+              </a>
+              {buildPageWindow(page, totalPages).map((p, i) =>
+                p === "…" ? (
+                  <span
+                    key={`gap-${i}`}
+                    className="w-10 h-10 flex items-center justify-center text-sm text-brand-text-muted"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <a
+                    key={p}
+                    href={buildPageHref(p)}
+                    aria-current={page === p ? "page" : undefined}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                      page === p
+                        ? "bg-brand-primary text-white"
+                        : "bg-white text-brand-text-secondary hover:bg-gray-100"
+                    }`}
+                  >
+                    {p}
+                  </a>
+                )
+              )}
+              <a
+                href={buildPageHref(Math.min(totalPages, page + 1))}
+                aria-disabled={page >= totalPages}
+                className={`px-3 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                  page >= totalPages
+                    ? "bg-gray-100 text-gray-400 pointer-events-none"
+                    : "bg-white text-brand-text-secondary hover:bg-gray-100"
+                }`}
+              >
+                Next
+              </a>
+            </nav>
+          )}
+        </>
       )}
     </div>
   );
+}
+
+// Sliding window of page numbers with ellipses, so pagination stays readable
+// when a category has many pages.
+function buildPageWindow(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "…")[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) out.push("…");
+  for (let i = start; i <= end; i++) out.push(i);
+  if (end < total - 1) out.push("…");
+  out.push(total);
+  return out;
 }
 
 export default function CategoryClient(props: Props) {
