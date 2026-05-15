@@ -168,7 +168,7 @@ export default function BulkImportPage() {
                   column(s)
                   {!isValid && (
                     <span className="text-red-500 ml-2">
-                      Missing required columns (name, sku, price)
+                      Missing required columns (name, price)
                     </span>
                   )}
                 </>
