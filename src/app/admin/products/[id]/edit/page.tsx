@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,10 @@ export default function EditProductPage() {
     return { groups, orphans };
   })();
 
+  const loadedRef = useRef(false);
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     async function fetchProduct() {
       const res = await fetch(`/api/products/${params.id}?includeInactive=true`);
       if (res.ok) {
@@ -124,19 +127,6 @@ export default function EditProductPage() {
   if (loading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>;
   if (!form) return <p>Product not found</p>;
 
-  // Renders only fire when form actually changes — so this log proves whether
-  // setForm committed the merged values from the AI apply handler.
-  if (typeof window !== "undefined") {
-    console.log(
-      "[EditProductPage render] form.metaTitle =",
-      JSON.stringify(form.metaTitle),
-      "| form.tags =",
-      JSON.stringify(form.tags),
-      "| form.metaDescription =",
-      JSON.stringify(form.metaDescription)
-    );
-  }
-
   return (
     <div>
       <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-6">
@@ -163,61 +153,21 @@ export default function EditProductPage() {
             productName={form.name}
             categoryName={categories.find((c) => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
-              // Logs as primitives so the Chrome console truncation can't hide them.
-              console.log("[AI Apply] AI returned:");
-              console.log("  metaTitle =", JSON.stringify(content.metaTitle));
-              console.log("  metaDescription =", JSON.stringify(content.metaDescription));
-              console.log("  tags =", JSON.stringify(content.tags));
-              console.log("  allergens =", JSON.stringify(content.allergens));
-              setForm((f: any) => {
-                const next = {
-                  ...f,
-                  description: content.description || f.description,
-                  shortDescription: content.shortDescription || f.shortDescription,
-                  metaTitle: content.metaTitle ?? f.metaTitle,
-                  metaDescription: content.metaDescription ?? f.metaDescription,
-                  tags:
-                    Array.isArray(content.tags) && content.tags.length > 0
-                      ? content.tags.join(", ")
-                      : f.tags,
-                  allergens:
-                    Array.isArray(content.allergens) && content.allergens.length > 0
-                      ? content.allergens.join(", ")
-                      : f.allergens,
-                };
-                console.log("[AI Apply] form state after merge:");
-                console.log("  form.metaTitle =", JSON.stringify(next.metaTitle));
-                console.log("  form.metaDescription =", JSON.stringify(next.metaDescription));
-                console.log("  form.tags =", JSON.stringify(next.tags));
-                console.log("  form.allergens =", JSON.stringify(next.allergens));
-                return next;
-              });
-              // After React commits the new state, read the DOM and report what
-              // the actual inputs hold. Bumped to 500ms to ensure any deferred
-              // commits or re-renders have settled.
-              setTimeout(() => {
-                const get = (sel: string) =>
-                  (document.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement | null)
-                    ?.value ?? "(input not found)";
-                console.log("[AI Apply] DOM after render:");
-                // Inputs are matched by label proximity — there are no id attrs
-                // on the edit page so we walk by Label text via XPath.
-                const inputs = Array.from(
-                  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-                    "input, textarea"
-                  )
-                );
-                for (const el of inputs) {
-                  const label = el
-                    .closest(".space-y-2")
-                    ?.querySelector("label")
-                    ?.textContent?.trim();
-                  if (label && /meta|tags|allergens/i.test(label)) {
-                    console.log(`  «${label}» →`, JSON.stringify(el.value));
-                  }
-                }
-                void get;
-              }, 500);
+              setForm((f: any) => ({
+                ...f,
+                description: content.description || f.description,
+                shortDescription: content.shortDescription || f.shortDescription,
+                metaTitle: content.metaTitle ?? f.metaTitle,
+                metaDescription: content.metaDescription ?? f.metaDescription,
+                tags:
+                  Array.isArray(content.tags) && content.tags.length > 0
+                    ? content.tags.join(", ")
+                    : f.tags,
+                allergens:
+                  Array.isArray(content.allergens) && content.allergens.length > 0
+                    ? content.allergens.join(", ")
+                    : f.allergens,
+              }));
             }}
           />
           <div className="space-y-2">
