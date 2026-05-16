@@ -131,6 +131,15 @@ export default function EditProductPage() {
   if (loading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>;
   if (!form) return <p>Product not found</p>;
 
+  if (typeof window !== "undefined") {
+    console.log("[AIv2 render] aiApplyCount =", aiApplyCount, "form =", {
+      metaTitle: form.metaTitle,
+      metaDescription: form.metaDescription,
+      tags: form.tags,
+      allergens: form.allergens,
+    });
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-6">
@@ -157,22 +166,52 @@ export default function EditProductPage() {
             productName={form.name}
             categoryName={categories.find((c) => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
-              setForm((f: any) => ({
-                ...f,
-                description: content.description || f.description,
-                shortDescription: content.shortDescription || f.shortDescription,
-                metaTitle: content.metaTitle ?? f.metaTitle,
-                metaDescription: content.metaDescription ?? f.metaDescription,
-                tags:
-                  Array.isArray(content.tags) && content.tags.length > 0
-                    ? content.tags.join(", ")
-                    : f.tags,
-                allergens:
-                  Array.isArray(content.allergens) && content.allergens.length > 0
-                    ? content.allergens.join(", ")
-                    : f.allergens,
-              }));
-              setAiApplyCount((n) => n + 1);
+              console.log("[AIv2] onApply fired. content =", {
+                metaTitle: content.metaTitle,
+                metaDescription: content.metaDescription,
+                tags: content.tags,
+                allergens: content.allergens,
+              });
+              setForm((f: any) => {
+                const next = {
+                  ...f,
+                  description: content.description || f.description,
+                  shortDescription: content.shortDescription || f.shortDescription,
+                  metaTitle: content.metaTitle ?? f.metaTitle,
+                  metaDescription: content.metaDescription ?? f.metaDescription,
+                  tags:
+                    Array.isArray(content.tags) && content.tags.length > 0
+                      ? content.tags.join(", ")
+                      : f.tags,
+                  allergens:
+                    Array.isArray(content.allergens) && content.allergens.length > 0
+                      ? content.allergens.join(", ")
+                      : f.allergens,
+                };
+                console.log("[AIv2] setForm reducer next =", {
+                  metaTitle: next.metaTitle,
+                  metaDescription: next.metaDescription,
+                  tags: next.tags,
+                  allergens: next.allergens,
+                });
+                return next;
+              });
+              setAiApplyCount((n) => {
+                console.log("[AIv2] bumping aiApplyCount from", n, "to", n + 1);
+                return n + 1;
+              });
+              setTimeout(() => {
+                const findInput = (id: string) =>
+                  document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+                    `input[data-debug="${id}"], textarea[data-debug="${id}"]`
+                  );
+                console.log("[AIv2] DOM after 300ms:", {
+                  metaTitle: findInput("metaTitle")?.value,
+                  metaDescription: findInput("metaDescription")?.value,
+                  tags: findInput("tags")?.value,
+                  allergens: findInput("allergens")?.value,
+                });
+              }, 300);
             }}
           />
           <div className="space-y-2">
@@ -319,6 +358,7 @@ export default function EditProductPage() {
             <Label>Tags</Label>
             <input
               key={`tags-${aiApplyCount}`}
+              data-debug="tags"
               className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               value={form.tags}
               onChange={(e) => setForm({ ...form, tags: e.target.value })}
@@ -328,6 +368,7 @@ export default function EditProductPage() {
             <Label>Allergens</Label>
             <input
               key={`allergens-${aiApplyCount}`}
+              data-debug="allergens"
               className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               value={form.allergens}
               onChange={(e) => setForm({ ...form, allergens: e.target.value })}
@@ -350,6 +391,7 @@ export default function EditProductPage() {
             <Label>Meta Title ({(form.metaTitle || "").length}/255)</Label>
             <input
               key={`metaTitle-${aiApplyCount}`}
+              data-debug="metaTitle"
               className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               value={form.metaTitle}
               onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
@@ -360,6 +402,7 @@ export default function EditProductPage() {
             <Label>Meta Description</Label>
             <textarea
               key={`metaDescription-${aiApplyCount}`}
+              data-debug="metaDescription"
               className="flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               value={form.metaDescription}
               onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
