@@ -192,11 +192,13 @@ export function Header() {
               <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)} aria-label="Search">
                 <Search className="h-5 w-5" />
               </Button>
-              <Link href="/account/wishlist">
-                <Button variant="ghost" size="icon" aria-label="Wishlist">
-                  <Heart className="h-5 w-5" />
-                </Button>
-              </Link>
+              {siteConfig.features?.wishlist !== false && (
+                <Link href="/account/wishlist">
+                  <Button variant="ghost" size="icon" aria-label="Wishlist">
+                    <Heart className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               {isSuperAdmin && (
                 <Link href="/admin">
                   <Button variant="ghost" size="icon" aria-label="Admin Dashboard">

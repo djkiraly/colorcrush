@@ -418,6 +418,16 @@ export const orders = pgTable(
     shippoLabelUrl: text("shippo_label_url"),
     shippoTrackingNumber: text("shippo_tracking_number"),
     shippoTrackingUrl: text("shippo_tracking_url"),
+    // Ad attribution — last-touch values captured at checkout from the
+    // visitor's session storage.
+    utmSource: varchar("utm_source", { length: 255 }),
+    utmMedium: varchar("utm_medium", { length: 255 }),
+    utmCampaign: varchar("utm_campaign", { length: 255 }),
+    utmContent: varchar("utm_content", { length: 255 }),
+    utmTerm: varchar("utm_term", { length: 255 }),
+    gclid: varchar("gclid", { length: 255 }),
+    fbclid: varchar("fbclid", { length: 255 }),
+    landingReferrer: varchar("landing_referrer", { length: 1000 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -628,6 +638,15 @@ export const pageViews = pgTable(
     productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     sessionId: varchar("session_id", { length: 100 }),
+    // Ad attribution — populated from URL query params on the inbound landing.
+    // `gclid` = Google Ads click id; `fbclid` = Meta click id.
+    utmSource: varchar("utm_source", { length: 255 }),
+    utmMedium: varchar("utm_medium", { length: 255 }),
+    utmCampaign: varchar("utm_campaign", { length: 255 }),
+    utmContent: varchar("utm_content", { length: 255 }),
+    utmTerm: varchar("utm_term", { length: 255 }),
+    gclid: varchar("gclid", { length: 255 }),
+    fbclid: varchar("fbclid", { length: 255 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -635,6 +654,8 @@ export const pageViews = pgTable(
     index("page_views_created_idx").on(table.createdAt),
     index("page_views_product_idx").on(table.productId),
     index("page_views_session_idx").on(table.sessionId),
+    index("page_views_utm_source_idx").on(table.utmSource),
+    index("page_views_utm_campaign_idx").on(table.utmCampaign),
   ]
 );
 

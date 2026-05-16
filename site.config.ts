@@ -94,6 +94,18 @@ export const siteConfig = {
     // recovery.
     customerDeletion: false,
   },
+
+  // ═══ ANALYTICS / AD TRACKING ═══
+  // Pixel/conversion tracking. Defaults are empty so no tags fire until admins
+  // configure them in /admin/settings.
+  analytics: {
+    // Google Ads conversion tracking. Format: "AW-XXXXXXXXXX" (the tag ID).
+    googleAdsId: "",
+    // Conversion label for purchase events. Combine with id: "AW-123/abcDEF".
+    googleAdsPurchaseLabel: "",
+    // Meta Pixel ID — a numeric string like "1234567890123456".
+    metaPixelId: "",
+  },
 } as const;
 
 export type ShippingConfig = {

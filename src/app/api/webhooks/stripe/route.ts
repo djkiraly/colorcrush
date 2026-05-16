@@ -111,6 +111,16 @@ export async function POST(request: NextRequest) {
           stripePaymentIntentId: session.payment_intent as string,
           isGift: metadata.isGift === "true",
           giftMessage: metadata.giftMessage || null,
+          // Last-touch ad attribution — captured by the client before
+          // redirecting to Stripe, surfaced through session metadata.
+          utmSource: metadata.utmSource || null,
+          utmMedium: metadata.utmMedium || null,
+          utmCampaign: metadata.utmCampaign || null,
+          utmContent: metadata.utmContent || null,
+          utmTerm: metadata.utmTerm || null,
+          gclid: metadata.gclid || null,
+          fbclid: metadata.fbclid || null,
+          landingReferrer: metadata.landingReferrer || null,
         })
         .returning();
 

@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       isGift,
       guest,
       shippingRate,
+      attribution,
     }: {
       items: { productId: string; variantId?: string | null; quantity: number }[];
       couponCode?: string;
@@ -70,6 +71,16 @@ export async function POST(request: NextRequest) {
       isGift?: boolean;
       guest?: GuestInfo;
       shippingRate?: SelectedRateInput;
+      attribution?: {
+        utmSource?: string;
+        utmMedium?: string;
+        utmCampaign?: string;
+        utmContent?: string;
+        utmTerm?: string;
+        gclid?: string;
+        fbclid?: string;
+        landingReferrer?: string;
+      };
     } = body;
 
     if (!items || items.length === 0) {
@@ -304,6 +315,14 @@ export async function POST(request: NextRequest) {
         shippingEstimatedDays:
           shippingRate.estimatedDays != null ? String(shippingRate.estimatedDays) : "",
         triggerVerifyEmail: triggerVerifyEmail ? "true" : "false",
+        utmSource: (attribution?.utmSource ?? "").slice(0, 255),
+        utmMedium: (attribution?.utmMedium ?? "").slice(0, 255),
+        utmCampaign: (attribution?.utmCampaign ?? "").slice(0, 255),
+        utmContent: (attribution?.utmContent ?? "").slice(0, 255),
+        utmTerm: (attribution?.utmTerm ?? "").slice(0, 255),
+        gclid: (attribution?.gclid ?? "").slice(0, 255),
+        fbclid: (attribution?.fbclid ?? "").slice(0, 255),
+        landingReferrer: (attribution?.landingReferrer ?? "").slice(0, 500),
         cartItems: resolved.map((r) => ({
           productId: r.productId,
           variantId: r.variantId,

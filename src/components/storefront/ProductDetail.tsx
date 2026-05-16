@@ -11,6 +11,8 @@ import { StarRating } from "./StarRating";
 import { QuantitySelector } from "./QuantitySelector";
 import { ProductReviews } from "./ProductReviews";
 import { useCartStore } from "@/stores/cart-store";
+import { useWishlist } from "@/hooks/use-wishlist";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import {
   VariantPicker,
   findMatchingVariant,
@@ -52,6 +54,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selection, setSelection] = useState<Record<string, string>>({});
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
+  const siteSettings = useSiteSettings();
+  const wishlist = useWishlist();
+  const wishlistEnabled = siteSettings.features?.wishlist !== false;
+  const inWishlist = wishlistEnabled && wishlist.isInWishlist(product.id);
 
   const usesVariants = product.hasVariants && product.variants.length > 0;
 
@@ -299,10 +305,29 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
 
           <div className="flex gap-4">
-            <Button variant="outline" className="flex-1">
-              <Heart className="h-4 w-4 mr-2" />
-              Add to Wishlist
-            </Button>
+            {wishlistEnabled && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() =>
+                  wishlist.toggle({
+                    id: product.id,
+                    name: product.name,
+                    slug: product.slug,
+                    price: product.price,
+                    image: primaryImage ?? null,
+                  })
+                }
+                aria-pressed={inWishlist}
+              >
+                <Heart
+                  className={`h-4 w-4 mr-2 ${
+                    inWishlist ? "fill-brand-primary text-brand-primary" : ""
+                  }`}
+                />
+                {inWishlist ? "Saved" : "Add to Wishlist"}
+              </Button>
+            )}
             <Button variant="outline" size="icon">
               <Share2 className="h-4 w-4" />
             </Button>

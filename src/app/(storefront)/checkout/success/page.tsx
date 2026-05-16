@@ -6,19 +6,32 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { useCartStore } from "@/stores/cart-store";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { Suspense } from "react";
 import { CheckCircle, Mail } from "lucide-react";
+
+// Window globals injected by the AdPixels component
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+    fbq?: (...args: unknown[]) => void;
+  }
+}
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const clearCart = useCartStore((s) => s.clearCart);
   const { data: session, status: sessionStatus } = useSession();
+  const settings = useSiteSettings();
 
   const [info, setInfo] = useState<{
     accountCreated: boolean;
     email: string | null;
     isGuest: boolean;
+    orderTotal?: number;
+    currency?: string;
+    orderId?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -34,6 +47,40 @@ function SuccessContent() {
       })
       .catch(() => {});
   }, [sessionId]);
+
+  // Fire purchase conversion events to Google Ads and Meta once we have the
+  // order total. Guarded by a per-session-id dedup key so the event fires
+  // exactly once even if the user reloads the success page.
+  useEffect(() => {
+    if (!info || !info.orderTotal || !sessionId) return;
+    const dedupKey = `_sv_conv_fired_${sessionId}`;
+    try {
+      if (sessionStorage.getItem(dedupKey)) return;
+      sessionStorage.setItem(dedupKey, "1");
+    } catch {
+      // sessionStorage unavailable — fall through and fire anyway
+    }
+
+    const value = info.orderTotal;
+    const currency = info.currency || "USD";
+    const adsId = settings.analytics?.googleAdsId?.trim();
+    const purchaseLabel = settings.analytics?.googleAdsPurchaseLabel?.trim();
+    const metaId = settings.analytics?.metaPixelId?.trim();
+
+    if (adsId && purchaseLabel && typeof window.gtag === "function") {
+      // The send_to format is "<adsId>/<conversionLabel>".
+      const sendTo = `${adsId}/${purchaseLabel}`;
+      window.gtag("event", "conversion", {
+        send_to: sendTo,
+        value,
+        currency,
+        transaction_id: info.orderId,
+      });
+    }
+    if (metaId && typeof window.fbq === "function") {
+      window.fbq("track", "Purchase", { value, currency });
+    }
+  }, [info, sessionId, settings.analytics]);
 
   const authed = !!session?.user;
   const accountCreated = info?.accountCreated ?? false;

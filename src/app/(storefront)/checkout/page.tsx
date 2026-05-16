@@ -217,6 +217,21 @@ export default function CheckoutPage() {
       await persistNewAddress();
     }
 
+    // Pull last-touch attribution from sessionStorage (set by PageViewTracker
+    // whenever a UTM / gclid / fbclid was present in the URL).
+    let attribution: Record<string, string> = {};
+    try {
+      const raw =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem("_sv_attr_last")
+          : null;
+      if (raw) attribution = JSON.parse(raw);
+    } catch {
+      attribution = {};
+    }
+    const landingReferrer =
+      typeof document !== "undefined" ? document.referrer || "" : "";
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -247,6 +262,10 @@ export default function CheckoutPage() {
                 password: createAccount ? guestPassword : undefined,
               }
             : undefined,
+          attribution: {
+            ...attribution,
+            landingReferrer,
+          },
         }),
       });
       const data = await res.json();

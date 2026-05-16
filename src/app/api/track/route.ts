@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { pageViews } from "@/lib/db/schema";
+import { pageViews, products } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
-/**
- * Parse a user-agent string into browser, OS, and device type.
- * Lightweight — no dependency needed for the top-level signals we track.
- */
 function parseUserAgent(ua: string) {
   let browser = "Other";
   if (/Edg\//i.test(ua)) browser = "Edge";
@@ -30,10 +27,26 @@ function parseUserAgent(ua: string) {
   return { browser, os, deviceType };
 }
 
+const trim = (v: unknown, max = 255) =>
+  typeof v === "string" && v.length > 0 ? v.slice(0, max) : null;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { path, referrer, sessionId, productId } = body;
+    const {
+      path,
+      referrer,
+      sessionId,
+      productId: explicitProductId,
+      productSlug,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      utmContent,
+      utmTerm,
+      gclid,
+      fbclid,
+    } = body;
 
     if (!path) {
       return NextResponse.json({ error: "path required" }, { status: 400 });
@@ -42,7 +55,6 @@ export async function POST(request: NextRequest) {
     const ua = request.headers.get("user-agent") || "";
     const { browser, os, deviceType } = parseUserAgent(ua);
 
-    // Geo headers — set by Vercel, Cloudflare, or similar edge platforms
     const country =
       request.headers.get("x-vercel-ip-country") ||
       request.headers.get("cf-ipcountry") ||
@@ -52,7 +64,20 @@ export async function POST(request: NextRequest) {
       request.headers.get("cf-ipcity") ||
       null;
 
-    // Get user ID from session if logged in (non-blocking)
+    // Resolve productId from slug if the client sent one. The client never
+    // sends an explicit productId for normal pageviews; this server-side
+    // lookup is what makes "Most Viewed Products" actually populate.
+    let productId: string | null =
+      typeof explicitProductId === "string" ? explicitProductId : null;
+    if (!productId && typeof productSlug === "string" && productSlug.length > 0) {
+      const [row] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.slug, productSlug))
+        .limit(1);
+      productId = row?.id ?? null;
+    }
+
     let userId: string | null = null;
     try {
       const session = await auth();
@@ -62,16 +87,23 @@ export async function POST(request: NextRequest) {
     }
 
     await db.insert(pageViews).values({
-      path,
-      referrer: referrer || null,
+      path: String(path).slice(0, 500),
+      referrer: trim(referrer, 1000),
       browser,
       os,
       deviceType,
       country: country ? decodeURIComponent(country) : null,
       city: city ? decodeURIComponent(city) : null,
-      productId: productId || null,
+      productId,
       userId,
-      sessionId: sessionId || null,
+      sessionId: trim(sessionId, 100),
+      utmSource: trim(utmSource),
+      utmMedium: trim(utmMedium),
+      utmCampaign: trim(utmCampaign),
+      utmContent: trim(utmContent),
+      utmTerm: trim(utmTerm),
+      gclid: trim(gclid),
+      fbclid: trim(fbclid),
     });
 
     return NextResponse.json({ ok: true });

@@ -6,6 +6,7 @@ import { Header } from "@/components/storefront/Header";
 import { Footer } from "@/components/storefront/Footer";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
 import { PageViewTracker } from "@/components/storefront/PageViewTracker";
+import { AdPixels } from "@/components/storefront/AdPixels";
 import { EmailVerificationBanner } from "@/components/storefront/EmailVerificationBanner";
 import { SiteSettingsProvider } from "@/components/providers/SiteSettingsProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
@@ -44,6 +45,7 @@ export default async function StorefrontLayout({
         <Footer />
         <CartDrawer />
         <PageViewTracker />
+        <AdPixels />
       </SiteSettingsProvider>
     </SessionProvider>
   );

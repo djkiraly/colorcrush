@@ -88,6 +88,11 @@ export default function AdminSettingsPage() {
     enabled: true,
     text: "",
   });
+  const [analytics, setAnalytics] = useState({
+    googleAdsId: "",
+    googleAdsPurchaseLabel: "",
+    metaPixelId: "",
+  });
   const [hero, setHero] = useState({
     enabled: false,
     headline: "",
@@ -222,6 +227,19 @@ export default function AdminSettingsPage() {
           enabled:
             typeof announcementOverride.enabled === "boolean" ? (announcementOverride.enabled as boolean) : true,
           text: (announcementOverride.text as string) || "",
+        });
+
+        const analyticsOverride = (data.overrides?.analytics || {}) as Record<string, unknown>;
+        const analyticsDefaults = (m.analytics || {}) as Record<string, string>;
+        setAnalytics({
+          googleAdsId:
+            (analyticsOverride.googleAdsId as string) ?? analyticsDefaults.googleAdsId ?? "",
+          googleAdsPurchaseLabel:
+            (analyticsOverride.googleAdsPurchaseLabel as string) ??
+            analyticsDefaults.googleAdsPurchaseLabel ??
+            "",
+          metaPixelId:
+            (analyticsOverride.metaPixelId as string) ?? analyticsDefaults.metaPixelId ?? "",
         });
 
         const heroOverride = (data.overrides?.hero || {}) as Record<string, unknown>;
@@ -660,6 +678,102 @@ export default function AdminSettingsPage() {
                   const reset = { enabled: true, text: "" };
                   setAnnouncementBar(reset);
                   await saveKey("announcementBar", reset);
+                }}
+                disabled={saving !== null}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </section>
+
+        {/* Analytics / Ad pixels */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-lg">
+              Analytics & Ad Pixels
+            </h2>
+            {isOverridden("analytics") && (
+              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                Customized
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            Conversion tracking IDs. Leave blank to disable that pixel. Inbound
+            <code className="bg-gray-100 px-1 mx-1 rounded text-xs">gclid</code>/
+            <code className="bg-gray-100 px-1 mx-1 rounded text-xs">fbclid</code> /
+            <code className="bg-gray-100 px-1 mx-1 rounded text-xs">utm_*</code>{" "}
+            params are captured automatically regardless of these settings.
+          </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Google Ads Tag ID</Label>
+              <Input
+                placeholder="AW-1234567890"
+                value={analytics.googleAdsId}
+                onChange={(e) =>
+                  setAnalytics((prev) => ({ ...prev, googleAdsId: e.target.value }))
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                Found in Google Ads → Tools → Conversions → Tag setup. Starts with{" "}
+                <code>AW-</code>.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Google Ads Purchase Conversion Label</Label>
+              <Input
+                placeholder="abc123XYZ_456"
+                value={analytics.googleAdsPurchaseLabel}
+                onChange={(e) =>
+                  setAnalytics((prev) => ({
+                    ...prev,
+                    googleAdsPurchaseLabel: e.target.value,
+                  }))
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                The label portion only — not the full <code>send_to</code>. Required
+                for purchase events to fire.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Meta Pixel ID</Label>
+              <Input
+                placeholder="1234567890123456"
+                value={analytics.metaPixelId}
+                onChange={(e) =>
+                  setAnalytics((prev) => ({ ...prev, metaPixelId: e.target.value }))
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                Numeric ID from Meta Events Manager. PageView + Purchase events
+                fire automatically.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() => saveKey("analytics", analytics)}
+              disabled={saving !== null}
+              className="bg-brand-primary hover:bg-brand-primary-hover text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Analytics
+            </Button>
+            {isOverridden("analytics") && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const reset = {
+                    googleAdsId: "",
+                    googleAdsPurchaseLabel: "",
+                    metaPixelId: "",
+                  };
+                  setAnalytics(reset);
+                  await saveKey("analytics", reset);
                 }}
                 disabled={saving !== null}
               >

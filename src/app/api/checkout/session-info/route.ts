@@ -36,7 +36,19 @@ export async function GET(request: NextRequest) {
       isGuest = u?.isGuest ?? false;
     }
 
-    return NextResponse.json({ accountCreated, email, isGuest });
+    // Surface the order total so the success page can fire client-side
+    // purchase conversion events with the correct value.
+    const amountTotal = (session.amount_total ?? 0) / 100;
+    const currency = (session.currency || "usd").toUpperCase();
+
+    return NextResponse.json({
+      accountCreated,
+      email,
+      isGuest,
+      orderTotal: amountTotal,
+      currency,
+      orderId: session.id,
+    });
   } catch (err) {
     console.error("session-info error:", err);
     return NextResponse.json({ error: "Failed to fetch session" }, { status: 500 });

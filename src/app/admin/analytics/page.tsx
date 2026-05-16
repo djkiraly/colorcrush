@@ -10,6 +10,7 @@ import {
   Users,
   Globe,
   Monitor,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -184,6 +185,7 @@ function AnalyticsSkeleton() {
 export default function AdminAnalyticsPage() {
   const [salesData, setSalesData] = useState<any>(null);
   const [trafficData, setTrafficData] = useState<any>(null);
+  const [campaignsData, setCampaignsData] = useState<any>(null);
   const [period, setPeriod] = useState("30d");
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
@@ -191,16 +193,19 @@ export default function AdminAnalyticsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [salesRes, trafficRes] = await Promise.all([
+      const [salesRes, trafficRes, campaignsRes] = await Promise.all([
         fetch(`/api/analytics?period=${period}`),
         fetch(`/api/analytics/traffic?period=${period}`),
+        fetch(`/api/analytics/campaigns?period=${period}`),
       ]);
-      const [sales, traffic] = await Promise.all([
+      const [sales, traffic, campaigns] = await Promise.all([
         salesRes.json(),
         trafficRes.json(),
+        campaignsRes.json(),
       ]);
       setSalesData(sales);
       setTrafficData(traffic);
+      setCampaignsData(campaigns);
     } finally {
       setLoading(false);
     }
@@ -210,7 +215,7 @@ export default function AdminAnalyticsPage() {
     fetchData();
   }, [fetchData]);
 
-  if (loading || !salesData || !trafficData) {
+  if (loading || !salesData || !trafficData || !campaignsData) {
     return <AnalyticsSkeleton />;
   }
 
@@ -260,6 +265,9 @@ export default function AdminAnalyticsPage() {
           </TabsTrigger>
           <TabsTrigger value="demographics" className="px-4">
             Demographics
+          </TabsTrigger>
+          <TabsTrigger value="campaigns" className="px-4">
+            Campaigns
           </TabsTrigger>
         </TabsList>
 
@@ -476,6 +484,138 @@ export default function AdminAnalyticsPage() {
                 />
               </ChartCard>
             </div>
+          </div>
+        </TabsContent>
+
+        {/* ============================================================= */}
+        {/* CAMPAIGNS TAB                                                  */}
+        {/* ============================================================= */}
+        <TabsContent value="campaigns">
+          <div className="space-y-8 pt-6">
+            {/* Headline cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+              <StatsCard
+                label="Attributed Revenue"
+                value={`$${campaignsData.summary.attributedRevenue.toFixed(2)}`}
+                icon={DollarSign}
+                color="bg-brand-mint/20"
+              />
+              <StatsCard
+                label="Attributed Orders"
+                value={String(campaignsData.summary.attributedOrders)}
+                icon={ShoppingCart}
+                color="bg-brand-pink/20"
+              />
+              <StatsCard
+                label="Google Ads Clicks"
+                value={campaignsData.summary.googleAds.clicks.toLocaleString()}
+                icon={Megaphone}
+                color="bg-brand-lavender/20"
+              />
+              <StatsCard
+                label="Meta Clicks"
+                value={campaignsData.summary.meta.clicks.toLocaleString()}
+                icon={Megaphone}
+                color="bg-brand-sky/20"
+              />
+            </div>
+
+            {/* Per-platform detail row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ChartCard title="Google Ads (gclid)">
+                <dl className="text-sm grid grid-cols-2 gap-y-2">
+                  <dt className="text-muted-foreground">Clicks</dt>
+                  <dd className="text-right font-medium">
+                    {campaignsData.summary.googleAds.clicks.toLocaleString()}
+                  </dd>
+                  <dt className="text-muted-foreground">Sessions</dt>
+                  <dd className="text-right font-medium">
+                    {campaignsData.summary.googleAds.sessions.toLocaleString()}
+                  </dd>
+                  <dt className="text-muted-foreground">Orders</dt>
+                  <dd className="text-right font-medium">
+                    {campaignsData.summary.googleAds.orders}
+                  </dd>
+                  <dt className="text-muted-foreground">Revenue</dt>
+                  <dd className="text-right font-medium">
+                    ${campaignsData.summary.googleAds.revenue.toFixed(2)}
+                  </dd>
+                </dl>
+              </ChartCard>
+
+              <ChartCard title="Meta (fbclid)">
+                <dl className="text-sm grid grid-cols-2 gap-y-2">
+                  <dt className="text-muted-foreground">Clicks</dt>
+                  <dd className="text-right font-medium">
+                    {campaignsData.summary.meta.clicks.toLocaleString()}
+                  </dd>
+                  <dt className="text-muted-foreground">Sessions</dt>
+                  <dd className="text-right font-medium">
+                    {campaignsData.summary.meta.sessions.toLocaleString()}
+                  </dd>
+                  <dt className="text-muted-foreground">Orders</dt>
+                  <dd className="text-right font-medium">
+                    {campaignsData.summary.meta.orders}
+                  </dd>
+                  <dt className="text-muted-foreground">Revenue</dt>
+                  <dd className="text-right font-medium">
+                    ${campaignsData.summary.meta.revenue.toFixed(2)}
+                  </dd>
+                </dl>
+              </ChartCard>
+            </div>
+
+            {/* Sources / Mediums / Campaigns tables */}
+            <ChartCard title="Sources">
+              <RankTable
+                data={campaignsData.sources.map((s: any) => ({
+                  name: s.name,
+                  views: s.views,
+                  sessions: s.sessions,
+                  orderCount: s.orderCount,
+                  revenue: `$${s.revenue.toFixed(2)}`,
+                }))}
+                columns={[
+                  { key: "name", label: "Source" },
+                  { key: "views", label: "Views", align: "right" },
+                  { key: "sessions", label: "Sessions", align: "right" },
+                  { key: "orderCount", label: "Orders", align: "right" },
+                  { key: "revenue", label: "Revenue", align: "right" },
+                ]}
+              />
+            </ChartCard>
+
+            <ChartCard title="Campaigns">
+              <RankTable
+                data={campaignsData.campaigns.map((c: any) => ({
+                  name: c.name,
+                  source: c.source || "—",
+                  medium: c.medium || "—",
+                  views: c.views,
+                  orderCount: c.orderCount,
+                  revenue: `$${c.revenue.toFixed(2)}`,
+                }))}
+                columns={[
+                  { key: "name", label: "Campaign" },
+                  { key: "source", label: "Source" },
+                  { key: "medium", label: "Medium" },
+                  { key: "views", label: "Views", align: "right" },
+                  { key: "orderCount", label: "Orders", align: "right" },
+                  { key: "revenue", label: "Revenue", align: "right" },
+                ]}
+              />
+            </ChartCard>
+
+            <ChartCard title="Mediums">
+              <RankTable
+                data={campaignsData.mediums}
+                columns={[
+                  { key: "name", label: "Medium" },
+                  { key: "views", label: "Views", align: "right" },
+                  { key: "sessions", label: "Sessions", align: "right" },
+                ]}
+              />
+            </ChartCard>
           </div>
         </TabsContent>
       </Tabs>

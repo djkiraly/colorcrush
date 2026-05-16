@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
 import { useCartStore } from "@/stores/cart-store";
+import { useWishlist } from "@/hooks/use-wishlist";
+import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { toast } from "sonner";
 
 interface ProductCardProps {
@@ -40,6 +42,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
+  const settings = useSiteSettings();
+  const wishlist = useWishlist();
+  const wishlistEnabled = settings.features?.wishlist !== false;
+  const inWishlist = wishlistEnabled && wishlist.isInWishlist(product.id);
   const price = parseFloat(product.price);
   const comparePrice = product.compareAtPrice
     ? parseFloat(product.compareAtPrice)
@@ -106,20 +112,38 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Quick actions */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-white/80 backdrop-blur-sm hover:bg-white rounded-full h-8 w-8"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            aria-label="Add to wishlist"
+        {wishlistEnabled && (
+          <div
+            className={`absolute top-3 right-3 transition-opacity ${
+              inWishlist ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            }`}
           >
-            <Heart className="h-4 w-4" />
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-white/80 backdrop-blur-sm hover:bg-white rounded-full h-8 w-8"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                wishlist.toggle({
+                  id: product.id,
+                  name: product.name,
+                  slug: product.slug,
+                  price: product.price,
+                  image: product.image,
+                });
+              }}
+              aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={inWishlist}
+            >
+              <Heart
+                className={`h-4 w-4 ${
+                  inWishlist ? "fill-brand-primary text-brand-primary" : ""
+                }`}
+              />
+            </Button>
+          </div>
+        )}
 
         {/* Add to cart */}
         <div className="absolute bottom-3 inset-x-3 opacity-0 group-hover:opacity-100 transition-opacity">

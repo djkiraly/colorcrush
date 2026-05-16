@@ -60,6 +60,11 @@ export type SiteSettingsOverrides = {
     heading?: string;
     message?: string;
   };
+  analytics?: {
+    googleAdsId?: string;
+    googleAdsPurchaseLabel?: string;
+    metaPixelId?: string;
+  };
   colors?: {
     primary?: string;
     primaryHover?: string;
