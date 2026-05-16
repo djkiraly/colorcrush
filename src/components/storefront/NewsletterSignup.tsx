@@ -4,15 +4,42 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
+import { toast } from "sonner";
 
 export function NewsletterSignup() {
   const siteConfig = useSiteSettings();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) setSubmitted(true);
+    if (!email.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), source: "footer" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Couldn't subscribe — try again");
+        return;
+      }
+      if (data.alreadySubscribed) {
+        toast.success("You're already on the list!");
+      } else if (data.resubscribed) {
+        toast.success("Welcome back — you're resubscribed");
+      } else {
+        toast.success("You're on the list!");
+      }
+      setSubmitted(true);
+    } catch {
+      toast.error("Network error — try again");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -45,9 +72,14 @@ export function NewsletterSignup() {
           onChange={(e) => setEmail(e.target.value)}
           required
           className="bg-white"
+          disabled={submitting}
         />
-        <Button type="submit" className="bg-brand-primary hover:bg-brand-primary-hover text-white px-6">
-          Subscribe
+        <Button
+          type="submit"
+          disabled={submitting}
+          className="bg-brand-primary hover:bg-brand-primary-hover text-white px-6"
+        >
+          {submitting ? "..." : "Subscribe"}
         </Button>
       </form>
     </div>

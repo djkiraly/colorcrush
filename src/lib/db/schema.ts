@@ -622,6 +622,82 @@ export const scheduledAlerts = pgTable(
   ]
 );
 
+// ═══ NEWSLETTER ═══
+
+export const newsletterSubscribers = pgTable(
+  "newsletter_subscribers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    // Optional link to a user account when the subscriber is also a customer.
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    isActive: boolean("is_active").default(true).notNull(),
+    source: varchar("source", { length: 50 }), // e.g. "footer", "checkout", "admin"
+    subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+    unsubscribedAt: timestamp("unsubscribed_at"),
+  },
+  (table) => [
+    uniqueIndex("newsletter_subscribers_email_idx").on(table.email),
+    index("newsletter_subscribers_active_idx").on(table.isActive),
+  ]
+);
+
+export const newsletterCampaignStatusEnum = pgEnum("newsletter_campaign_status", [
+  "draft",
+  "sending",
+  "sent",
+  "failed",
+]);
+
+export const newsletterCampaigns = pgTable("newsletter_campaigns", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(), // internal label
+  subject: varchar("subject", { length: 255 }).notNull(),
+  preheader: varchar("preheader", { length: 255 }),
+  htmlBody: text("html_body").notNull(),
+  status: newsletterCampaignStatusEnum("status").default("draft").notNull(),
+  recipientCount: integer("recipient_count").default(0).notNull(),
+  sentCount: integer("sent_count").default(0).notNull(),
+  failedCount: integer("failed_count").default(0).notNull(),
+  sentAt: timestamp("sent_at"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const newsletterSendStatusEnum = pgEnum("newsletter_send_status", [
+  "queued",
+  "sent",
+  "failed",
+]);
+
+export const newsletterSends = pgTable(
+  "newsletter_sends",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => newsletterCampaigns.id, { onDelete: "cascade" }),
+    subscriberId: uuid("subscriber_id")
+      .notNull()
+      .references(() => newsletterSubscribers.id, { onDelete: "cascade" }),
+    // Snapshot of the email at send time so the log survives subscriber changes.
+    email: varchar("email", { length: 255 }).notNull(),
+    // Per-send token embedded in the unsubscribe URL. Unique → guessing one
+    // user's token doesn't reveal anyone else's.
+    unsubscribeToken: varchar("unsubscribe_token", { length: 64 }).notNull().unique(),
+    status: newsletterSendStatusEnum("status").default("queued").notNull(),
+    sentAt: timestamp("sent_at"),
+    unsubscribedAt: timestamp("unsubscribed_at"),
+    errorMessage: text("error_message"),
+  },
+  (table) => [
+    uniqueIndex("newsletter_sends_token_idx").on(table.unsubscribeToken),
+    index("newsletter_sends_campaign_idx").on(table.campaignId),
+    index("newsletter_sends_subscriber_idx").on(table.subscriberId),
+  ]
+);
+
 // ═══ PAGE VIEWS / ANALYTICS ═══
 
 export const pageViews = pgTable(

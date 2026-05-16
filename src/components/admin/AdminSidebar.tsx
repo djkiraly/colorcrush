@@ -49,6 +49,7 @@ const navItems = [
   { href: "/admin/alerts", label: "Alerts", icon: Bell, badge: "alerts" as const },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/emails", label: "Email Log", icon: Mail },
+  { href: "/admin/emails/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/legal", label: "Legal Pages", icon: Scale },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/guide", label: "Guide", icon: BookOpen },

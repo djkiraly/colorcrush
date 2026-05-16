@@ -45,10 +45,22 @@ function resolveFooterContact(settings: EmailSettings): {
 export function emailLayout(
   settings: EmailSettings,
   content: string,
-  preheader?: string
+  preheader?: string,
+  /**
+   * When provided, adds an unsubscribe row to the footer. Only applies to
+   * marketing/newsletter emails — transactional emails (order confirmations,
+   * password resets) should leave this undefined.
+   */
+  unsubscribeUrl?: string
 ): string {
   const footer = resolveFooterContact(settings);
   const contactLine = [footer.email, footer.phone].filter(Boolean).join(" | ");
+  const unsubscribeBlock = unsubscribeUrl
+    ? `<p style="margin:8px 0 0;font-size:12px;color:#9CA3AF;">
+         Don't want these emails?
+         <a href="${unsubscribeUrl}" style="color:#9CA3AF;text-decoration:underline;">Unsubscribe</a>
+       </p>`
+    : "";
   return `
 <!DOCTYPE html>
 <html>
@@ -91,6 +103,7 @@ export function emailLayout(
             <p style="margin:0;font-size:12px;color:#9CA3AF;">
               &copy; ${new Date().getFullYear()} ${settings.name}. All rights reserved.
             </p>
+            ${unsubscribeBlock}
           </td>
         </tr>
       </table>
