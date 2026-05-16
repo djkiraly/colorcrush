@@ -150,7 +150,12 @@ export default function EditProductPage() {
             productName={form.name}
             categoryName={categories.find((c) => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
-              console.log("[AI Apply] received content:", content);
+              // Logs as primitives so the Chrome console truncation can't hide them.
+              console.log("[AI Apply] AI returned:");
+              console.log("  metaTitle =", JSON.stringify(content.metaTitle));
+              console.log("  metaDescription =", JSON.stringify(content.metaDescription));
+              console.log("  tags =", JSON.stringify(content.tags));
+              console.log("  allergens =", JSON.stringify(content.allergens));
               setForm((f: any) => {
                 const next = {
                   ...f,
@@ -167,9 +172,39 @@ export default function EditProductPage() {
                       ? content.allergens.join(", ")
                       : f.allergens,
                 };
-                console.log("[AI Apply] form after merge:", next);
+                console.log("[AI Apply] form state after merge:");
+                console.log("  form.metaTitle =", JSON.stringify(next.metaTitle));
+                console.log("  form.metaDescription =", JSON.stringify(next.metaDescription));
+                console.log("  form.tags =", JSON.stringify(next.tags));
+                console.log("  form.allergens =", JSON.stringify(next.allergens));
                 return next;
               });
+              // After React commits the new state, read the DOM and report what
+              // the actual inputs hold. If form state is right but inputs are
+              // blank, this reveals a bundle mismatch / render bug.
+              setTimeout(() => {
+                const get = (sel: string) =>
+                  (document.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement | null)
+                    ?.value ?? "(input not found)";
+                console.log("[AI Apply] DOM after render:");
+                // Inputs are matched by label proximity — there are no id attrs
+                // on the edit page so we walk by Label text via XPath.
+                const inputs = Array.from(
+                  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+                    "input, textarea"
+                  )
+                );
+                for (const el of inputs) {
+                  const label = el
+                    .closest(".space-y-2")
+                    ?.querySelector("label")
+                    ?.textContent?.trim();
+                  if (label && /meta|tags|allergens/i.test(label)) {
+                    console.log(`  «${label}» →`, JSON.stringify(el.value));
+                  }
+                }
+                void get;
+              }, 50);
             }}
           />
           <div className="space-y-2">
