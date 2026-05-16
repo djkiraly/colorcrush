@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Share2, ChevronRight } from "lucide-react";
@@ -93,6 +93,41 @@ export function ProductDetail({ product }: ProductDetailProps) {
   // "Low Stock" covers anything at or below 5 units — including 0. Per product
   // requirement, "Out of Stock" is never displayed on the storefront.
   const isLowStock = stockQuantity <= 5;
+
+  // Diagnostic for the "low stock alert not showing" bug — append `?debug=stock`
+  // to any product URL to see the computed values inline (and in the console).
+  const [debugStock, setDebugStock] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const want = new URLSearchParams(window.location.search).get("debug") === "stock";
+    setDebugStock(want);
+    if (want) {
+      console.log("[ProductDetail] stock debug", {
+        productId: product.id,
+        hasVariants: product.hasVariants,
+        usesVariants,
+        productInventoryRaw: product.inventory,
+        variantInventoryRaw: product.variants.map((v) => ({
+          id: v.id,
+          isActive: v.isActive,
+          inventory: v.inventory,
+        })),
+        activeVariantId: activeVariant?.id ?? null,
+        stockQuantity,
+        isLowStock,
+        threshold: 5,
+      });
+    }
+  }, [
+    product.id,
+    product.hasVariants,
+    product.inventory,
+    product.variants,
+    usesVariants,
+    activeVariant,
+    stockQuantity,
+    isLowStock,
+  ]);
 
   const variantImageUrl = activeVariant?.imageOverrideId
     ? product.images.find((i) => i.id === activeVariant.imageOverrideId)?.url
@@ -282,6 +317,39 @@ export function ProductDetail({ product }: ProductDetailProps) {
               <span aria-hidden>⚠️</span>
               Low Stock
             </p>
+          )}
+
+          {/* Debug overlay — only renders when ?debug=stock is in the URL. */}
+          {debugStock && (
+            <div className="rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-xs font-mono text-yellow-900 space-y-0.5">
+              <div>
+                <strong>stockQuantity:</strong> {String(stockQuantity)}
+              </div>
+              <div>
+                <strong>isLowStock:</strong> {String(isLowStock)}{" "}
+                <span className="text-yellow-700">(threshold: ≤ 5)</span>
+              </div>
+              <div>
+                <strong>hasVariants:</strong> {String(product.hasVariants)} ·{" "}
+                <strong>usesVariants:</strong> {String(usesVariants)}
+              </div>
+              <div>
+                <strong>product.inventory:</strong>{" "}
+                {product.inventory ? JSON.stringify(product.inventory) : "null"}
+              </div>
+              {usesVariants && (
+                <div className="break-all">
+                  <strong>variant inventories:</strong>{" "}
+                  {JSON.stringify(
+                    product.variants.map((v) => ({
+                      sku: v.sku,
+                      active: v.isActive,
+                      qty: v.inventory?.quantity ?? null,
+                    }))
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Add to Cart */}
