@@ -103,7 +103,7 @@ export function Header() {
             </Link>
           )}
 
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-[94px]">
             <button
               className="lg:hidden p-3 -ml-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -135,7 +135,7 @@ export function Header() {
             <nav ref={navRef} className="hidden lg:flex items-center gap-6">
               <Link
                 href="/products"
-                className="text-sm font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
+                className="text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
               >
                 Shop All
               </Link>
@@ -145,7 +145,7 @@ export function Header() {
                   <div key={root.id} className="relative">
                     <button
                       type="button"
-                      className="flex items-center gap-1 text-sm font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
+                      className="flex items-center gap-1 text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
                       onClick={() => setOpenDropdown(isOpen ? null : root.slug)}
                       aria-expanded={isOpen}
                     >
@@ -182,7 +182,7 @@ export function Header() {
               })}
               <Link
                 href="/build-your-box"
-                className="text-sm font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
+                className="text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
               >
                 Build Your Box
               </Link>
