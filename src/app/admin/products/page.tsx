@@ -7,16 +7,66 @@ import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Table2, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Edit, Trash2, Table2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+
+type StatusFilter = "all" | "active" | "inactive" | "featured";
+
+type AdminCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+};
+
+const EMPTY_FILTERS = {
+  status: "all" as StatusFilter,
+  categoryId: "",
+  minPrice: "",
+  maxPrice: "",
+  minStock: "",
+  maxStock: "",
+  minOrdered: "",
+  maxOrdered: "",
+};
+
+type Filters = typeof EMPTY_FILTERS;
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+
+  const updateFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  };
+
+  const activeFilterCount = (() => {
+    let n = 0;
+    if (filters.status !== "all") n++;
+    if (filters.categoryId) n++;
+    if (filters.minPrice) n++;
+    if (filters.maxPrice) n++;
+    if (filters.minStock) n++;
+    if (filters.maxStock) n++;
+    if (filters.minOrdered) n++;
+    if (filters.maxOrdered) n++;
+    return n;
+  })();
 
   const handleToggleActive = async (p: any, isActive: boolean) => {
     setTogglingId(p.id);
@@ -61,16 +111,35 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     const params = new URLSearchParams({ page: String(page), limit: "20" });
     if (search) params.set("search", search);
-    params.set("includeInactive", "true");
+    params.set("status", filters.status);
+    // Belt-and-suspenders: if status is "all", also pass includeInactive=true so
+    // older API behavior matches the new explicit filter.
+    if (filters.status === "all") params.set("includeInactive", "true");
+    if (filters.categoryId) params.set("categoryId", filters.categoryId);
+    if (filters.minPrice) params.set("minPrice", filters.minPrice);
+    if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+    if (filters.minStock !== "") params.set("minStock", filters.minStock);
+    if (filters.maxStock !== "") params.set("maxStock", filters.maxStock);
+    if (filters.minOrdered !== "") params.set("minOrdered", filters.minOrdered);
+    if (filters.maxOrdered !== "") params.set("maxOrdered", filters.maxOrdered);
     const res = await fetch(`/api/products?${params}`);
     const data = await res.json();
     setProducts(data.products || []);
     setTotalPages(data.totalPages || 1);
+    setTotal(data.total || 0);
   };
 
   useEffect(() => {
     fetchProducts();
-  }, [page, search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, search, filters]);
+
+  useEffect(() => {
+    fetch("/api/categories?all=true")
+      .then((r) => r.json())
+      .then((data) => setCategories(data.categories || []))
+      .catch(() => {});
+  }, []);
 
   const columns = [
     {
@@ -151,13 +220,139 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl border shadow-sm p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-brand-secondary">Filters</span>
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {activeFilterCount} active
+              </Badge>
+            )}
+          </div>
+          <div className="text-xs text-brand-text-muted">
+            {total} product{total !== 1 ? "s" : ""}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="ml-3 inline-flex items-center gap-1 text-brand-primary hover:underline"
+              >
+                <X className="h-3 w-3" /> Clear all
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <Label className="text-xs">Status</Label>
+            <select
+              value={filters.status}
+              onChange={(e) => updateFilter("status", e.target.value as StatusFilter)}
+              className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+              <option value="featured">Featured only</option>
+            </select>
+          </div>
+
+          <div>
+            <Label className="text-xs">Category</Label>
+            <select
+              value={filters.categoryId}
+              onChange={(e) => updateFilter("categoryId", e.target.value)}
+              className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label className="text-xs">Price</Label>
+            <div className="mt-1 flex gap-2">
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="Min"
+                value={filters.minPrice}
+                onChange={(e) => updateFilter("minPrice", e.target.value)}
+                className="h-9 text-sm"
+              />
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="Max"
+                value={filters.maxPrice}
+                onChange={(e) => updateFilter("maxPrice", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Stock</Label>
+            <div className="mt-1 flex gap-2">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="Min"
+                value={filters.minStock}
+                onChange={(e) => updateFilter("minStock", e.target.value)}
+                className="h-9 text-sm"
+              />
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="Max"
+                value={filters.maxStock}
+                onChange={(e) => updateFilter("maxStock", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Ordered</Label>
+            <div className="mt-1 flex gap-2">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="Min"
+                value={filters.minOrdered}
+                onChange={(e) => updateFilter("minOrdered", e.target.value)}
+                className="h-9 text-sm"
+              />
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="Max"
+                value={filters.maxOrdered}
+                onChange={(e) => updateFilter("maxOrdered", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
         data={products}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        onSearch={setSearch}
+        onSearch={(q) => {
+          setSearch(q);
+          setPage(1);
+        }}
         searchPlaceholder="Search products..."
         actions={(p: any) => (
           <div className="flex gap-1">

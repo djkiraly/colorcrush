@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, productImages, categories, inventory, reviews, productCategories, orderItems, orders, pageViews } from "@/lib/db/schema";
-import { eq, ilike, and, gte, lte, inArray, sql, desc, asc, like } from "drizzle-orm";
+import { eq, ilike, and, or, gte, lte, inArray, notInArray, sql, desc, asc, like, type SQL } from "drizzle-orm";
 
 function toSkuSegment(text: string): string {
   return text
@@ -105,13 +105,32 @@ export async function GET(request: NextRequest) {
   const tags = searchParams.get("tags")?.split(",").filter(Boolean);
   const minPrice = searchParams.get("minPrice");
   const maxPrice = searchParams.get("maxPrice");
+  const minStockParam = searchParams.get("minStock");
+  const maxStockParam = searchParams.get("maxStock");
+  const minOrderedParam = searchParams.get("minOrdered");
+  const maxOrderedParam = searchParams.get("maxOrdered");
+  const categoryIdParam = searchParams.get("categoryId");
+  // status: "all" | "active" | "inactive" | "featured". Takes precedence over
+  // the legacy `includeInactive` flag when both are supplied.
+  const status = searchParams.get("status");
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "12");
   const featured = searchParams.get("featured");
   const includeInactive = searchParams.get("includeInactive") === "true";
   const offset = (page - 1) * limit;
 
-  const conditions = includeInactive ? [] : [eq(products.isActive, true)];
+  const conditions: SQL[] = [];
+  if (status === "active") {
+    conditions.push(eq(products.isActive, true));
+  } else if (status === "inactive") {
+    conditions.push(eq(products.isActive, false));
+  } else if (status === "featured") {
+    conditions.push(eq(products.isFeatured, true));
+  } else if (status === "all") {
+    // no isActive filter
+  } else if (!includeInactive) {
+    conditions.push(eq(products.isActive, true));
+  }
 
   if (search) {
     conditions.push(ilike(products.name, `%${search}%`));
@@ -185,6 +204,103 @@ export async function GET(request: NextRequest) {
   }
   if (maxPrice) {
     conditions.push(lte(products.price, maxPrice));
+  }
+
+  // Admin filter: filter by primary category UUID (separate from public-facing
+  // `category` slug filter, which goes through the M:N table and resolves
+  // descendants).
+  if (categoryIdParam) {
+    conditions.push(eq(products.categoryId, categoryIdParam));
+  }
+
+  // Stock range — sums `inventory.quantity` per product (covers variant rows
+  // too) and matches the configured range. minStock=0 also matches products
+  // with no inventory rows at all.
+  const minStock = minStockParam !== null ? Number(minStockParam) : null;
+  const maxStock = maxStockParam !== null ? Number(maxStockParam) : null;
+  if (
+    (minStock !== null && Number.isFinite(minStock)) ||
+    (maxStock !== null && Number.isFinite(maxStock))
+  ) {
+    const havingParts = [];
+    if (minStock !== null && Number.isFinite(minStock)) {
+      havingParts.push(sql`coalesce(sum(${inventory.quantity}), 0) >= ${minStock}`);
+    }
+    if (maxStock !== null && Number.isFinite(maxStock)) {
+      havingParts.push(sql`coalesce(sum(${inventory.quantity}), 0) <= ${maxStock}`);
+    }
+    const havingExpr = havingParts.reduce(
+      (acc, part, i) => (i === 0 ? part : sql`${acc} AND ${part}`),
+      sql``
+    );
+    // EXISTS-style: filter products whose summed inventory falls in range.
+    // Falling back via NOT IN handles the "no inventory rows" case for minStock=0.
+    const matchingIds = db
+      .select({ id: inventory.productId })
+      .from(inventory)
+      .groupBy(inventory.productId)
+      .having(havingExpr);
+    if (minStock !== null && minStock <= 0) {
+      const productsWithInventory = db
+        .select({ id: inventory.productId })
+        .from(inventory);
+      conditions.push(
+        or(
+          inArray(products.id, matchingIds),
+          notInArray(products.id, productsWithInventory)
+        )!
+      );
+    } else {
+      conditions.push(inArray(products.id, matchingIds));
+    }
+  }
+
+  // Ordered range — total quantity sold across non-cancelled orders.
+  const minOrdered = minOrderedParam !== null ? Number(minOrderedParam) : null;
+  const maxOrdered = maxOrderedParam !== null ? Number(maxOrderedParam) : null;
+  if (
+    (minOrdered !== null && Number.isFinite(minOrdered)) ||
+    (maxOrdered !== null && Number.isFinite(maxOrdered))
+  ) {
+    const havingParts = [];
+    if (minOrdered !== null && Number.isFinite(minOrdered)) {
+      havingParts.push(
+        sql`coalesce(sum(${orderItems.quantity}), 0) >= ${minOrdered}`
+      );
+    }
+    if (maxOrdered !== null && Number.isFinite(maxOrdered)) {
+      havingParts.push(
+        sql`coalesce(sum(${orderItems.quantity}), 0) <= ${maxOrdered}`
+      );
+    }
+    const havingExpr = havingParts.reduce(
+      (acc, part, i) => (i === 0 ? part : sql`${acc} AND ${part}`),
+      sql``
+    );
+    const matchingIds = db
+      .select({ id: orderItems.productId })
+      .from(orderItems)
+      .innerJoin(orders, eq(orderItems.orderId, orders.id))
+      .where(sql`${orders.status} <> 'cancelled'`)
+      .groupBy(orderItems.productId)
+      .having(havingExpr);
+    if (minOrdered !== null && minOrdered <= 0) {
+      // Products with zero orders won't appear in the subquery; include them
+      // explicitly when the minimum allows 0.
+      const productsWithOrders = db
+        .select({ id: orderItems.productId })
+        .from(orderItems)
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(sql`${orders.status} <> 'cancelled'`);
+      conditions.push(
+        or(
+          inArray(products.id, matchingIds),
+          notInArray(products.id, productsWithOrders)
+        )!
+      );
+    } else {
+      conditions.push(inArray(products.id, matchingIds));
+    }
   }
 
   if (featured === "true") {
