@@ -84,7 +84,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
           .reduce((sum, v) => sum + (v.inventory?.quantity ?? 0), 0)
     : product.inventory?.quantity ?? 0;
   const inStock = stockQuantity > 0;
-  const isLowStock = stockQuantity < 5;
+  // "Low Stock" covers anything at or below 5 units — including 0. Per product
+  // requirement, "Out of Stock" is never displayed on the storefront.
+  const isLowStock = stockQuantity <= 5;
 
   const variantImageUrl = activeVariant?.imageOverrideId
     ? product.images.find((i) => i.id === activeVariant.imageOverrideId)?.url

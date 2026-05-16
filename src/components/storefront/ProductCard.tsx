@@ -24,7 +24,16 @@ interface ProductCardProps {
     reviewCount?: number;
     isFeatured?: boolean;
     hasVariants?: boolean;
+    weightOz?: number | null;
   };
+}
+
+// Format ship weight as "X oz" up to 15 oz; "X lb [Y oz]" at or above 16 oz.
+function formatShipWeight(weightOz: number): string {
+  if (weightOz < 16) return `${weightOz} oz`;
+  const lb = Math.floor(weightOz / 16);
+  const oz = weightOz % 16;
+  return oz === 0 ? `${lb} lb` : `${lb} lb ${oz} oz`;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -131,9 +140,14 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.category}
           </p>
         )}
-        <h3 className="font-medium text-brand-text line-clamp-1 group-hover:text-brand-primary transition-colors">
+        <h3 className="font-medium text-brand-text group-hover:text-brand-primary transition-colors">
           {product.name}
         </h3>
+        {typeof product.weightOz === "number" && product.weightOz > 0 && (
+          <p className="text-xs text-brand-text-muted mt-1">
+            Ships {formatShipWeight(product.weightOz)}
+          </p>
+        )}
         <div className="flex items-center gap-2 mt-1">
           <span className="font-bold text-brand-primary">${price.toFixed(2)}</span>
           {isOnSale && (

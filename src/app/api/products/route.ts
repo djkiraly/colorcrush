@@ -398,6 +398,7 @@ export async function GET(request: NextRequest) {
         sku: products.sku,
         categoryId: products.categoryId,
         hasVariants: products.hasVariants,
+        weightOz: products.weightOz,
       })
       .from(products)
       .where(where)
