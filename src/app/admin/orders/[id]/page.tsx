@@ -117,7 +117,13 @@ export default function AdminOrderDetailPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-sm">{item.productName}</p>
-                    <p className="text-xs text-brand-text-muted">Qty: {item.quantity} x ${item.unitPrice}</p>
+                    {item.variantDescription && (
+                      <p className="text-xs text-brand-text-muted">{item.variantDescription}</p>
+                    )}
+                    <p className="text-xs text-brand-text-muted">
+                      {item.sku ? <span className="font-mono">{item.sku}</span> : null}
+                      {item.sku ? " · " : ""}Qty: {item.quantity} × ${item.unitPrice}
+                    </p>
                   </div>
                   <p className="font-semibold">${item.totalPrice}</p>
                 </div>

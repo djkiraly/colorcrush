@@ -121,18 +121,35 @@ export default function NewProductPage() {
             productName={form.name}
             categoryName={categories.find(c => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
-              setForm((f) => ({
-                ...f,
-                description: content.description || f.description,
-                shortDescription: content.shortDescription || f.shortDescription,
-                metaTitle: content.metaTitle || f.metaTitle,
-                metaDescription: content.metaDescription || f.metaDescription,
-                tags: content.tags.length > 0 ? content.tags.join(", ") : f.tags,
-                allergens:
-                  content.allergens.length > 0
-                    ? content.allergens.join(", ")
-                    : f.allergens,
-              }));
+              // Log the payload we got from the AI generator so we can verify
+              // in the browser console which fields were actually returned.
+              console.log("[AI Apply] received content:", content);
+              setForm((f) => {
+                const next = {
+                  ...f,
+                  description: content.description || f.description,
+                  shortDescription: content.shortDescription || f.shortDescription,
+                  // Trust openai.ts to always supply non-empty meta fields
+                  // (server-side fallback derives from product name when the
+                  // model omits them). Direct assignment so a stale fallback
+                  // can't silently leave the field blank.
+                  metaTitle: content.metaTitle ?? f.metaTitle,
+                  metaDescription: content.metaDescription ?? f.metaDescription,
+                  // Tags / allergens are arrays of strings. Join when the AI
+                  // produced any; otherwise keep the admin's existing entry
+                  // (matters on the edit page, no-op on this fresh form).
+                  tags:
+                    Array.isArray(content.tags) && content.tags.length > 0
+                      ? content.tags.join(", ")
+                      : f.tags,
+                  allergens:
+                    Array.isArray(content.allergens) && content.allergens.length > 0
+                      ? content.allergens.join(", ")
+                      : f.allergens,
+                };
+                console.log("[AI Apply] form after merge:", next);
+                return next;
+              });
             }}
           />
           <div className="space-y-2">

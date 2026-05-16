@@ -150,18 +150,26 @@ export default function EditProductPage() {
             productName={form.name}
             categoryName={categories.find((c) => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
-              setForm((f: any) => ({
-                ...f,
-                description: content.description || f.description,
-                shortDescription: content.shortDescription || f.shortDescription,
-                metaTitle: content.metaTitle || f.metaTitle,
-                metaDescription: content.metaDescription || f.metaDescription,
-                tags: content.tags.length > 0 ? content.tags.join(", ") : f.tags,
-                allergens:
-                  content.allergens.length > 0
-                    ? content.allergens.join(", ")
-                    : f.allergens,
-              }));
+              console.log("[AI Apply] received content:", content);
+              setForm((f: any) => {
+                const next = {
+                  ...f,
+                  description: content.description || f.description,
+                  shortDescription: content.shortDescription || f.shortDescription,
+                  metaTitle: content.metaTitle ?? f.metaTitle,
+                  metaDescription: content.metaDescription ?? f.metaDescription,
+                  tags:
+                    Array.isArray(content.tags) && content.tags.length > 0
+                      ? content.tags.join(", ")
+                      : f.tags,
+                  allergens:
+                    Array.isArray(content.allergens) && content.allergens.length > 0
+                      ? content.allergens.join(", ")
+                      : f.allergens,
+                };
+                console.log("[AI Apply] form after merge:", next);
+                return next;
+              });
             }}
           />
           <div className="space-y-2">

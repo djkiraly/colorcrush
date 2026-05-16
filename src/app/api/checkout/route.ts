@@ -326,6 +326,7 @@ export async function POST(request: NextRequest) {
         cartItems: resolved.map((r) => ({
           productId: r.productId,
           variantId: r.variantId,
+          sku: r.sku,
           name: r.name,
           variantDescription: r.variantDescription,
           unitPrice: r.unitPrice,

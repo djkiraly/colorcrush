@@ -453,6 +453,10 @@ export const orderItems = pgTable(
     productName: varchar("product_name", { length: 255 }).notNull(),
     productImage: text("product_image"),
     variantDescription: text("variant_description"),
+    // Snapshot of the SKU at purchase time — variant SKU if `variantId` is set,
+    // otherwise the parent product SKU. Persisted on the line item so it
+    // survives later edits/deletes of the product or variant.
+    sku: varchar("sku", { length: 100 }),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
     totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),

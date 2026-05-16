@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, Share2, ChevronRight } from "lucide-react";
@@ -81,53 +81,29 @@ export function ProductDetail({ product }: ProductDetailProps) {
     : baseCompare;
   const isOnSale = displayCompare !== null && displayCompare > displayPrice;
 
-  // Aggregate stock across active variants if hasVariants, else use the single inventory row.
-  const stockQuantity = usesVariants
+  // Stock reflects the currently-selected SKU:
+  //   - Non-variant product → the single inventory row.
+  //   - Variant product with a fully-selected variant → that variant's row.
+  //   - Variant product with nothing (or only partial) selected → null, meaning
+  //     "we don't know yet". Aggregating across variants would let a product
+  //     with one sold-out size silently pass the low-stock check, so we
+  //     deliberately defer until the customer picks a variant.
+  const stockQuantity: number | null = usesVariants
     ? activeVariant
       ? activeVariant.inventory?.quantity ?? 0
-      : product.variants
-          .filter((v) => v.isActive)
-          .reduce((sum, v) => sum + (v.inventory?.quantity ?? 0), 0)
+      : null
     : product.inventory?.quantity ?? 0;
-  const inStock = stockQuantity > 0;
-  // "Low Stock" covers anything at or below 5 units — including 0. Per product
-  // requirement, "Out of Stock" is never displayed on the storefront.
-  const isLowStock = stockQuantity <= 5;
 
-  // Diagnostic for the "low stock alert not showing" bug — append `?debug=stock`
-  // to any product URL to see the computed values inline (and in the console).
-  const [debugStock, setDebugStock] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const want = new URLSearchParams(window.location.search).get("debug") === "stock";
-    setDebugStock(want);
-    if (want) {
-      console.log("[ProductDetail] stock debug", {
-        productId: product.id,
-        hasVariants: product.hasVariants,
-        usesVariants,
-        productInventoryRaw: product.inventory,
-        variantInventoryRaw: product.variants.map((v) => ({
-          id: v.id,
-          isActive: v.isActive,
-          inventory: v.inventory,
-        })),
-        activeVariantId: activeVariant?.id ?? null,
-        stockQuantity,
-        isLowStock,
-        threshold: 5,
-      });
-    }
-  }, [
-    product.id,
-    product.hasVariants,
-    product.inventory,
-    product.variants,
-    usesVariants,
-    activeVariant,
-    stockQuantity,
-    isLowStock,
-  ]);
+  // Enable the Add-to-Cart button when (a) non-variant in-stock, or (b) variant
+  // selected and in-stock. Variant + unselected → button shows "Select options"
+  // and the inStock value is moot.
+  const inStock =
+    stockQuantity === null ? true : stockQuantity > 0;
+
+  // "Low Stock" covers anything at or below 5 units — including 0. Per product
+  // requirement, "Out of Stock" is never displayed on the storefront. We only
+  // know low-stock state once we have a concrete SKU's quantity.
+  const isLowStock = stockQuantity !== null && stockQuantity <= 5;
 
   const variantImageUrl = activeVariant?.imageOverrideId
     ? product.images.find((i) => i.id === activeVariant.imageOverrideId)?.url
@@ -171,12 +147,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
     toast.success(`${product.name} added to cart`);
   };
 
-  const priceRange = product.priceRange;
-  const showPriceRange =
-    usesVariants &&
-    !activeVariant &&
-    priceRange &&
-    priceRange.min !== priceRange.max;
+  // Price always reflects the active variant when one is selected; otherwise
+  // the base product price. We intentionally do NOT show a "$min – $max" range
+  // anymore — it's confusing and the price updates the moment the customer
+  // picks a size.
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -254,15 +228,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
           )}
 
           <div className="flex items-center gap-3">
-            {showPriceRange ? (
-              <span className="text-3xl font-bold text-brand-primary">
-                ${priceRange!.min.toFixed(2)} – ${priceRange!.max.toFixed(2)}
-              </span>
-            ) : (
-              <span className="text-3xl font-bold text-brand-primary">
-                ${displayPrice.toFixed(2)}
-              </span>
-            )}
+            <span className="text-3xl font-bold text-brand-primary">
+              ${displayPrice.toFixed(2)}
+            </span>
             {isOnSale && (
               <span className="text-xl text-brand-text-muted line-through">${displayCompare!.toFixed(2)}</span>
             )}
@@ -311,45 +279,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </div>
           )}
 
-          {/* Low Stock alert */}
+          {/* Low Stock alert — only meaningful once we have a concrete SKU's
+              stock count (i.e. selected variant or non-variant product). */}
           {isLowStock && (
             <p className="text-sm font-semibold text-red-600 flex items-center gap-2">
               <span aria-hidden>⚠️</span>
               Low Stock
             </p>
-          )}
-
-          {/* Debug overlay — only renders when ?debug=stock is in the URL. */}
-          {debugStock && (
-            <div className="rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-xs font-mono text-yellow-900 space-y-0.5">
-              <div>
-                <strong>stockQuantity:</strong> {String(stockQuantity)}
-              </div>
-              <div>
-                <strong>isLowStock:</strong> {String(isLowStock)}{" "}
-                <span className="text-yellow-700">(threshold: ≤ 5)</span>
-              </div>
-              <div>
-                <strong>hasVariants:</strong> {String(product.hasVariants)} ·{" "}
-                <strong>usesVariants:</strong> {String(usesVariants)}
-              </div>
-              <div>
-                <strong>product.inventory:</strong>{" "}
-                {product.inventory ? JSON.stringify(product.inventory) : "null"}
-              </div>
-              {usesVariants && (
-                <div className="break-all">
-                  <strong>variant inventories:</strong>{" "}
-                  {JSON.stringify(
-                    product.variants.map((v) => ({
-                      sku: v.sku,
-                      active: v.isActive,
-                      qty: v.inventory?.quantity ?? null,
-                    }))
-                  )}
-                </div>
-              )}
-            </div>
           )}
 
           {/* Add to Cart */}

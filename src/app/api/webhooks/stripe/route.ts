@@ -10,6 +10,7 @@ import { finalizeOrderAfterPayment } from "@/lib/admin-orders/finalize";
 type CheckoutCartItem = {
   productId: string;
   variantId: string | null;
+  sku?: string | null;
   name: string;
   variantDescription: string | null;
   unitPrice: number;
@@ -135,6 +136,7 @@ export async function POST(request: NextRequest) {
             orderId: order.id,
             productId: ci.productId,
             variantId: ci.variantId,
+            sku: ci.sku ?? null,
             productName: ci.name,
             variantDescription: ci.variantDescription,
             quantity: ci.quantity,
@@ -154,6 +156,7 @@ export async function POST(request: NextRequest) {
             await db.insert(orderItems).values({
               orderId: order.id,
               productId: product.id,
+              sku: product.sku,
               productName: product.name,
               quantity: item.quantity || 1,
               unitPrice: product.price,
