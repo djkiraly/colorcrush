@@ -152,12 +152,15 @@ export default function EditProductPage() {
             onApply={(content) => {
               setForm((f: any) => ({
                 ...f,
-                description: content.description,
-                shortDescription: content.shortDescription,
-                metaTitle: content.metaTitle,
-                metaDescription: content.metaDescription,
-                tags: content.tags.join(", "),
-                allergens: content.allergens.join(", "),
+                description: content.description || f.description,
+                shortDescription: content.shortDescription || f.shortDescription,
+                metaTitle: content.metaTitle || f.metaTitle,
+                metaDescription: content.metaDescription || f.metaDescription,
+                tags: content.tags.length > 0 ? content.tags.join(", ") : f.tags,
+                allergens:
+                  content.allergens.length > 0
+                    ? content.allergens.join(", ")
+                    : f.allergens,
               }));
             }}
           />

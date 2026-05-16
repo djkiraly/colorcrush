@@ -51,7 +51,18 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("[shipping/rates]", err);
     if (err instanceof ShippingRatesError && err.safe) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: err.message,
+          // Surface carrier-specific messages (e.g. "No carrier accounts
+          // configured", "Invalid postal code") so the admin can diagnose
+          // without digging through server logs.
+          ...(err.carrierMessages && err.carrierMessages.length > 0
+            ? { carrierMessages: err.carrierMessages }
+            : {}),
+        },
+        { status: 400 }
+      );
     }
     return NextResponse.json(
       { error: "Could not retrieve shipping rates. Please verify your address and try again." },

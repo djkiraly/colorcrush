@@ -7,10 +7,12 @@
  */
 export class ShippingRatesError extends Error {
   readonly safe: boolean;
+  readonly carrierMessages?: string[];
 
-  constructor(message: string, safe: boolean) {
+  constructor(message: string, safe: boolean, carrierMessages?: string[]) {
     super(message);
     this.name = "ShippingRatesError";
     this.safe = safe;
+    this.carrierMessages = carrierMessages;
   }
 }

@@ -165,16 +165,33 @@ export async function getShippingRates(
 
   if (mapped.length === 0) {
     // No rates from any enabled carrier. Surface the cause if Shippo gave us one.
-    const carrierIssues = (messages || [])
-      .map((m) => m.text)
-      .filter(Boolean)
-      .join("; ");
-    if (carrierIssues) {
-      console.warn("[shipping/rates] No usable rates; carrier messages:", carrierIssues);
+    const carrierMessages = (messages || [])
+      .map((m) => `${m.source ? `[${m.source}] ` : ""}${m.text || ""}`.trim())
+      .filter(Boolean);
+    if (carrierMessages.length > 0) {
+      console.warn(
+        "[shipping/rates] No usable rates; carrier messages:",
+        carrierMessages.join(" | ")
+      );
     }
+    // Diagnostic: log how many rates Shippo returned vs how many passed our
+    // enabled-carrier filter, so admins can tell the difference between
+    // "Shippo returned nothing" and "we filtered everything out".
+    const providersReturned = Array.from(
+      new Set(rawRates.map((r) => (r.provider || "?").toLowerCase()))
+    );
+    console.warn(
+      `[shipping/rates] Shippo returned ${rawRates.length} raw rate(s) from providers [${providersReturned.join(", ") || "none"}]; ${filtered.length} matched enabled carriers (${Object.entries(
+        ship.carriersEnabled
+      )
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .join(", ") || "none"})`
+    );
     throw new ShippingRatesError(
       "No shipping options are available for this address. Please verify the address or contact support.",
-      true
+      true,
+      carrierMessages
     );
   }
 

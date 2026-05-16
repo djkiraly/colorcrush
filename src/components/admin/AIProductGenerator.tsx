@@ -171,19 +171,49 @@ export function AIProductGenerator({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-xs font-medium text-brand-text-muted">
-                  Meta Title
-                </span>
-                <p className="text-sm bg-gray-50 rounded p-2">
-                  {result.metaTitle}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-brand-text-muted">
+                    Meta Title
+                  </span>
+                  <span
+                    className={`text-[10px] ${
+                      result.metaTitle.length === 0
+                        ? "text-red-600 font-medium"
+                        : result.metaTitle.length > 60
+                        ? "text-amber-600"
+                        : "text-brand-text-muted"
+                    }`}
+                  >
+                    {result.metaTitle.length}/60
+                  </span>
+                </div>
+                <p className="text-sm bg-gray-50 rounded p-2 min-h-[2.25rem]">
+                  {result.metaTitle || (
+                    <span className="text-red-600 italic">empty</span>
+                  )}
                 </p>
               </div>
               <div>
-                <span className="text-xs font-medium text-brand-text-muted">
-                  Meta Description
-                </span>
-                <p className="text-sm bg-gray-50 rounded p-2">
-                  {result.metaDescription}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-brand-text-muted">
+                    Meta Description
+                  </span>
+                  <span
+                    className={`text-[10px] ${
+                      result.metaDescription.length === 0
+                        ? "text-red-600 font-medium"
+                        : result.metaDescription.length > 155
+                        ? "text-amber-600"
+                        : "text-brand-text-muted"
+                    }`}
+                  >
+                    {result.metaDescription.length}/155
+                  </span>
+                </div>
+                <p className="text-sm bg-gray-50 rounded p-2 min-h-[2.25rem]">
+                  {result.metaDescription || (
+                    <span className="text-red-600 italic">empty</span>
+                  )}
                 </p>
               </div>
             </div>
