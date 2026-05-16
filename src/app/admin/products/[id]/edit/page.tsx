@@ -20,6 +20,10 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
+  // Bumped after AI Apply so the affected inputs remount and re-read state —
+  // works around a controlled/uncontrolled latch in @base-ui/react/input
+  // that can ignore prop updates from setForm.
+  const [aiApplyCount, setAiApplyCount] = useState(0);
   const [images, setImages] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
   const [boxes, setBoxes] = useState<
@@ -168,11 +172,17 @@ export default function EditProductPage() {
                     ? content.allergens.join(", ")
                     : f.allergens,
               }));
+              setAiApplyCount((n) => n + 1);
             }}
           />
           <div className="space-y-2">
             <Label>Short Description</Label>
-            <Input value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} />
+            <input
+              key={`shortDescription-${aiApplyCount}`}
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.shortDescription}
+              onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
+            />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
@@ -307,11 +317,21 @@ export default function EditProductPage() {
           </div>
           <div className="space-y-2">
             <Label>Tags</Label>
-            <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+            <input
+              key={`tags-${aiApplyCount}`}
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.tags}
+              onChange={(e) => setForm({ ...form, tags: e.target.value })}
+            />
           </div>
           <div className="space-y-2">
             <Label>Allergens</Label>
-            <Input value={form.allergens} onChange={(e) => setForm({ ...form, allergens: e.target.value })} />
+            <input
+              key={`allergens-${aiApplyCount}`}
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.allergens}
+              onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+            />
           </div>
           <div className="space-y-2">
             <Label>Ingredients</Label>
@@ -328,11 +348,23 @@ export default function EditProductPage() {
           <h2 className="font-heading font-semibold">SEO</h2>
           <div className="space-y-2">
             <Label>Meta Title ({(form.metaTitle || "").length}/255)</Label>
-            <Input value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })} maxLength={255} />
+            <input
+              key={`metaTitle-${aiApplyCount}`}
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.metaTitle}
+              onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+              maxLength={255}
+            />
           </div>
           <div className="space-y-2">
             <Label>Meta Description</Label>
-            <Textarea value={form.metaDescription} onChange={(e) => setForm({ ...form, metaDescription: e.target.value })} rows={2} />
+            <textarea
+              key={`metaDescription-${aiApplyCount}`}
+              className="flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.metaDescription}
+              onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
+              rows={2}
+            />
           </div>
         </div>
 

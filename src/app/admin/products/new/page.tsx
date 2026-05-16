@@ -21,6 +21,10 @@ function slugify(text: string) {
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  // Bumped after AI Apply so the affected inputs remount and re-read state —
+  // works around a controlled/uncontrolled latch in @base-ui/react/input
+  // that can ignore prop updates from setForm.
+  const [aiApplyCount, setAiApplyCount] = useState(0);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [boxes, setBoxes] = useState<
     { id: string; name: string; maxWeightOz: number; isActive: boolean }[]
@@ -121,56 +125,33 @@ export default function NewProductPage() {
             productName={form.name}
             categoryName={categories.find(c => c.id === form.categoryIds[0])?.name}
             onApply={(content) => {
-              console.log("[AI Apply] AI returned:");
-              console.log("  metaTitle =", JSON.stringify(content.metaTitle));
-              console.log("  metaDescription =", JSON.stringify(content.metaDescription));
-              console.log("  tags =", JSON.stringify(content.tags));
-              console.log("  allergens =", JSON.stringify(content.allergens));
-              setForm((f) => {
-                const next = {
-                  ...f,
-                  description: content.description || f.description,
-                  shortDescription: content.shortDescription || f.shortDescription,
-                  metaTitle: content.metaTitle ?? f.metaTitle,
-                  metaDescription: content.metaDescription ?? f.metaDescription,
-                  tags:
-                    Array.isArray(content.tags) && content.tags.length > 0
-                      ? content.tags.join(", ")
-                      : f.tags,
-                  allergens:
-                    Array.isArray(content.allergens) && content.allergens.length > 0
-                      ? content.allergens.join(", ")
-                      : f.allergens,
-                };
-                console.log("[AI Apply] form state after merge:");
-                console.log("  form.metaTitle =", JSON.stringify(next.metaTitle));
-                console.log("  form.metaDescription =", JSON.stringify(next.metaDescription));
-                console.log("  form.tags =", JSON.stringify(next.tags));
-                console.log("  form.allergens =", JSON.stringify(next.allergens));
-                return next;
-              });
-              setTimeout(() => {
-                console.log("[AI Apply] DOM after render:");
-                const inputs = Array.from(
-                  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-                    "input, textarea"
-                  )
-                );
-                for (const el of inputs) {
-                  const label = el
-                    .closest(".space-y-2")
-                    ?.querySelector("label")
-                    ?.textContent?.trim();
-                  if (label && /meta|tags|allergens/i.test(label)) {
-                    console.log(`  «${label}» →`, JSON.stringify(el.value));
-                  }
-                }
-              }, 50);
+              setForm((f) => ({
+                ...f,
+                description: content.description || f.description,
+                shortDescription: content.shortDescription || f.shortDescription,
+                metaTitle: content.metaTitle ?? f.metaTitle,
+                metaDescription: content.metaDescription ?? f.metaDescription,
+                tags:
+                  Array.isArray(content.tags) && content.tags.length > 0
+                    ? content.tags.join(", ")
+                    : f.tags,
+                allergens:
+                  Array.isArray(content.allergens) && content.allergens.length > 0
+                    ? content.allergens.join(", ")
+                    : f.allergens,
+              }));
+              setAiApplyCount((n) => n + 1);
             }}
           />
           <div className="space-y-2">
             <Label htmlFor="shortDescription">Short Description</Label>
-            <Input id="shortDescription" value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} />
+            <input
+              key={`shortDescription-${aiApplyCount}`}
+              id="shortDescription"
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.shortDescription}
+              onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Full Description</Label>
@@ -283,11 +264,25 @@ export default function NewProductPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="tags">Tags (comma separated)</Label>
-            <Input id="tags" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="vegan, gluten-free, bestseller" />
+            <input
+              key={`tags-${aiApplyCount}`}
+              id="tags"
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.tags}
+              onChange={(e) => setForm({ ...form, tags: e.target.value })}
+              placeholder="vegan, gluten-free, bestseller"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="allergens">Allergens (comma separated)</Label>
-            <Input id="allergens" value={form.allergens} onChange={(e) => setForm({ ...form, allergens: e.target.value })} placeholder="milk, soy, tree nuts" />
+            <input
+              key={`allergens-${aiApplyCount}`}
+              id="allergens"
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.allergens}
+              onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+              placeholder="milk, soy, tree nuts"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="ingredients">Ingredients</Label>
@@ -300,11 +295,25 @@ export default function NewProductPage() {
           <h2 className="font-heading font-semibold">SEO</h2>
           <div className="space-y-2">
             <Label htmlFor="metaTitle">Meta Title ({form.metaTitle.length}/255)</Label>
-            <Input id="metaTitle" value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })} maxLength={255} />
+            <input
+              key={`metaTitle-${aiApplyCount}`}
+              id="metaTitle"
+              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.metaTitle}
+              onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+              maxLength={255}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="metaDescription">Meta Description</Label>
-            <Textarea id="metaDescription" value={form.metaDescription} onChange={(e) => setForm({ ...form, metaDescription: e.target.value })} rows={2} />
+            <textarea
+              key={`metaDescription-${aiApplyCount}`}
+              id="metaDescription"
+              className="flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              value={form.metaDescription}
+              onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
+              rows={2}
+            />
           </div>
         </div>
 
