@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const shippingDestinationSchema = z.object({
+  // Recipient name printed on the carrier label. Kept optional at the validator
+  // level for backward compatibility with older clients, but the checkout flow
+  // now always supplies it.
   name: z.string().optional(),
+  phone: z.string().optional(),
   street1: z.string().min(1, "Street address required"),
   street2: z.string().optional(),
   city: z.string().min(1, "City required"),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/hooks/use-cart";
 import { useCartStore, lineKey } from "@/stores/cart-store";
 import { useSession } from "next-auth/react";
@@ -9,13 +9,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { ShippingRateSelector } from "@/components/storefront/checkout/shipping-rate-selector";
 import type { ShippingDestination } from "@/lib/validators/shipping";
 import { toast } from "sonner";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { AlertTriangle, Mail } from "lucide-react";
+import { AlertTriangle, Mail, Plus } from "lucide-react";
+
+type SavedAddress = {
+  id: string;
+  label: string | null;
+  recipientName: string | null;
+  phone: string | null;
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  isDefault: boolean;
+};
+
+const NEW_ADDRESS_SENTINEL = "__new__";
 
 export default function CheckoutPage() {
   const { items, subtotal, taxAmount, discount, couponCode } = useCart();
@@ -37,7 +54,16 @@ export default function CheckoutPage() {
   const [guestPassword, setGuestPassword] = useState("");
   const [guestError, setGuestError] = useState<string | null>(null);
 
+  // Saved-address picker (logged-in users only). Sentinel value means "Use a
+  // new address" — in which case `shipAddr` is the source of truth.
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [savedAddressesLoaded, setSavedAddressesLoaded] = useState(false);
+  const [selectedSavedId, setSelectedSavedId] = useState<string>(NEW_ADDRESS_SENTINEL);
+  const [saveAddress, setSaveAddress] = useState(true);
+
   const [shipAddr, setShipAddr] = useState({
+    recipientName: "",
+    phone: "",
     street1: "",
     street2: "",
     city: "",
@@ -46,24 +72,75 @@ export default function CheckoutPage() {
     country: "US",
   });
 
+  // Load saved addresses for logged-in (non-guest) users, then auto-select the
+  // default one if present.
+  useEffect(() => {
+    if (sessionStatus !== "authenticated" || isGuestUser) {
+      setSavedAddressesLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/account/addresses")
+      .then((r) => (r.ok ? r.json() : { addresses: [] }))
+      .then((data) => {
+        if (cancelled) return;
+        const list: SavedAddress[] = data.addresses || [];
+        setSavedAddresses(list);
+        const def = list.find((a) => a.isDefault) || list[0];
+        if (def) {
+          setSelectedSavedId(def.id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setSavedAddressesLoaded(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus, isGuestUser]);
+
+  // Resolve the active address. Either a saved address (when one is picked) or
+  // the manually-entered one in `shipAddr`.
+  const activeAddress = useMemo(() => {
+    if (selectedSavedId !== NEW_ADDRESS_SENTINEL) {
+      const saved = savedAddresses.find((a) => a.id === selectedSavedId);
+      if (!saved) return null;
+      return {
+        recipientName: saved.recipientName ?? "",
+        phone: saved.phone ?? "",
+        street1: saved.line1,
+        street2: saved.line2 ?? "",
+        city: saved.city,
+        state: saved.state,
+        zip: saved.zip,
+        country: saved.country,
+      };
+    }
+    return shipAddr;
+  }, [selectedSavedId, savedAddresses, shipAddr]);
+
   const destination: ShippingDestination | null = useMemo(() => {
+    if (!activeAddress) return null;
     if (
-      !shipAddr.street1.trim() ||
-      !shipAddr.city.trim() ||
-      shipAddr.state.length !== 2 ||
-      shipAddr.zip.length < 5
+      !activeAddress.street1.trim() ||
+      !activeAddress.city.trim() ||
+      activeAddress.state.length !== 2 ||
+      activeAddress.zip.length < 5 ||
+      !activeAddress.recipientName.trim() ||
+      !activeAddress.phone.trim()
     ) {
       return null;
     }
     return {
-      street1: shipAddr.street1.trim(),
-      street2: shipAddr.street2.trim() || undefined,
-      city: shipAddr.city.trim(),
-      state: shipAddr.state.toUpperCase(),
-      zip: shipAddr.zip.trim(),
+      name: activeAddress.recipientName.trim(),
+      phone: activeAddress.phone.trim(),
+      street1: activeAddress.street1.trim(),
+      street2: activeAddress.street2.trim() || undefined,
+      city: activeAddress.city.trim(),
+      state: activeAddress.state.toUpperCase(),
+      zip: activeAddress.zip.trim(),
       country: "US",
     };
-  }, [shipAddr]);
+  }, [activeAddress]);
 
   const cartLines = useMemo(
     () =>
@@ -79,6 +156,37 @@ export default function CheckoutPage() {
   const shippingCost = shippingCostCents / 100;
   const total =
     Math.max(0, subtotal - discount) + shippingCost + (subtotal - discount) * siteConfig.taxRate;
+
+  const isNewAddressSelected = selectedSavedId === NEW_ADDRESS_SENTINEL;
+  const canSaveNewAddress =
+    !!session?.user &&
+    !isGuestUser &&
+    isNewAddressSelected &&
+    saveAddress &&
+    !!destination;
+
+  const persistNewAddress = async () => {
+    if (!canSaveNewAddress || !destination) return;
+    try {
+      await fetch("/api/account/addresses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientName: destination.name,
+          phone: destination.phone,
+          line1: destination.street1,
+          line2: destination.street2 ?? null,
+          city: destination.city,
+          state: destination.state,
+          zip: destination.zip,
+          country: "US",
+          isDefault: savedAddresses.length === 0,
+        }),
+      });
+    } catch {
+      // Non-fatal — don't block checkout if the save fails.
+    }
+  };
 
   const handleCheckout = async () => {
     if (!selectedRate) {
@@ -102,6 +210,13 @@ export default function CheckoutPage() {
       setGuestError(null);
     }
     setLoading(true);
+
+    // Save the new address before we redirect to Stripe (fire-and-forget; we
+    // don't want a transient failure to block payment).
+    if (canSaveNewAddress) {
+      await persistNewAddress();
+    }
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -174,6 +289,12 @@ export default function CheckoutPage() {
       !!guestName.trim() &&
       (!createAccount || guestPassword.length >= 8));
   const canPay = !!selectedRate && !!destination && guestFieldsValid;
+
+  const showSavedAddressPicker =
+    sessionStatus === "authenticated" &&
+    !isGuestUser &&
+    savedAddressesLoaded &&
+    savedAddresses.length > 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -248,7 +369,14 @@ export default function CheckoutPage() {
               <Input
                 id="guest-name"
                 value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
+                onChange={(e) => {
+                  setGuestName(e.target.value);
+                  // Mirror guest's contact name into the recipient field so they
+                  // don't have to retype it for the carrier label.
+                  setShipAddr((prev) =>
+                    prev.recipientName ? prev : { ...prev, recipientName: e.target.value }
+                  );
+                }}
                 placeholder="Jane Doe"
               />
             </div>
@@ -288,55 +416,171 @@ export default function CheckoutPage() {
         <div className="lg:col-span-3 space-y-6">
           {/* Shipping Address */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-heading font-semibold mb-4">Shipping Address</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="street1">Street address</Label>
-                <Input
-                  id="street1"
-                  value={shipAddr.street1}
-                  onChange={(e) => setShipAddr({ ...shipAddr, street1: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="street2">Apartment, suite (optional)</Label>
-                <Input
-                  id="street2"
-                  value={shipAddr.street2}
-                  onChange={(e) => setShipAddr({ ...shipAddr, street2: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={shipAddr.city}
-                  onChange={(e) => setShipAddr({ ...shipAddr, city: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  maxLength={2}
-                  placeholder="NE"
-                  value={shipAddr.state}
-                  onChange={(e) => setShipAddr({ ...shipAddr, state: e.target.value.toUpperCase() })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zip">ZIP</Label>
-                <Input
-                  id="zip"
-                  value={shipAddr.zip}
-                  onChange={(e) => setShipAddr({ ...shipAddr, zip: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input id="country" value={shipAddr.country} disabled />
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-heading font-semibold">Shipping Address</h2>
+              {showSavedAddressPicker && (
+                <Link
+                  href="/account/addresses"
+                  className="text-xs text-brand-primary hover:underline"
+                >
+                  Manage addresses
+                </Link>
+              )}
             </div>
+
+            {showSavedAddressPicker && (
+              <div className="space-y-2 mb-5">
+                <Label>Use a saved address</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {savedAddresses.map((a) => {
+                    const active = selectedSavedId === a.id;
+                    return (
+                      <button
+                        type="button"
+                        key={a.id}
+                        onClick={() => setSelectedSavedId(a.id)}
+                        className={`text-left rounded-lg border p-3 transition-colors ${
+                          active
+                            ? "border-brand-primary bg-brand-pink/10"
+                            : "border-gray-200 hover:border-brand-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            {a.label || a.recipientName || "Address"}
+                          </span>
+                          {a.isDefault && (
+                            <Badge className="bg-brand-mint/40 text-brand-secondary text-[10px]">
+                              Default
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-brand-text-secondary mt-1">
+                          {a.recipientName}
+                        </p>
+                        <p className="text-xs text-brand-text-muted">
+                          {a.line1}
+                          {a.line2 ? `, ${a.line2}` : ""}
+                          {`, ${a.city}, ${a.state} ${a.zip}`}
+                        </p>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSavedId(NEW_ADDRESS_SENTINEL)}
+                    className={`text-left rounded-lg border-2 border-dashed p-3 transition-colors flex items-center gap-2 ${
+                      isNewAddressSelected
+                        ? "border-brand-primary bg-brand-pink/10 text-brand-primary"
+                        : "border-gray-300 text-brand-text-muted hover:border-brand-primary/50"
+                    }`}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="text-sm">Use a new address</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isNewAddressSelected ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="recipientName">Recipient name</Label>
+                  <Input
+                    id="recipientName"
+                    value={shipAddr.recipientName}
+                    onChange={(e) =>
+                      setShipAddr({ ...shipAddr, recipientName: e.target.value })
+                    }
+                    placeholder="Name on the package"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    inputMode="tel"
+                    value={shipAddr.phone}
+                    onChange={(e) => setShipAddr({ ...shipAddr, phone: e.target.value })}
+                    placeholder="(555) 555-5555"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="street1">Street address</Label>
+                  <Input
+                    id="street1"
+                    value={shipAddr.street1}
+                    onChange={(e) => setShipAddr({ ...shipAddr, street1: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="street2">Apartment, suite (optional)</Label>
+                  <Input
+                    id="street2"
+                    value={shipAddr.street2}
+                    onChange={(e) => setShipAddr({ ...shipAddr, street2: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={shipAddr.city}
+                    onChange={(e) => setShipAddr({ ...shipAddr, city: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    maxLength={2}
+                    placeholder="NE"
+                    value={shipAddr.state}
+                    onChange={(e) =>
+                      setShipAddr({ ...shipAddr, state: e.target.value.toUpperCase() })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zip">ZIP</Label>
+                  <Input
+                    id="zip"
+                    value={shipAddr.zip}
+                    onChange={(e) => setShipAddr({ ...shipAddr, zip: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input id="country" value={shipAddr.country} disabled />
+                </div>
+
+                {!!session?.user && !isGuestUser && (
+                  <div className="md:col-span-2 flex items-center justify-between pt-2 border-t">
+                    <Label htmlFor="save-address" className="cursor-pointer">
+                      Save this address to my account
+                    </Label>
+                    <Switch
+                      id="save-address"
+                      checked={saveAddress}
+                      onCheckedChange={setSaveAddress}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Read-only summary of the selected saved address
+              <div className="rounded-lg border bg-gray-50 p-4 text-sm space-y-0.5">
+                <p className="font-medium">{activeAddress?.recipientName}</p>
+                <p>{activeAddress?.street1}</p>
+                {activeAddress?.street2 && <p>{activeAddress.street2}</p>}
+                <p>
+                  {activeAddress?.city}, {activeAddress?.state} {activeAddress?.zip}
+                </p>
+                {activeAddress?.phone && (
+                  <p className="text-brand-text-muted">{activeAddress.phone}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Shipping Method (live rates) */}

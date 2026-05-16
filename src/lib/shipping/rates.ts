@@ -101,6 +101,9 @@ export async function getShippingRates(
       email: ship.origin.email || undefined,
     },
     addressTo: {
+      // Carrier label prints whatever `name` we send here. Always use the
+      // shopper-supplied recipient name (falls back to a placeholder only when
+      // the legacy validator allowed it through with no name).
       name: destination.name?.trim() || "Recipient",
       street1: destination.street1,
       street2: destination.street2 || undefined,
@@ -108,6 +111,7 @@ export async function getShippingRates(
       state: destination.state,
       zip: destination.zip,
       country: destination.country,
+      phone: destination.phone?.trim() || undefined,
     },
     parcels: [
       {

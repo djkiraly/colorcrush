@@ -119,6 +119,10 @@ export const addresses = pgTable("addresses", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   label: varchar("label", { length: 50 }),
+  // Nullable in DB to keep existing rows compatible; required at the API layer
+  // for any new/updated address (see addressInputSchema).
+  recipientName: varchar("recipient_name", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
   line1: varchar("line1", { length: 255 }).notNull(),
   line2: varchar("line2", { length: 255 }),
   city: varchar("city", { length: 100 }).notNull(),
