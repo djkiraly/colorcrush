@@ -123,9 +123,30 @@ export async function getShippingRates(
   });
   } catch (err) {
     console.error("[shipping/rates] Shippo SDK error:", err);
+    // Pull as much useful detail as we can out of the SDK exception so the
+    // admin can diagnose: Shippo SDK errors include `body`, `statusCode`, and
+    // sometimes a structured response. Strip the API key if it sneaks in.
+    const errAny = err as {
+      message?: string;
+      statusCode?: number;
+      body?: unknown;
+      rawResponse?: unknown;
+    };
+    const detail = [
+      errAny.statusCode ? `HTTP ${errAny.statusCode}` : null,
+      errAny.message,
+      typeof errAny.body === "string"
+        ? errAny.body
+        : errAny.body
+        ? JSON.stringify(errAny.body)
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" — ");
     throw new ShippingRatesError(
       "Could not retrieve shipping rates from the carrier. Please verify your address.",
-      true
+      true,
+      detail ? [detail] : undefined
     );
   }
 
