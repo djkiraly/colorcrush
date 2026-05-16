@@ -124,6 +124,19 @@ export default function EditProductPage() {
   if (loading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>;
   if (!form) return <p>Product not found</p>;
 
+  // Renders only fire when form actually changes — so this log proves whether
+  // setForm committed the merged values from the AI apply handler.
+  if (typeof window !== "undefined") {
+    console.log(
+      "[EditProductPage render] form.metaTitle =",
+      JSON.stringify(form.metaTitle),
+      "| form.tags =",
+      JSON.stringify(form.tags),
+      "| form.metaDescription =",
+      JSON.stringify(form.metaDescription)
+    );
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-6">
@@ -180,8 +193,8 @@ export default function EditProductPage() {
                 return next;
               });
               // After React commits the new state, read the DOM and report what
-              // the actual inputs hold. If form state is right but inputs are
-              // blank, this reveals a bundle mismatch / render bug.
+              // the actual inputs hold. Bumped to 500ms to ensure any deferred
+              // commits or re-renders have settled.
               setTimeout(() => {
                 const get = (sel: string) =>
                   (document.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement | null)
@@ -204,7 +217,7 @@ export default function EditProductPage() {
                   }
                 }
                 void get;
-              }, 50);
+              }, 500);
             }}
           />
           <div className="space-y-2">
