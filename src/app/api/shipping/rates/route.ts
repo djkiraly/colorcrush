@@ -4,8 +4,13 @@ import { products } from "@/lib/db/schema";
 import { inArray } from "drizzle-orm";
 import { shippingRateRequestSchema } from "@/lib/validators/shipping";
 import { getShippingRates } from "@/lib/shipping/rates";
+import {
+  calculateCartWeightOz,
+  selectBoxForCart,
+} from "@/lib/shipping/box-selector";
 import { getSettings } from "@/lib/settings";
 import { ShippingRatesError } from "@/lib/shipping/errors";
+import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
 export async function POST(request: NextRequest) {
   let parsed;
@@ -19,6 +24,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Admin diagnostic mode: include a per-item weight breakdown in the response
+  // so an admin can verify every cart item is being counted with the correct
+  // weight. Customers never see this — it's gated on session role.
+  const session = await getAuthSession();
+  const includeDebug =
+    isAdmin(session) || request.nextUrl.searchParams.get("debug") === "1";
+  // The `debug=1` URL flag is admin-only too: only honored when isAdmin passes,
+  // otherwise it's silently ignored. (Re-check explicitly.)
+  const debugEnabled = isAdmin(session) && includeDebug;
+
   try {
     const settings = await getSettings();
     const defaultWeight = settings.shipping.defaultProductWeightOz;
@@ -28,6 +43,8 @@ export async function POST(request: NextRequest) {
       ? await db
           .select({
             id: products.id,
+            name: products.name,
+            sku: products.sku,
             weightOz: products.weightOz,
             defaultBoxId: products.defaultBoxId,
           })
@@ -47,6 +64,49 @@ export async function POST(request: NextRequest) {
     });
 
     const rates = await getShippingRates(cartItems, parsed.destination);
+
+    if (debugEnabled) {
+      const totalWeightOz = calculateCartWeightOz(cartItems, defaultWeight);
+      const selectedBox = await selectBoxForCart(cartItems, defaultWeight);
+      const breakdown = parsed.items.map((i) => {
+        const p = productById.get(i.productId);
+        const productWeightOz = p?.weightOz ?? 0;
+        const effectiveWeightOz =
+          productWeightOz > 0 ? productWeightOz : defaultWeight;
+        return {
+          productId: i.productId,
+          name: p?.name ?? "(unknown product)",
+          sku: p?.sku ?? null,
+          quantity: i.quantity,
+          productWeightOz,
+          effectiveWeightOz,
+          subtotalOz: effectiveWeightOz * i.quantity,
+          usedDefault: productWeightOz <= 0,
+          missingFromDb: !p,
+        };
+      });
+      const totalWeightLb = Math.round((totalWeightOz / 16) * 100) / 100;
+      return NextResponse.json({
+        rates,
+        debug: {
+          itemCount: parsed.items.length,
+          totalWeightOz,
+          totalWeightLb,
+          defaultProductWeightOz: defaultWeight,
+          flatRateThresholdOz: settings.shipping.flatRateThresholdOz,
+          isFlatRatePath: totalWeightOz <= settings.shipping.flatRateThresholdOz,
+          selectedBox: selectedBox
+            ? {
+                id: selectedBox.id,
+                name: selectedBox.name,
+                dimsIn: `${selectedBox.lengthIn} × ${selectedBox.widthIn} × ${selectedBox.heightIn}`,
+              }
+            : null,
+          items: breakdown,
+        },
+      });
+    }
+
     return NextResponse.json({ rates });
   } catch (err) {
     console.error("[shipping/rates]", err);
