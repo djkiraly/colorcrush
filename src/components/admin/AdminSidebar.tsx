@@ -38,8 +38,8 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
   { href: "/admin/taxonomies", label: "Taxonomies", icon: Tags },
   { href: "/admin/settings/product-options", label: "Product Options", icon: Layers },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/admin/ggsa-orders", label: "GGSA Orders", icon: Candy },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingCart, badge: "orders" as const },
+  { href: "/admin/ggsa-orders", label: "GGSA Orders", icon: Candy, badge: "ggsa" as const },
   { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/staff", label: "Staff", icon: Shield, superAdminOnly: true as const },
@@ -64,6 +64,8 @@ export function AdminSidebar() {
   const userRole = (session?.user as { role?: string })?.role;
   const [collapsed, setCollapsed] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
+  const [ggsaCount, setGgsaCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +74,14 @@ export function AdminSidebar() {
         .then((r) => r.json())
         .then((d) => {
           if (!cancelled) setAlertCount(d.count ?? 0);
+        })
+        .catch(() => {});
+      fetch("/api/admin/order-counts")
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled) return;
+          setOrderCount(d.orders ?? 0);
+          setGgsaCount(d.ggsa ?? 0);
         })
         .catch(() => {});
     };
@@ -118,6 +128,20 @@ export function AdminSidebar() {
             item.href === "/admin"
               ? pathname === "/admin"
               : pathname.startsWith(item.href);
+          const badge = "badge" in item ? item.badge : undefined;
+          const badgeCount =
+            badge === "alerts"
+              ? alertCount
+              : badge === "orders"
+                ? orderCount
+                : badge === "ggsa"
+                  ? ggsaCount
+                  : 0;
+          // Order/GGSA fulfillment badges are red; alerts keep the brand color.
+          const badgeClass =
+            badge === "orders" || badge === "ggsa"
+              ? "bg-red-600 text-white"
+              : "bg-brand-primary text-white";
           return (
             <Link
               key={item.href}
@@ -130,11 +154,24 @@ export function AdminSidebar() {
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
+              <span className="relative flex-shrink-0">
+                <item.icon className="h-5 w-5" />
+                {/* When collapsed there's no label/row space, so float the
+                    count over the icon as a small corner badge. */}
+                {collapsed && badgeCount > 0 && (
+                  <span
+                    className={`absolute -top-2 -right-2 ${badgeClass} text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[1.1rem] text-center leading-none`}
+                  >
+                    {badgeCount}
+                  </span>
+                )}
+              </span>
               {!collapsed && <span className="flex-1">{item.label}</span>}
-              {"badge" in item && item.badge === "alerts" && alertCount > 0 && (
-                <span className="ml-auto bg-brand-primary text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[1.25rem] text-center">
-                  {alertCount}
+              {!collapsed && badgeCount > 0 && (
+                <span
+                  className={`ml-auto ${badgeClass} text-xs font-bold rounded-full px-2 py-0.5 min-w-[1.25rem] text-center`}
+                >
+                  {badgeCount}
                 </span>
               )}
             </Link>
