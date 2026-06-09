@@ -73,6 +73,13 @@ export async function POST(request: NextRequest) {
               updatedAt: new Date(),
             })
             .where(eq(ggsaOrders.id, ggsaOrderId));
+
+          // Fire confirmation + store-notification emails. Fire-and-forget so a
+          // mail hiccup never fails the webhook (Stripe would retry it).
+          const { sendGgsaOrderEmails } = await import("@/lib/email-notifications");
+          sendGgsaOrderEmails(ggsaOrderId).catch((e) =>
+            console.error("[ggsa] order emails failed:", e)
+          );
         }
       }
       return NextResponse.json({ received: true });

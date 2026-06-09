@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { users, orders, orderItems, products, inventory } from "@/lib/db/schema";
+import { users, orders, orderItems, products, inventory, ggsaOrders } from "@/lib/db/schema";
 import { eq, lte, and } from "drizzle-orm";
 import { sendEmail } from "@/lib/gmail";
 import { welcomeEmail } from "@/lib/email-templates/welcome";
@@ -7,6 +7,10 @@ import { orderConfirmationEmail } from "@/lib/email-templates/order-confirmation
 import { orderShippedEmail } from "@/lib/email-templates/order-shipped";
 import { orderDeliveredEmail } from "@/lib/email-templates/order-delivered";
 import { lowStockAlertEmail } from "@/lib/email-templates/low-stock-alert";
+import { ggsaOrderConfirmationEmail } from "@/lib/email-templates/ggsa-order-confirmation";
+import { ggsaOrderNotificationEmail } from "@/lib/email-templates/ggsa-order-notification";
+import { GGSA_FLAVOR_LABELS, type GgsaFlavor } from "@/lib/validators/ggsa";
+import { formatPickupDate, getNextPickupDate, GGSA_PICKUP_NOTICE } from "@/lib/ggsa-pickup";
 import { getSettings } from "@/lib/settings";
 
 /**
@@ -125,6 +129,81 @@ export async function sendOrderDeliveredEmail(orderId: string) {
     userId: user.id,
     orderId: order.id,
   });
+}
+
+/**
+ * On a completed GGSA Team Sweet Bag order: email the customer a receipt and
+ * notify the store/GGSA contact so the order can be bagged for pickup.
+ *
+ * GGSA orders live in `ggsa_orders` (no user account / no `orders` row), so we
+ * deliberately omit userId/orderId on sendEmail — those columns FK to
+ * users/orders and would error.
+ */
+export async function sendGgsaOrderEmails(ggsaOrderId: string) {
+  const [order] = await db
+    .select()
+    .from(ggsaOrders)
+    .where(eq(ggsaOrders.id, ggsaOrderId))
+    .limit(1);
+  if (!order) return;
+
+  const flavorLabel =
+    GGSA_FLAVOR_LABELS[order.flavor as GgsaFlavor] ?? order.flavor;
+  const total = order.totalCents / 100;
+  const pickupDate = formatPickupDate(
+    order.pickupDate ? new Date(order.pickupDate) : getNextPickupDate()
+  );
+
+  // 1) Customer confirmation
+  try {
+    const html = await ggsaOrderConfirmationEmail({
+      contactName: order.contactName,
+      flavorLabel,
+      quantity: order.quantity,
+      total,
+      pickupDate,
+      pickupNotice: GGSA_PICKUP_NOTICE,
+    });
+    await sendEmail({
+      to: order.email,
+      subject: "Your GGSA Team Sweet Bag order is confirmed",
+      html,
+      templateName: "ggsa-order-confirmation",
+    });
+  } catch (err) {
+    console.error("[ggsa] customer confirmation email failed:", err);
+  }
+
+  // 2) Business / GGSA notification — to the configured store contact.
+  try {
+    const settings = await getSettings();
+    const notifyTo =
+      settings.contact?.email?.trim() || settings.shipping?.origin?.email?.trim() || "";
+    if (!notifyTo) {
+      console.warn("[ggsa] no store contact email configured — skipping order notification");
+      return;
+    }
+    const html = await ggsaOrderNotificationEmail({
+      contactName: order.contactName,
+      email: order.email,
+      phone: order.phone,
+      flavorLabel,
+      quantity: order.quantity,
+      total,
+      pickupDate,
+      orderedAt: order.createdAt
+        ? new Date(order.createdAt).toLocaleString("en-US")
+        : "",
+    });
+    await sendEmail({
+      to: notifyTo,
+      subject: `New GGSA order — ${order.quantity} × ${flavorLabel} (pickup ${pickupDate})`,
+      html,
+      templateName: "ggsa-order-notification",
+    });
+  } catch (err) {
+    console.error("[ggsa] store notification email failed:", err);
+  }
 }
 
 /**

@@ -23,6 +23,7 @@ import {
   Scale,
   BookOpen,
   Bell,
+  Candy,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/taxonomies", label: "Taxonomies", icon: Tags },
   { href: "/admin/settings/product-options", label: "Product Options", icon: Layers },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/ggsa-orders", label: "GGSA Orders", icon: Candy },
   { href: "/admin/inventory", label: "Inventory", icon: Warehouse },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/staff", label: "Staff", icon: Shield, superAdminOnly: true as const },
