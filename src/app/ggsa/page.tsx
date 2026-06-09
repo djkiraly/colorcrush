@@ -32,7 +32,8 @@ export default async function GgsaPage() {
     notFound();
   }
 
-  const { logoColorCrush, logoGgsa, productImages } = settings.ggsa;
+  const { logoColorCrush, logoGgsa, productImages, tagline, title, description } =
+    settings.ggsa;
   const images = (productImages ?? []).filter(Boolean).slice(0, 3);
   const nextPickup = formatPickupDate(getNextPickupDate());
 
@@ -72,17 +73,21 @@ export default async function GgsaPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-[#F5B400]">
-              Fundraiser
-            </p>
-            <h1 className="mt-2 font-heading text-4xl font-extrabold sm:text-5xl">
-              Team Sweet Bags
-            </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-base text-white/90 sm:text-lg">
-              Grab a 3&nbsp;oz bag of Color Crush candy at the field — every bag
-              supports the Gering Girls Softball Association. Just{" "}
-              <span className="font-semibold text-[#F5B400]">$3 each</span>.
-            </p>
+            {tagline && (
+              <p className="text-sm font-semibold uppercase tracking-widest text-[#F5B400]">
+                {tagline}
+              </p>
+            )}
+            {title && (
+              <h1 className="mt-2 font-heading text-4xl font-extrabold sm:text-5xl">
+                {title}
+              </h1>
+            )}
+            {description && (
+              <p className="mx-auto mt-3 max-w-2xl text-base text-white/90 sm:text-lg">
+                {description}
+              </p>
+            )}
           </div>
         </div>
       </header>

@@ -67,6 +67,9 @@ export type SiteSettingsOverrides = {
   };
   ggsa?: {
     enabled?: boolean;
+    tagline?: string;
+    title?: string;
+    description?: string;
     logoColorCrush?: string;
     logoGgsa?: string;
     productImages?: string[];

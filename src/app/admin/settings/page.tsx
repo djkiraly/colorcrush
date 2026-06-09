@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2, Construction, Megaphone, Candy, ExternalLink } from "lucide-react";
 import Image from "next/image";
@@ -95,6 +96,9 @@ export default function AdminSettingsPage() {
   });
   const [ggsa, setGgsa] = useState({
     enabled: false,
+    tagline: "",
+    title: "",
+    description: "",
     logoColorCrush: "",
     logoGgsa: "",
     productImages: ["", "", ""] as string[],
@@ -285,6 +289,9 @@ export default function AdminSettingsPage() {
           : [];
         setGgsa({
           enabled: !!ggsaMerged.enabled,
+          tagline: (ggsaMerged.tagline as string) || "",
+          title: (ggsaMerged.title as string) || "",
+          description: (ggsaMerged.description as string) || "",
           logoColorCrush: (ggsaMerged.logoColorCrush as string) || "",
           logoGgsa: (ggsaMerged.logoGgsa as string) || "",
           productImages: [0, 1, 2].map((i) => ggsaImages[i] || ""),
@@ -510,13 +517,9 @@ export default function AdminSettingsPage() {
             }
           : { ...ggsa, [target]: publicUrl };
       setGgsa(next);
-      await saveKey("ggsa", {
-        enabled: next.enabled,
-        logoColorCrush: next.logoColorCrush,
-        logoGgsa: next.logoGgsa,
-        // Keep slot positions stable; the page filters empties at render.
-        productImages: next.productImages,
-      });
+      // Persist the whole object — slot positions stay stable; the page
+      // filters empties at render.
+      await saveKey("ggsa", next);
     } catch {
       toast.error("Failed to upload image");
     } finally {
@@ -536,12 +539,7 @@ export default function AdminSettingsPage() {
           }
         : { ...ggsa, [target]: "" };
     setGgsa(next);
-    await saveKey("ggsa", {
-      enabled: next.enabled,
-      logoColorCrush: next.logoColorCrush,
-      logoGgsa: next.logoGgsa,
-      productImages: next.productImages,
-    });
+    await saveKey("ggsa", next);
   };
 
   const isOverridden = (key: string) => key in overrides;
@@ -761,6 +759,43 @@ export default function AdminSettingsPage() {
                 }
               />
             </div>
+
+            {/* Hero copy */}
+            <div className="space-y-2">
+              <Label>Tagline</Label>
+              <Input
+                value={ggsa.tagline}
+                onChange={(e) =>
+                  setGgsa((prev) => ({ ...prev, tagline: e.target.value }))
+                }
+                placeholder="Fundraiser"
+              />
+              <p className="text-xs text-brand-text-muted">
+                Small label shown above the title.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={ggsa.title}
+                onChange={(e) =>
+                  setGgsa((prev) => ({ ...prev, title: e.target.value }))
+                }
+                placeholder="Team Sweet Bags"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={ggsa.description}
+                onChange={(e) =>
+                  setGgsa((prev) => ({ ...prev, description: e.target.value }))
+                }
+                rows={3}
+                placeholder="Grab a 3 oz bag of Color Crush candy at the field — every bag supports the Gering Girls Softball Association. Just $3 each."
+              />
+            </div>
+
             {/* Logos */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -908,14 +943,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="flex gap-2 mt-4">
             <Button
-              onClick={() =>
-                saveKey("ggsa", {
-                  enabled: ggsa.enabled,
-                  logoColorCrush: ggsa.logoColorCrush,
-                  logoGgsa: ggsa.logoGgsa,
-                  productImages: ggsa.productImages,
-                })
-              }
+              onClick={() => saveKey("ggsa", ggsa)}
               disabled={saving !== null}
               className={
                 ggsa.enabled
@@ -932,17 +960,15 @@ export default function AdminSettingsPage() {
                 onClick={async () => {
                   const reset = {
                     enabled: false,
+                    tagline: "",
+                    title: "",
+                    description: "",
                     logoColorCrush: "",
                     logoGgsa: "",
                     productImages: ["", "", ""],
                   };
                   setGgsa(reset);
-                  await saveKey("ggsa", {
-                    enabled: false,
-                    logoColorCrush: "",
-                    logoGgsa: "",
-                    productImages: [],
-                  });
+                  await saveKey("ggsa", reset);
                 }}
                 disabled={saving !== null}
               >

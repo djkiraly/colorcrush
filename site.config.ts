@@ -114,6 +114,11 @@ export const siteConfig = {
   // override the paths). Drop the real artwork into /public/images/ggsa/.
   ggsa: {
     enabled: false,
+    // Hero copy — editable in Admin → Settings → GGSA Promo Page.
+    tagline: "Fundraiser",
+    title: "Team Sweet Bags",
+    description:
+      "Grab a 3 oz bag of Color Crush candy at the field — every bag supports the Gering Girls Softball Association. Just $3 each.",
     // Logos + product images are uploaded from Admin → Settings → GGSA Promo
     // Page (stored as GCS URLs). Empty until uploaded.
     logoColorCrush: "",
@@ -143,6 +148,9 @@ export type ShippingConfig = {
 
 export type GgsaConfig = {
   enabled: boolean;
+  tagline: string;
+  title: string;
+  description: string;
   logoColorCrush: string;
   logoGgsa: string;
   productImages: readonly string[];
