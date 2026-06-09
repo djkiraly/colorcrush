@@ -119,6 +119,8 @@ export const siteConfig = {
     title: "Team Sweet Bags",
     description:
       "Grab a 3 oz bag of Color Crush candy at the field — every bag supports the Gering Girls Softball Association. Just $3 each.",
+    footer:
+      "A Color Crush Candy & Gering Girls Softball Association fundraiser.",
     // Logos + product images are uploaded from Admin → Settings → GGSA Promo
     // Page (stored as GCS URLs). Empty until uploaded.
     logoColorCrush: "",
@@ -151,6 +153,7 @@ export type GgsaConfig = {
   tagline: string;
   title: string;
   description: string;
+  footer: string;
   logoColorCrush: string;
   logoGgsa: string;
   productImages: readonly string[];

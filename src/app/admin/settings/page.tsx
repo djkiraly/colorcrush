@@ -99,6 +99,7 @@ export default function AdminSettingsPage() {
     tagline: "",
     title: "",
     description: "",
+    footer: "",
     logoColorCrush: "",
     logoGgsa: "",
     productImages: ["", "", ""] as string[],
@@ -292,6 +293,7 @@ export default function AdminSettingsPage() {
           tagline: (ggsaMerged.tagline as string) || "",
           title: (ggsaMerged.title as string) || "",
           description: (ggsaMerged.description as string) || "",
+          footer: (ggsaMerged.footer as string) || "",
           logoColorCrush: (ggsaMerged.logoColorCrush as string) || "",
           logoGgsa: (ggsaMerged.logoGgsa as string) || "",
           productImages: [0, 1, 2].map((i) => ggsaImages[i] || ""),
@@ -940,6 +942,21 @@ export default function AdminSettingsPage() {
                 })}
               </div>
             </div>
+
+            {/* Footer */}
+            <div className="space-y-2">
+              <Label>Footer text</Label>
+              <Input
+                value={ggsa.footer}
+                onChange={(e) =>
+                  setGgsa((prev) => ({ ...prev, footer: e.target.value }))
+                }
+                placeholder="A Color Crush Candy & Gering Girls Softball Association fundraiser."
+              />
+              <p className="text-xs text-brand-text-muted">
+                Shown in the footer at the bottom of the page.
+              </p>
+            </div>
           </div>
           <div className="flex gap-2 mt-4">
             <Button
@@ -963,6 +980,7 @@ export default function AdminSettingsPage() {
                     tagline: "",
                     title: "",
                     description: "",
+                    footer: "",
                     logoColorCrush: "",
                     logoGgsa: "",
                     productImages: ["", "", ""],

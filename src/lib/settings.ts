@@ -70,6 +70,7 @@ export type SiteSettingsOverrides = {
     tagline?: string;
     title?: string;
     description?: string;
+    footer?: string;
     logoColorCrush?: string;
     logoGgsa?: string;
     productImages?: string[];

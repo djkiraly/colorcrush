@@ -32,8 +32,15 @@ export default async function GgsaPage() {
     notFound();
   }
 
-  const { logoColorCrush, logoGgsa, productImages, tagline, title, description } =
-    settings.ggsa;
+  const {
+    logoColorCrush,
+    logoGgsa,
+    productImages,
+    tagline,
+    title,
+    description,
+    footer,
+  } = settings.ggsa;
   const images = (productImages ?? []).filter(Boolean).slice(0, 3);
   const nextPickup = formatPickupDate(getNextPickupDate());
 
@@ -169,11 +176,13 @@ export default async function GgsaPage() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-[#7B2D8E]/10 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-6 text-center text-sm text-gray-500">
-          A Color Crush Candy &amp; Gering Girls Softball Association fundraiser.
-        </div>
-      </footer>
+      {footer && (
+        <footer className="border-t border-[#7B2D8E]/10 bg-white">
+          <div className="mx-auto max-w-5xl px-4 py-6 text-center text-sm text-gray-500">
+            {footer}
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
