@@ -49,6 +49,7 @@ export default async function GgsaPage() {
                 width={220}
                 height={96}
                 priority
+                unoptimized
                 className="h-16 w-auto object-contain drop-shadow sm:h-20"
               />
             )}
@@ -64,6 +65,7 @@ export default async function GgsaPage() {
                 width={220}
                 height={96}
                 priority
+                unoptimized
                 className="h-16 w-auto object-contain drop-shadow sm:h-20"
               />
             )}
@@ -99,6 +101,7 @@ export default async function GgsaPage() {
                       alt="Team Sweet Bag"
                       fill
                       sizes="(max-width: 1024px) 100vw, 50vw"
+                      unoptimized
                       className="object-cover"
                     />
                   </div>
@@ -115,6 +118,7 @@ export default async function GgsaPage() {
                           alt={`Team Sweet Bag photo ${i + 2}`}
                           fill
                           sizes="(max-width: 1024px) 50vw, 25vw"
+                          unoptimized
                           className="object-cover"
                         />
                       </div>
