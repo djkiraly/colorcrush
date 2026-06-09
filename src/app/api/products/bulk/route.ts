@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, categories, inventory, shippingBoxes } from "@/lib/db/schema";
-import { eq, asc, inArray } from "drizzle-orm";
+import { eq, asc, inArray, and, isNull } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
 export async function GET() {
@@ -32,11 +32,16 @@ export async function GET() {
     .orderBy(asc(products.name));
 
   const productIds = allProducts.map((p) => p.id);
+  // Base-product stock lives in the inventory row with no variant. (Since the
+  // variants refactor a product can have many inventory rows — one per variant
+  // — so we must scope to variantId IS NULL.)
   const invRows = productIds.length
     ? await db
         .select({ productId: inventory.productId, quantity: inventory.quantity })
         .from(inventory)
-        .where(inArray(inventory.productId, productIds))
+        .where(
+          and(inArray(inventory.productId, productIds), isNull(inventory.variantId))
+        )
     : [];
   const stockMap = new Map(invRows.map((r) => [r.productId, r.quantity]));
 
@@ -109,13 +114,24 @@ export async function PUT(request: NextRequest) {
 
     if (typeof item.stock === "number" && Number.isFinite(item.stock)) {
       const quantity = Math.max(0, Math.floor(item.stock));
-      await db
-        .insert(inventory)
-        .values({ productId: item.id, quantity })
-        .onConflictDoUpdate({
-          target: inventory.productId,
-          set: { quantity, updatedAt: new Date() },
-        });
+      // Update the base inventory row (variantId IS NULL), or create it if the
+      // product has none yet. There's no longer a unique constraint on
+      // product_id (variants can each have their own row), so an upsert by
+      // product_id would error.
+      const [existing] = await db
+        .select({ id: inventory.id })
+        .from(inventory)
+        .where(and(eq(inventory.productId, item.id), isNull(inventory.variantId)))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(inventory)
+          .set({ quantity, updatedAt: new Date() })
+          .where(eq(inventory.id, existing.id));
+      } else {
+        await db.insert(inventory).values({ productId: item.id, quantity });
+      }
     }
     updatedCount++;
   }
