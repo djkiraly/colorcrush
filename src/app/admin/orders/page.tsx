@@ -6,6 +6,7 @@ import { DataTable } from "@/components/admin/DataTable";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { Send, Loader2, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/utils";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -87,7 +88,7 @@ export default function AdminOrdersPage() {
       <Link href={`/admin/orders/${o.id}`} className="text-brand-primary hover:underline font-medium">{o.orderNumber}</Link>
     )},
     { key: "userName", header: "Customer" },
-    { key: "createdAt", header: "Date/Time", render: (o: any) => new Date(o.createdAt).toLocaleString() },
+    { key: "createdAt", header: "Date/Time", render: (o: any) => <span className="whitespace-nowrap">{formatDateTime(o.createdAt)}</span> },
     { key: "itemCount", header: "Item Count", render: (o: any) => Number(o.itemCount || 0) },
     { key: "total", header: "Total", render: (o: any) => <span className="font-semibold">${o.total}</span> },
     { key: "status", header: "Status", render: (o: any) => <OrderStatusBadge status={o.status} /> },

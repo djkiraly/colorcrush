@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import Image from "next/image";
+import { formatDateTime } from "@/lib/utils";
 import { Clock, UserCircle, ArrowRight, Send, FileText, MessageSquare, ShoppingCart } from "lucide-react";
 import { ManualOrderActions } from "@/components/admin/ManualOrderActions";
 import { PrintLabelButton } from "@/components/admin/orders/print-label-button";
@@ -98,7 +99,7 @@ export default function AdminOrderDetailPage() {
             Order {order.orderNumber}
           </h1>
           <p className="text-sm text-brand-text-muted">
-            {new Date(order.createdAt).toLocaleString()} | {order.user?.name} ({order.user?.email})
+            {formatDateTime(order.createdAt)} | {order.user?.name} ({order.user?.email})
           </p>
         </div>
         <OrderStatusBadge status={order.status} />
@@ -162,7 +163,7 @@ export default function AdminOrderDetailPage() {
               {order.paidAt && (
                 <div className="flex justify-between">
                   <span className="text-brand-text-muted">Paid at</span>
-                  <span className="font-medium">{new Date(order.paidAt).toLocaleString()}</span>
+                  <span className="font-medium">{formatDateTime(order.paidAt)}</span>
                 </div>
               )}
               {order.stripePaymentIntentId && (
@@ -192,34 +193,34 @@ export default function AdminOrderDetailPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-brand-text-muted">Created</span>
-                <span className="font-medium">{new Date(order.createdAt).toLocaleString()}</span>
+                <span className="font-medium">{formatDateTime(order.createdAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-brand-text-muted">Updated</span>
-                <span className="font-medium">{new Date(order.updatedAt).toLocaleString()}</span>
+                <span className="font-medium">{formatDateTime(order.updatedAt)}</span>
               </div>
               {order.paidAt && (
                 <div className="flex justify-between">
                   <span className="text-brand-text-muted">Paid</span>
-                  <span className="font-medium">{new Date(order.paidAt).toLocaleString()}</span>
+                  <span className="font-medium">{formatDateTime(order.paidAt)}</span>
                 </div>
               )}
               {order.shippedAt && (
                 <div className="flex justify-between">
                   <span className="text-brand-text-muted">Shipped</span>
-                  <span className="font-medium">{new Date(order.shippedAt).toLocaleString()}</span>
+                  <span className="font-medium">{formatDateTime(order.shippedAt)}</span>
                 </div>
               )}
               {order.deliveredAt && (
                 <div className="flex justify-between">
                   <span className="text-brand-text-muted">Delivered</span>
-                  <span className="font-medium">{new Date(order.deliveredAt).toLocaleString()}</span>
+                  <span className="font-medium">{formatDateTime(order.deliveredAt)}</span>
                 </div>
               )}
               {order.cancelledAt && (
                 <div className="flex justify-between">
                   <span className="text-brand-text-muted">Cancelled</span>
-                  <span className="font-medium">{new Date(order.cancelledAt).toLocaleString()}</span>
+                  <span className="font-medium">{formatDateTime(order.cancelledAt)}</span>
                 </div>
               )}
             </div>
@@ -263,7 +264,7 @@ export default function AdminOrderDetailPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm">{entry.details}</p>
                         <div className="flex items-center gap-2 mt-1 text-xs text-brand-text-muted">
-                          <span>{new Date(entry.createdAt).toLocaleString()}</span>
+                          <span>{formatDateTime(entry.createdAt)}</span>
                           {entry.adminName && (
                             <>
                               <span>by</span>

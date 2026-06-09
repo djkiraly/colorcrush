@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Check, Undo2 } from "lucide-react";
 import { GGSA_FLAVOR_LABELS, type GgsaFlavor } from "@/lib/validators/ggsa";
 import { formatPickupDate } from "@/lib/ggsa-pickup";
+import { formatDateTime } from "@/lib/utils";
 
 interface GgsaOrder {
   id: string;
@@ -93,14 +94,10 @@ export default function AdminGgsaOrdersPage() {
   const columns = [
     {
       key: "createdAt",
-      header: "Date",
+      header: "Date/Time",
       render: (o: GgsaOrder) => (
-        <span className="text-sm text-brand-text-secondary">
-          {new Date(o.createdAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
+        <span className="text-sm text-brand-text-secondary whitespace-nowrap">
+          {formatDateTime(o.createdAt)}
         </span>
       ),
     },

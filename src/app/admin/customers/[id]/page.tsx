@@ -10,6 +10,7 @@ import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { formatDateTime } from "@/lib/utils";
 
 export default function AdminCustomerDetailPage() {
   const params = useParams();
@@ -141,7 +142,7 @@ export default function AdminCustomerDetailPage() {
                 <Link key={order.id} href={`/admin/orders/${order.id}`} className="flex items-center justify-between py-2 hover:bg-gray-50 rounded px-2 -mx-2">
                   <div>
                     <p className="text-sm font-medium">{order.orderNumber}</p>
-                    <p className="text-xs text-brand-text-muted">{new Date(order.createdAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-brand-text-muted">{formatDateTime(order.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <OrderStatusBadge status={order.status} />
