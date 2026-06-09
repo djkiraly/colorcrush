@@ -82,9 +82,9 @@ export default function AdminSettingsPage() {
     enabled: false,
     heading: "",
     message: "",
-    videoEnabled: false,
-    videoUrl: "",
+    imageUrl: "",
   });
+  const [uploadingMaintenanceImage, setUploadingMaintenanceImage] = useState(false);
   const [announcementBar, setAnnouncementBar] = useState({
     enabled: true,
     text: "",
@@ -232,8 +232,7 @@ export default function AdminSettingsPage() {
           enabled: (maintenanceOverride.enabled as boolean) || false,
           heading: (maintenanceOverride.heading as string) || "",
           message: (maintenanceOverride.message as string) || "",
-          videoEnabled: (maintenanceOverride.videoEnabled as boolean) || false,
-          videoUrl: (maintenanceOverride.videoUrl as string) || "",
+          imageUrl: (maintenanceOverride.imageUrl as string) || "",
         });
 
         const announcementOverride = (data.overrides?.announcementBar || {}) as Record<string, unknown>;
@@ -481,6 +480,39 @@ export default function AdminSettingsPage() {
     }
   };
 
+  // Upload the maintenance hero image to GCS and persist it into the
+  // maintenanceMode settings object.
+  const uploadMaintenanceImage = async (file: File) => {
+    setUploadingMaintenanceImage(true);
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          pathPrefix: "maintenance",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to get upload URL");
+      const { uploadUrl, publicUrl } = await res.json();
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      const next = { ...maintenanceMode, imageUrl: publicUrl };
+      setMaintenanceMode(next);
+      await saveKey("maintenanceMode", next);
+    } catch {
+      toast.error("Failed to upload maintenance image");
+    } finally {
+      setUploadingMaintenanceImage(false);
+    }
+  };
+
   // Upload a GGSA logo or product image to GCS and persist the returned URL
   // into the `ggsa` settings object. `target` is a logo field name or a
   // product-image slot index (0–2).
@@ -653,35 +685,56 @@ export default function AdminSettingsPage() {
                 placeholder="We're currently performing scheduled maintenance. We'll be back soon!"
               />
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <Label className="text-sm font-medium">Play Intro Video</Label>
-                <p className="text-xs text-brand-text-muted mt-0.5">
-                  Shows an embedded YouTube video first, then transitions to the message
-                </p>
-              </div>
-              <Switch
-                checked={maintenanceMode.videoEnabled}
-                onCheckedChange={(checked) =>
-                  setMaintenanceMode((prev) => ({ ...prev, videoEnabled: checked }))
-                }
-              />
+            <div className="space-y-2">
+              <Label>Hero Image</Label>
+              <p className="text-xs text-brand-text-muted">
+                Optional image shown on the maintenance page. Recommended: a wide
+                image (e.g. 1200 × 675), JPG/PNG/WebP.
+              </p>
+              {maintenanceMode.imageUrl ? (
+                <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+                  <Image
+                    src={maintenanceMode.imageUrl}
+                    alt="Maintenance hero preview"
+                    width={120}
+                    height={68}
+                    className="h-16 w-auto object-cover rounded"
+                    unoptimized
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-brand-error hover:text-brand-error ml-auto"
+                    onClick={async () => {
+                      const next = { ...maintenanceMode, imageUrl: "" };
+                      setMaintenanceMode(next);
+                      await saveKey("maintenanceMode", next);
+                    }}
+                    disabled={saving !== null || uploadingMaintenanceImage}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-2 cursor-pointer bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                  <ImageIcon className="h-5 w-5 text-brand-text-muted" />
+                  <span className="text-sm text-brand-text-muted">
+                    {uploadingMaintenanceImage ? "Uploading..." : "Upload hero image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingMaintenanceImage}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadMaintenanceImage(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
             </div>
-            {maintenanceMode.videoEnabled && (
-              <div className="space-y-2">
-                <Label>YouTube URL or Video ID</Label>
-                <Input
-                  value={maintenanceMode.videoUrl}
-                  onChange={(e) =>
-                    setMaintenanceMode((prev) => ({ ...prev, videoUrl: e.target.value }))
-                  }
-                  placeholder="https://www.youtube.com/watch?v=... or dQw4w9WgXcQ"
-                />
-                <p className="text-xs text-brand-text-muted">
-                  Plays muted on load (browsers require this). A mute/unmute button overlays the video.
-                </p>
-              </div>
-            )}
           </div>
           <div className="flex gap-2 mt-4">
             <Button
@@ -700,7 +753,7 @@ export default function AdminSettingsPage() {
               <Button
                 variant="outline"
                 onClick={async () => {
-                  const reset = { enabled: false, heading: "", message: "", videoEnabled: false, videoUrl: "" };
+                  const reset = { enabled: false, heading: "", message: "", imageUrl: "" };
                   setMaintenanceMode(reset);
                   await saveKey("maintenanceMode", reset);
                 }}

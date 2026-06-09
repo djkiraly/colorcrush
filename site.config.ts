@@ -168,8 +168,7 @@ export type SiteConfig = Omit<typeof siteConfig, "shipping" | "ggsa"> & {
     enabled: boolean;
     heading: string;
     message: string;
-    videoEnabled?: boolean;
-    videoUrl?: string;
+    imageUrl?: string;
   };
   announcementBar?: {
     enabled: boolean;

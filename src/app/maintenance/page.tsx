@@ -3,8 +3,6 @@ export const dynamic = "force-dynamic";
 import { getSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { MaintenanceVideo } from "@/components/storefront/MaintenanceVideo";
-import { parseYouTubeId } from "@/lib/youtube";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/auth-helpers";
 
@@ -27,9 +25,7 @@ export default async function MaintenancePage() {
     settings.maintenanceMode?.message ||
     "<p>We're currently performing scheduled maintenance. We'll be back soon!</p>";
   const heading = settings.maintenanceMode?.heading || "We'll Be Back Soon";
-
-  const videoEnabled = settings.maintenanceMode?.videoEnabled;
-  const videoId = videoEnabled ? parseYouTubeId(settings.maintenanceMode?.videoUrl ?? "") : null;
+  const imageUrl = settings.maintenanceMode?.imageUrl || "";
 
   const pageShell = "min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50";
 
@@ -52,6 +48,20 @@ export default async function MaintenancePage() {
     </h1>
   );
 
+  const imageBlock = imageUrl ? (
+    <div className="flex justify-center">
+      <Image
+        src={imageUrl}
+        alt={heading}
+        width={1200}
+        height={675}
+        className="w-full max-w-lg h-auto rounded-2xl shadow-md object-cover"
+        priority
+        unoptimized
+      />
+    </div>
+  ) : null;
+
   const brandFooter = (
     <div className="flex items-center justify-center gap-3 text-brand-text-muted">
       <div className="h-px w-12 bg-gray-200" />
@@ -60,10 +70,11 @@ export default async function MaintenancePage() {
     </div>
   );
 
-  const staticHero = (
+  return (
     <div className={`${pageShell} flex items-center justify-center px-4`}>
       <div className="max-w-lg w-full text-center space-y-8">
         {logoBlock}
+        {imageBlock}
         {headingBlock}
         <div
           className="prose prose-sm mx-auto text-brand-text-secondary [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
@@ -73,19 +84,4 @@ export default async function MaintenancePage() {
       </div>
     </div>
   );
-
-  if (videoId) {
-    const videoHero = (
-      <div className="pt-10 md:pt-16 px-4">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
-          {logoBlock}
-          {headingBlock}
-        </div>
-      </div>
-    );
-
-    return <MaintenanceVideo videoId={videoId} hero={videoHero} staticHero={staticHero} />;
-  }
-
-  return staticHero;
 }

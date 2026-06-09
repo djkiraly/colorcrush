@@ -59,6 +59,7 @@ export type SiteSettingsOverrides = {
     enabled?: boolean;
     heading?: string;
     message?: string;
+    imageUrl?: string;
   };
   analytics?: {
     googleAdsId?: string;
