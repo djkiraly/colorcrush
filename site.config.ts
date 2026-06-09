@@ -106,6 +106,20 @@ export const siteConfig = {
     // Meta Pixel ID — a numeric string like "1234567890123456".
     metaPixelId: "",
   },
+
+  // ═══ GGSA PROMO LANDING PAGE (/ggsa) ═══
+  // Co-branded Team Sweet Bag fundraiser page for the Gering Girls Softball
+  // Association. Disabled by default — flip `enabled` in Admin → Settings.
+  // Logo + product image paths are static files under /public (admin can
+  // override the paths). Drop the real artwork into /public/images/ggsa/.
+  ggsa: {
+    enabled: false,
+    // Logos + product images are uploaded from Admin → Settings → GGSA Promo
+    // Page (stored as GCS URLs). Empty until uploaded.
+    logoColorCrush: "",
+    logoGgsa: "",
+    productImages: [] as string[],
+  },
 } as const;
 
 export type ShippingConfig = {
@@ -127,8 +141,16 @@ export type ShippingConfig = {
   };
 };
 
-export type SiteConfig = Omit<typeof siteConfig, "shipping"> & {
+export type GgsaConfig = {
+  enabled: boolean;
+  logoColorCrush: string;
+  logoGgsa: string;
+  productImages: readonly string[];
+};
+
+export type SiteConfig = Omit<typeof siteConfig, "shipping" | "ggsa"> & {
   shipping: ShippingConfig;
+  ggsa: GgsaConfig;
   logoUrl?: string;
   faviconUrl?: string;
   maintenanceMode?: {

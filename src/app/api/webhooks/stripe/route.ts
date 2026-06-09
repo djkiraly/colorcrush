@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, getWebhookSecret } from "@/lib/stripe";
 import { db } from "@/lib/db";
-import { orders, orderItems, products, users } from "@/lib/db/schema";
+import { orders, orderItems, products, users, ggsaOrders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { logOrderAction } from "@/lib/order-audit";
@@ -49,6 +49,34 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+
+    // GGSA promo orders live in their own table and have no user/shipping.
+    // Handle (and short-circuit) before the main self-checkout path, which
+    // requires a userId in metadata.
+    if (session.metadata?.source === "ggsa") {
+      const ggsaOrderId = session.metadata.ggsaOrderId;
+      if (ggsaOrderId) {
+        // Idempotent: only stamp paidAt if not already set.
+        const [existing] = await db
+          .select({ id: ggsaOrders.id, paidAt: ggsaOrders.paidAt })
+          .from(ggsaOrders)
+          .where(eq(ggsaOrders.id, ggsaOrderId))
+          .limit(1);
+        if (existing && !existing.paidAt) {
+          await db
+            .update(ggsaOrders)
+            .set({
+              status: "paid",
+              paidAt: new Date(),
+              stripeSessionId: session.id,
+              stripePaymentIntentId: (session.payment_intent as string) || null,
+              updatedAt: new Date(),
+            })
+            .where(eq(ggsaOrders.id, ggsaOrderId));
+        }
+      }
+      return NextResponse.json({ received: true });
+    }
 
     // Idempotency: did we already create an order for this session?
     const existingOrders = await db

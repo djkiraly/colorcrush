@@ -702,6 +702,47 @@ export const newsletterSends = pgTable(
   ]
 );
 
+// ═══ GGSA PROMO ORDERS ═══
+// Standalone orders for the co-branded GGSA "Team Sweet Bag" landing page
+// (/ggsa). Intentionally NOT part of the main `orders` table: these have no
+// user account, no shipping, and a fixed single-product shape, so a dedicated
+// table keeps the main order pipeline clean. Money is stored in integer cents.
+
+export const ggsaFlavorEnum = pgEnum("ggsa_flavor", ["sour", "sweet", "mixed"]);
+export const ggsaOrderStatusEnum = pgEnum("ggsa_order_status", [
+  "pending",
+  "paid",
+  "fulfilled",
+]);
+
+export const ggsaOrders = pgTable(
+  "ggsa_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    source: varchar("source", { length: 50 }).notNull().default("ggsa"),
+    flavor: ggsaFlavorEnum("flavor").notNull(),
+    quantity: integer("quantity").notNull(),
+    unitPriceCents: integer("unit_price_cents").notNull().default(300),
+    totalCents: integer("total_cents").notNull(),
+    contactName: varchar("contact_name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 50 }).notNull(),
+    status: ggsaOrderStatusEnum("status").notNull().default("pending"),
+    stripeSessionId: varchar("stripe_session_id", { length: 255 }),
+    stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 255 }),
+    pickupDate: timestamp("pickup_date"),
+    paidAt: timestamp("paid_at"),
+    fulfilledAt: timestamp("fulfilled_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("ggsa_orders_stripe_session_idx").on(table.stripeSessionId),
+    index("ggsa_orders_status_idx").on(table.status),
+    index("ggsa_orders_created_idx").on(table.createdAt),
+  ]
+);
+
 // ═══ PAGE VIEWS / ANALYTICS ═══
 
 export const pageViews = pgTable(

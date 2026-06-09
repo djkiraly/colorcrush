@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2, Construction, Megaphone } from "lucide-react";
+import { Save, RotateCcw, Shield, Upload, CheckCircle, XCircle, Cloud, Mail, Eye, EyeOff, ImageIcon, Trash2, Construction, Megaphone, Candy, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -93,6 +93,15 @@ export default function AdminSettingsPage() {
     googleAdsPurchaseLabel: "",
     metaPixelId: "",
   });
+  const [ggsa, setGgsa] = useState({
+    enabled: false,
+    logoColorCrush: "",
+    logoGgsa: "",
+    productImages: ["", "", ""] as string[],
+  });
+  // Which GGSA image slot is currently uploading: "logoColorCrush" | "logoGgsa"
+  // | "img-0" | "img-1" | "img-2" | null.
+  const [uploadingGgsa, setUploadingGgsa] = useState<string | null>(null);
   const [hero, setHero] = useState({
     enabled: false,
     headline: "",
@@ -267,6 +276,18 @@ export default function AdminSettingsPage() {
             angle:
               typeof gradientOverride.angle === "number" ? (gradientOverride.angle as number) : 135,
           },
+        });
+
+        // Load GGSA promo page settings (merged: defaults + overrides)
+        const ggsaMerged = (m.ggsa || {}) as Record<string, unknown>;
+        const ggsaImages = Array.isArray(ggsaMerged.productImages)
+          ? (ggsaMerged.productImages as string[])
+          : [];
+        setGgsa({
+          enabled: !!ggsaMerged.enabled,
+          logoColorCrush: (ggsaMerged.logoColorCrush as string) || "",
+          logoGgsa: (ggsaMerged.logoGgsa as string) || "",
+          productImages: [0, 1, 2].map((i) => ggsaImages[i] || ""),
         });
 
         setLogoUrl((data.overrides?.logoUrl as string) || "");
@@ -451,6 +472,78 @@ export default function AdminSettingsPage() {
     }
   };
 
+  // Upload a GGSA logo or product image to GCS and persist the returned URL
+  // into the `ggsa` settings object. `target` is a logo field name or a
+  // product-image slot index (0–2).
+  const uploadGgsaImage = async (
+    file: File,
+    target: "logoColorCrush" | "logoGgsa" | number
+  ) => {
+    const slot = typeof target === "number" ? `img-${target}` : target;
+    setUploadingGgsa(slot);
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          pathPrefix: "ggsa",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to get upload URL");
+      const { uploadUrl, publicUrl } = await res.json();
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      const next =
+        typeof target === "number"
+          ? {
+              ...ggsa,
+              productImages: ggsa.productImages.map((u, i) =>
+                i === target ? publicUrl : u
+              ),
+            }
+          : { ...ggsa, [target]: publicUrl };
+      setGgsa(next);
+      await saveKey("ggsa", {
+        enabled: next.enabled,
+        logoColorCrush: next.logoColorCrush,
+        logoGgsa: next.logoGgsa,
+        // Keep slot positions stable; the page filters empties at render.
+        productImages: next.productImages,
+      });
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingGgsa(null);
+    }
+  };
+
+  // Clear a GGSA logo/product image and persist the change.
+  const clearGgsaImage = async (target: "logoColorCrush" | "logoGgsa" | number) => {
+    const next =
+      typeof target === "number"
+        ? {
+            ...ggsa,
+            productImages: ggsa.productImages.map((u, i) =>
+              i === target ? "" : u
+            ),
+          }
+        : { ...ggsa, [target]: "" };
+    setGgsa(next);
+    await saveKey("ggsa", {
+      enabled: next.enabled,
+      logoColorCrush: next.logoColorCrush,
+      logoGgsa: next.logoGgsa,
+      productImages: next.productImages,
+    });
+  };
+
   const isOverridden = (key: string) => key in overrides;
 
   if (loading) {
@@ -610,6 +703,246 @@ export default function AdminSettingsPage() {
                   const reset = { enabled: false, heading: "", message: "", videoEnabled: false, videoUrl: "" };
                   setMaintenanceMode(reset);
                   await saveKey("maintenanceMode", reset);
+                }}
+                disabled={saving !== null}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </section>
+
+        {/* GGSA Promo Page */}
+        <section className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Candy className="h-5 w-5 text-[#7B2D8E]" />
+              <h2 className="font-heading font-semibold text-lg">GGSA Promo Page</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              {isOverridden("ggsa") && (
+                <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded">
+                  Modified
+                </span>
+              )}
+              {ggsa.enabled && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
+                  Live
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-sm text-brand-text-muted mb-4">
+            Co-branded Team Sweet Bag fundraiser page for the Gering Girls Softball
+            Association at{" "}
+            <a
+              href="/ggsa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-primary underline inline-flex items-center gap-0.5"
+            >
+              /ggsa <ExternalLink className="h-3 w-3" />
+            </a>
+            . When disabled, the page returns a 404.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-sm font-medium">Enable GGSA Page</Label>
+                <p className="text-xs text-brand-text-muted mt-0.5">
+                  Makes /ggsa publicly accessible and accepting orders
+                </p>
+              </div>
+              <Switch
+                checked={ggsa.enabled}
+                onCheckedChange={(checked) =>
+                  setGgsa((prev) => ({ ...prev, enabled: checked }))
+                }
+              />
+            </div>
+            {/* Logos */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Color Crush logo</Label>
+                {ggsa.logoColorCrush ? (
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+                    <Image
+                      src={ggsa.logoColorCrush}
+                      alt="Color Crush logo preview"
+                      width={120}
+                      height={64}
+                      className="h-12 w-auto object-contain rounded"
+                      unoptimized
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-brand-error hover:text-brand-error ml-auto"
+                      onClick={() => clearGgsaImage("logoColorCrush")}
+                      disabled={saving !== null || uploadingGgsa !== null}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 cursor-pointer bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                    <ImageIcon className="h-5 w-5 text-brand-text-muted" />
+                    <span className="text-sm text-brand-text-muted">
+                      {uploadingGgsa === "logoColorCrush" ? "Uploading..." : "Upload logo"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      disabled={uploadingGgsa !== null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadGgsaImage(file, "logoColorCrush");
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>GGSA logo</Label>
+                {ggsa.logoGgsa ? (
+                  <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
+                    <Image
+                      src={ggsa.logoGgsa}
+                      alt="GGSA logo preview"
+                      width={120}
+                      height={64}
+                      className="h-12 w-auto object-contain rounded"
+                      unoptimized
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-brand-error hover:text-brand-error ml-auto"
+                      onClick={() => clearGgsaImage("logoGgsa")}
+                      disabled={saving !== null || uploadingGgsa !== null}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 cursor-pointer bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                    <ImageIcon className="h-5 w-5 text-brand-text-muted" />
+                    <span className="text-sm text-brand-text-muted">
+                      {uploadingGgsa === "logoGgsa" ? "Uploading..." : "Upload logo"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      disabled={uploadingGgsa !== null}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadGgsaImage(file, "logoGgsa");
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Product images */}
+            <div className="space-y-2">
+              <Label>Product images (up to 3)</Label>
+              <p className="text-xs text-brand-text-muted">
+                The first image is shown large on the page; the rest as thumbnails.
+                JPG, PNG, or WebP.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {[0, 1, 2].map((i) => {
+                  const img = ggsa.productImages[i] || "";
+                  return (
+                    <div key={i} className="space-y-1">
+                      {img ? (
+                        <div className="relative">
+                          <Image
+                            src={img}
+                            alt={`Team Sweet Bag photo ${i + 1}`}
+                            width={120}
+                            height={120}
+                            className="aspect-square w-full object-cover rounded-lg border border-gray-200"
+                            unoptimized
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1 right-1 h-7 w-7 bg-white/90 hover:bg-white text-brand-error hover:text-brand-error shadow"
+                            onClick={() => clearGgsaImage(i)}
+                            disabled={saving !== null || uploadingGgsa !== null}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 text-center hover:bg-gray-100 transition-colors">
+                          <ImageIcon className="h-5 w-5 text-brand-text-muted" />
+                          <span className="text-[11px] text-brand-text-muted px-1">
+                            {uploadingGgsa === `img-${i}` ? "Uploading..." : `Photo ${i + 1}`}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            disabled={uploadingGgsa !== null}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadGgsaImage(file, i);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() =>
+                saveKey("ggsa", {
+                  enabled: ggsa.enabled,
+                  logoColorCrush: ggsa.logoColorCrush,
+                  logoGgsa: ggsa.logoGgsa,
+                  productImages: ggsa.productImages,
+                })
+              }
+              disabled={saving !== null}
+              className={
+                ggsa.enabled
+                  ? "bg-[#7B2D8E] hover:bg-[#6A2479] text-white"
+                  : "bg-brand-primary hover:bg-brand-primary-hover text-white"
+              }
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {ggsa.enabled ? "Save & Publish" : "Save GGSA Settings"}
+            </Button>
+            {isOverridden("ggsa") && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const reset = {
+                    enabled: false,
+                    logoColorCrush: "",
+                    logoGgsa: "",
+                    productImages: ["", "", ""],
+                  };
+                  setGgsa(reset);
+                  await saveKey("ggsa", {
+                    enabled: false,
+                    logoColorCrush: "",
+                    logoGgsa: "",
+                    productImages: [],
+                  });
                 }}
                 disabled={saving !== null}
               >

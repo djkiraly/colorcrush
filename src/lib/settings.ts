@@ -65,6 +65,12 @@ export type SiteSettingsOverrides = {
     googleAdsPurchaseLabel?: string;
     metaPixelId?: string;
   };
+  ggsa?: {
+    enabled?: boolean;
+    logoColorCrush?: string;
+    logoGgsa?: string;
+    productImages?: string[];
+  };
   colors?: {
     primary?: string;
     primaryHover?: string;
