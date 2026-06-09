@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code machine-local permissions (must stay untracked — a committed
+# copy diverges per machine and blocks `git pull --ff-only` in deploy.sh)
+.claude/settings.local.json
