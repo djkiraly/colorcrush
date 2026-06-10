@@ -2,7 +2,9 @@ import { z } from "zod";
 
 // Team Sweet Bag order — shared by the client form and the checkout API.
 // Flavor is single-select; quantity is a positive integer (min 8).
-export const ggsaFlavorSchema = z.enum(["sour", "sweet", "mixed"]);
+export const ggsaFlavorSchema = z.enum(["sour", "sweet", "mixed"], {
+  error: "Please choose a flavor",
+});
 
 // Minimum order is 8 bags; orders can be any quantity at or above this.
 export const GGSA_MIN_QUANTITY = 8;
