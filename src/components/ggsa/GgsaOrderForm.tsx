@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import {
   ggsaOrderSchema,
   GGSA_UNIT_PRICE_CENTS,
+  GGSA_MIN_QUANTITY,
   type GgsaFlavor,
 } from "@/lib/validators/ggsa";
 
@@ -20,17 +21,17 @@ const MAX_QTY = 500;
 
 export function GgsaOrderForm() {
   const [flavor, setFlavor] = useState<GgsaFlavor | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(GGSA_MIN_QUANTITY);
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const totalCents = GGSA_UNIT_PRICE_CENTS * Math.max(1, quantity);
+  const totalCents = GGSA_UNIT_PRICE_CENTS * Math.max(GGSA_MIN_QUANTITY, quantity);
   const totalLabel = `$${(totalCents / 100).toFixed(2)}`;
 
-  const clamp = (n: number) => Math.min(MAX_QTY, Math.max(1, n));
+  const clamp = (n: number) => Math.min(MAX_QTY, Math.max(GGSA_MIN_QUANTITY, n));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -120,7 +121,7 @@ export function GgsaOrderForm() {
             type="button"
             aria-label="Decrease quantity"
             onClick={() => setQuantity((q) => clamp(q - 1))}
-            disabled={quantity <= 1}
+            disabled={quantity <= GGSA_MIN_QUANTITY}
             className="flex h-11 w-11 items-center justify-center rounded-lg border-2 border-gray-200 text-[#7B2D8E] transition-colors hover:bg-[#7B2D8E]/5 disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <Minus className="h-4 w-4" />
@@ -129,12 +130,12 @@ export function GgsaOrderForm() {
             id="ggsa-qty"
             type="number"
             inputMode="numeric"
-            min={1}
+            min={GGSA_MIN_QUANTITY}
             max={MAX_QTY}
             value={quantity}
             onChange={(e) => {
               const n = parseInt(e.target.value, 10);
-              setQuantity(Number.isNaN(n) ? 1 : clamp(n));
+              setQuantity(Number.isNaN(n) ? GGSA_MIN_QUANTITY : clamp(n));
             }}
             className="h-11 w-24 text-center text-lg font-semibold"
           />

@@ -149,6 +149,9 @@ export default async function GgsaPage() {
                     Concession-stand pickup
                   </h2>
                   <p className="mt-1 text-sm text-[#334155]">{GGSA_PICKUP_NOTICE}</p>
+                  <p className="mt-2 text-sm font-semibold text-[#334155]">
+                    Minimum order: 8 bags.
+                  </p>
                   <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#0F766E]">
                     <MapPin className="h-4 w-4" />
                     Next pickup: {nextPickup}
