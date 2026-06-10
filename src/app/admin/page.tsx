@@ -5,6 +5,7 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { DollarSign, ShoppingCart, Clock, AlertTriangle, Info, Bell } from "lucide-react";
 import Link from "next/link";
+import { GGSA_FLAVOR_LABELS, type GgsaFlavor } from "@/lib/validators/ggsa";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -20,19 +21,50 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ordersRes, inventoryRes, alertsRes] = await Promise.all([
+        const [ordersRes, ggsaRes, inventoryRes, alertsRes] = await Promise.all([
           fetch("/api/orders?limit=10"),
+          fetch("/api/admin/ggsa-orders"),
           fetch("/api/inventory"),
           fetch("/api/alerts/active"),
         ]);
         const ordersData = await ordersRes.json();
+        const ggsaData = await ggsaRes.json();
         const inventoryData = await inventoryRes.json();
         const alertsData = await alertsRes.json();
 
         const orders = ordersData.orders || [];
+        const ggsaOrders = ggsaData.orders || [];
+
+        // Normalize store + GGSA orders into one display shape so they can share
+        // the Recent Orders list. GGSA orders live in their own table/route and
+        // link to /admin/ggsa-orders rather than an individual order page.
+        const normalizedStore = orders.map((o: any) => ({
+          id: o.id,
+          source: "store" as const,
+          primary: o.orderNumber,
+          secondary: o.userName,
+          status: o.status,
+          total: parseFloat(o.total || "0"),
+          createdAt: o.createdAt,
+          href: `/admin/orders/${o.id}`,
+        }));
+        const normalizedGgsa = ggsaOrders.map((o: any) => ({
+          id: o.id,
+          source: "ggsa" as const,
+          primary: o.teamName || o.contactName,
+          secondary: `${o.quantity} × ${GGSA_FLAVOR_LABELS[o.flavor as GgsaFlavor] ?? o.flavor}`,
+          status: o.status,
+          total: (o.totalCents || 0) / 100,
+          createdAt: o.createdAt,
+          href: "/admin/ggsa-orders",
+        }));
+        const merged = [...normalizedStore, ...normalizedGgsa].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
         const today = new Date().toDateString();
-        const todayOrders = orders.filter(
-          (o: any) => new Date(o.createdAt).toDateString() === today
+        const todayOrders = merged.filter(
+          (o) => new Date(o.createdAt).toDateString() === today
         );
 
         const lowStockItems = (inventoryData.items || []).filter(
@@ -40,17 +72,14 @@ export default function AdminDashboard() {
         );
 
         setStats({
-          todayRevenue: todayOrders.reduce(
-            (sum: number, o: any) => sum + parseFloat(o.total || "0"),
-            0
-          ),
+          todayRevenue: todayOrders.reduce((sum, o) => sum + o.total, 0),
           todayOrders: todayOrders.length,
-          pendingOrders: orders.filter((o: any) => o.status === "pending").length,
+          pendingOrders: merged.filter((o) => o.status === "pending").length,
           lowStockItems: lowStockItems.length,
           activeAlerts: alertsData.count ?? 0,
         });
 
-        setRecentOrders(orders.slice(0, 10));
+        setRecentOrders(merged.slice(0, 10));
         setLowStock(lowStockItems.slice(0, 5));
       } catch {
         // handle
@@ -121,17 +150,24 @@ export default function AdminDashboard() {
             ) : (
               recentOrders.map((order) => (
                 <Link
-                  key={order.id}
-                  href={`/admin/orders/${order.id}`}
+                  key={`${order.source}-${order.id}`}
+                  href={order.href}
                   className="flex items-center justify-between py-2 hover:bg-gray-50 rounded px-2 -mx-2"
                 >
-                  <div>
-                    <p className="text-sm font-medium">{order.orderNumber}</p>
-                    <p className="text-xs text-brand-text-muted">{order.userName}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      {order.source === "ggsa" && (
+                        <span className="inline-block rounded bg-[#7B2D8E]/10 text-[#7B2D8E] text-[10px] font-semibold px-1.5 py-0.5">
+                          GGSA
+                        </span>
+                      )}
+                      <span className="truncate">{order.primary}</span>
+                    </p>
+                    <p className="text-xs text-brand-text-muted truncate">{order.secondary}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <OrderStatusBadge status={order.status} />
-                    <span className="text-sm font-semibold">${order.total}</span>
+                    <span className="text-sm font-semibold">${order.total.toFixed(2)}</span>
                   </div>
                 </Link>
               ))

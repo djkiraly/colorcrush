@@ -7,6 +7,8 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   pending_payment: { label: "Awaiting Payment", className: "bg-amber-100 text-amber-800 border-amber-200" },
   pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
   confirmed: { label: "Confirmed", className: "bg-blue-100 text-blue-800 border-blue-200" },
+  paid: { label: "Paid", className: "bg-blue-100 text-blue-800 border-blue-200" },
+  fulfilled: { label: "Fulfilled", className: "bg-green-100 text-green-800 border-green-200" },
   paid_offline: { label: "Paid (Offline)", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   processing: { label: "Processing", className: "bg-purple-100 text-purple-800 border-purple-200" },
   shipped: { label: "Shipped", className: "bg-cyan-100 text-cyan-800 border-cyan-200" },

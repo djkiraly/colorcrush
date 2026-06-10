@@ -1,10 +1,11 @@
 "use client";
 
-import { Bell, Search, LogOut } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AdminNotifications } from "@/components/admin/AdminNotifications";
 
 export function AdminTopbar() {
   const { data: session } = useSession();
@@ -27,10 +28,7 @@ export function AdminTopbar() {
 
       {/* Actions */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 bg-brand-primary rounded-full" />
-        </Button>
+        <AdminNotifications />
 
         <div className="flex items-center gap-2 pl-3 border-l">
           <div className="text-right">
