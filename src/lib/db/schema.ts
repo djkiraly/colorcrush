@@ -724,6 +724,7 @@ export const ggsaOrders = pgTable(
     quantity: integer("quantity").notNull(),
     unitPriceCents: integer("unit_price_cents").notNull().default(300),
     totalCents: integer("total_cents").notNull(),
+    teamName: varchar("team_name", { length: 255 }),
     contactName: varchar("contact_name", { length: 255 }).notNull(),
     email: varchar("email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }).notNull(),

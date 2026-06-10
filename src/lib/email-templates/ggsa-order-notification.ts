@@ -1,6 +1,7 @@
 import { emailLayout, loadEmailSettings } from "./base";
 
 interface GgsaOrderNotificationData {
+  teamName: string;
   contactName: string;
   email: string;
   phone: string;
@@ -47,6 +48,7 @@ export async function ggsaOrderNotificationEmail(
     <div style="margin:20px 0;padding:16px;background-color:#F9FAFB;border:1px solid #E5E7EB;border-radius:12px;">
       <p style="margin:0 0 8px;font-weight:700;color:#1E1B2E;font-size:14px;">Customer</p>
       <table width="100%" cellpadding="0" cellspacing="0">
+        ${data.teamName ? row("Team", data.teamName) : ""}
         ${row("Name", data.contactName)}
         ${row("Email", `<a href="mailto:${data.email}" style="color:${s.colors.primary};">${data.email}</a>`)}
         ${row("Phone", `<a href="tel:${data.phone}" style="color:${s.colors.primary};">${data.phone}</a>`)}

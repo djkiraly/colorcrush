@@ -14,6 +14,7 @@ interface GgsaOrder {
   flavor: string;
   quantity: number;
   totalCents: number;
+  teamName: string | null;
   contactName: string;
   email: string;
   phone: string;
@@ -85,7 +86,9 @@ export default function AdminGgsaOrdersPage() {
     const q = query.trim().toLowerCase();
     if (!q) return orders;
     return orders.filter((o) =>
-      [o.contactName, o.email, o.phone].some((v) => v?.toLowerCase().includes(q))
+      [o.teamName, o.contactName, o.email, o.phone].some((v) =>
+        v?.toLowerCase().includes(q)
+      )
     );
   }, [orders, query]);
 
@@ -100,6 +103,16 @@ export default function AdminGgsaOrdersPage() {
           {formatDateTime(o.createdAt)}
         </span>
       ),
+    },
+    {
+      key: "teamName",
+      header: "Team",
+      render: (o: GgsaOrder) =>
+        o.teamName ? (
+          <span className="text-sm font-medium text-brand-text">{o.teamName}</span>
+        ) : (
+          <span className="text-brand-text-muted">—</span>
+        ),
     },
     {
       key: "contactName",
@@ -176,7 +189,7 @@ export default function AdminGgsaOrdersPage() {
         <DataTable<GgsaOrder>
           columns={columns}
           data={filtered}
-          searchPlaceholder="Search name, email, phone…"
+          searchPlaceholder="Search team, name, email, phone…"
           onSearch={setQuery}
           actions={(o) =>
             o.status === "paid" ? (

@@ -1,0 +1,1 @@
+ALTER TABLE "ggsa_orders" ADD COLUMN "team_name" varchar(255);

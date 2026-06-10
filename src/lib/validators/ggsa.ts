@@ -14,6 +14,7 @@ export const ggsaOrderSchema = z.object({
     .int("Quantity must be a whole number")
     .min(GGSA_MIN_QUANTITY, `Minimum order is ${GGSA_MIN_QUANTITY} bags`)
     .max(500, "For orders over 500, please contact us directly"),
+  teamName: z.string().min(1, "Team name is required").max(255),
   contactName: z.string().min(1, "Contact name is required").max(255),
   email: z.string().min(1, "Email is required").email("Enter a valid email").max(255),
   phone: z

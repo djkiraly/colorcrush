@@ -184,6 +184,7 @@ export async function sendGgsaOrderEmails(ggsaOrderId: string) {
       return;
     }
     const html = await ggsaOrderNotificationEmail({
+      teamName: order.teamName ?? "",
       contactName: order.contactName,
       email: order.email,
       phone: order.phone,

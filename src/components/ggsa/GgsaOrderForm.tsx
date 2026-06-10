@@ -22,6 +22,7 @@ const MAX_QTY = 500;
 export function GgsaOrderForm() {
   const [flavor, setFlavor] = useState<GgsaFlavor | null>(null);
   const [quantity, setQuantity] = useState(GGSA_MIN_QUANTITY);
+  const [teamName, setTeamName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -37,7 +38,7 @@ export function GgsaOrderForm() {
     e.preventDefault();
     setErrors({});
 
-    const payload = { flavor, quantity, contactName, email, phone };
+    const payload = { flavor, quantity, teamName, contactName, email, phone };
     const parsed = ggsaOrderSchema.safeParse(payload);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -163,6 +164,23 @@ export function GgsaOrderForm() {
 
       {/* Contact details */}
       <div className="space-y-4">
+        <div>
+          <Label htmlFor="ggsa-team" className="text-sm font-semibold text-[#581C87]">
+            Team name
+          </Label>
+          <Input
+            id="ggsa-team"
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            placeholder="Gering Thunder 12U"
+            autoComplete="off"
+            className="mt-1.5 h-11"
+            aria-invalid={!!errors.teamName}
+          />
+          {errors.teamName && (
+            <p className="mt-1.5 text-sm text-red-600">{errors.teamName}</p>
+          )}
+        </div>
         <div>
           <Label htmlFor="ggsa-name" className="text-sm font-semibold text-[#581C87]">
             Contact name

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { flavor, quantity, contactName, email, phone } = parsed.data;
+    const { flavor, quantity, teamName, contactName, email, phone } = parsed.data;
 
     const totalCents = GGSA_UNIT_PRICE_CENTS * quantity;
     const pickupDate = getNextPickupDate();
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
         quantity,
         unitPriceCents: GGSA_UNIT_PRICE_CENTS,
         totalCents,
+        teamName: teamName.trim(),
         contactName: contactName.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
         ggsaOrderId: order.id,
         flavor,
         quantity: String(quantity),
+        teamName: teamName.trim(),
       },
       success_url: `${baseUrl}/ggsa/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/ggsa`,
