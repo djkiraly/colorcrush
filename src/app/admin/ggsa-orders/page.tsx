@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Check, Undo2 } from "lucide-react";
 import { GGSA_FLAVOR_LABELS, type GgsaFlavor } from "@/lib/validators/ggsa";
-import { formatPickupDate } from "@/lib/ggsa-pickup";
+import { formatPickupDate, getNextPickupDate } from "@/lib/ggsa-pickup";
 import { formatDateTime } from "@/lib/utils";
 
 interface GgsaOrder {
@@ -131,12 +131,21 @@ export default function AdminGgsaOrdersPage() {
     {
       key: "pickupDate",
       header: "Pickup",
-      render: (o: GgsaOrder) =>
-        o.pickupDate ? (
-          <span className="text-sm">{formatPickupDate(new Date(o.pickupDate))}</span>
-        ) : (
-          <span className="text-brand-text-muted">—</span>
-        ),
+      render: (o: GgsaOrder) => {
+        // Use the stored pickup date when present; otherwise fall back to the
+        // anticipated date derived from the order time via next-game-night logic.
+        const pickup = o.pickupDate
+          ? new Date(o.pickupDate)
+          : getNextPickupDate(new Date(o.createdAt));
+        return (
+          <span className="text-sm">
+            {formatPickupDate(pickup)}
+            {!o.pickupDate && (
+              <span className="ml-1 text-xs text-brand-text-muted">(est.)</span>
+            )}
+          </span>
+        );
+      },
     },
     {
       key: "status",
