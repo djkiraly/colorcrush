@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products } from "@/lib/db/schema";
+import { products, productVariants } from "@/lib/db/schema";
 import { inArray } from "drizzle-orm";
 import { shippingRateRequestSchema } from "@/lib/validators/shipping";
 import { getShippingRates } from "@/lib/shipping/rates";
@@ -53,12 +53,43 @@ export async function POST(request: NextRequest) {
       : [];
     const productById = new Map(productRows.map((p) => [p.id, p]));
 
+    // When a size/variant is selected, its weightOzOverride (if set) takes
+    // precedence over the base product weight. Fetch overrides for every
+    // variant referenced in the cart.
+    const variantIds = [
+      ...new Set(
+        parsed.items
+          .map((i) => i.variantId)
+          .filter((id): id is string => Boolean(id))
+      ),
+    ];
+    const variantRows = variantIds.length
+      ? await db
+          .select({
+            id: productVariants.id,
+            weightOzOverride: productVariants.weightOzOverride,
+          })
+          .from(productVariants)
+          .where(inArray(productVariants.id, variantIds))
+      : [];
+    const variantById = new Map(variantRows.map((v) => [v.id, v]));
+
+    // Resolve per-line weight: selected variant override → product weight →
+    // configured default.
+    const resolveWeightOz = (item: { productId: string; variantId?: string | null }) => {
+      const override = item.variantId
+        ? variantById.get(item.variantId)?.weightOzOverride
+        : null;
+      if (override != null) return override;
+      return productById.get(item.productId)?.weightOz ?? defaultWeight;
+    };
+
     const cartItems = parsed.items.map((i) => {
       const p = productById.get(i.productId);
       return {
         productId: i.productId,
         quantity: i.quantity,
-        weightOz: p?.weightOz ?? defaultWeight,
+        weightOz: resolveWeightOz(i),
         defaultBoxId: p?.defaultBoxId ?? null,
       };
     });
@@ -71,17 +102,22 @@ export async function POST(request: NextRequest) {
       const breakdown = parsed.items.map((i) => {
         const p = productById.get(i.productId);
         const productWeightOz = p?.weightOz ?? 0;
-        const effectiveWeightOz =
-          productWeightOz > 0 ? productWeightOz : defaultWeight;
+        const variantWeightOz = i.variantId
+          ? variantById.get(i.variantId)?.weightOzOverride ?? null
+          : null;
+        const effectiveWeightOz = resolveWeightOz(i);
         return {
           productId: i.productId,
+          variantId: i.variantId ?? null,
           name: p?.name ?? "(unknown product)",
           sku: p?.sku ?? null,
           quantity: i.quantity,
           productWeightOz,
+          variantWeightOz,
           effectiveWeightOz,
           subtotalOz: effectiveWeightOz * i.quantity,
-          usedDefault: productWeightOz <= 0,
+          usedVariantOverride: variantWeightOz != null,
+          usedDefault: variantWeightOz == null && productWeightOz <= 0,
           missingFromDb: !p,
         };
       });

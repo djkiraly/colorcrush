@@ -6,7 +6,7 @@ import type { ShippingRateOption } from "@/lib/shipping/rates";
 import type { ShippingDestination } from "@/lib/validators/shipping";
 import { Loader2, AlertCircle, Truck } from "lucide-react";
 
-type CartLine = { productId: string; quantity: number };
+type CartLine = { productId: string; variantId?: string | null; quantity: number };
 
 interface Props {
   destination: ShippingDestination | null;
@@ -32,7 +32,7 @@ function destinationKey(d: ShippingDestination | null) {
 
 function itemsKey(items: CartLine[]) {
   return items
-    .map((i) => `${i.productId}:${i.quantity}`)
+    .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
     .sort()
     .join(",");
 }

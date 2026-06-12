@@ -75,7 +75,6 @@ export default function EditProductPage() {
             : data.categoryId
             ? [data.categoryId]
             : [],
-          weight: data.weight || "",
           weightOz: data.weightOz != null ? String(data.weightOz) : "4",
           defaultBoxId: data.defaultBoxId || "",
           tags: (data.tags || []).join(", "),
@@ -107,7 +106,6 @@ export default function EditProductPage() {
           price: parseFloat(form.price),
           compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
-          weight: form.weight ? parseFloat(form.weight) : null,
           weightOz: form.weightOz ? parseInt(form.weightOz, 10) : 4,
           defaultBoxId: form.defaultBoxId || null,
           categoryIds: form.categoryIds,
@@ -243,10 +241,6 @@ export default function EditProductPage() {
           </div>
           <div className="space-y-2">
             <Label>Weight per item (oz)</Label>
-            <Input type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
-          </div>
-          <div className="space-y-2">
-            <Label>Shipping weight (oz)</Label>
             <Input
               type="number"
               step="1"

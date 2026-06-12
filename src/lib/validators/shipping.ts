@@ -20,6 +20,10 @@ export const shippingRateRequestSchema = z.object({
     .array(
       z.object({
         productId: z.string().uuid(),
+        // Optional — when a size/variant is selected, shipping weight is
+        // resolved from the variant's weightOzOverride instead of the base
+        // product weight.
+        variantId: z.string().uuid().nullable().optional(),
         quantity: z.number().int().positive(),
       })
     )

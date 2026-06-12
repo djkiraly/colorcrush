@@ -49,7 +49,6 @@ export default function NewProductPage() {
     defaultBoxId: "",
     sku: "",
     manufacturer: "",
-    weight: "",
     categoryIds: [] as string[],
     tags: "",
     isActive: true,
@@ -77,7 +76,6 @@ export default function NewProductPage() {
           price: parseFloat(form.price),
           compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           costPrice: form.costPrice ? parseFloat(form.costPrice) : null,
-          weight: form.weight ? parseFloat(form.weight) : null,
           weightOz: form.weightOz ? parseInt(form.weightOz, 10) : 4,
           defaultBoxId: form.defaultBoxId || null,
           tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
@@ -188,11 +186,7 @@ export default function NewProductPage() {
               <p className="text-xs text-brand-text-muted">Format: CATG-PROD-0001. Leave blank to auto-generate from category and product name.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weight">Weight per item (oz)</Label>
-              <Input id="weight" type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Used for shipping cost calculation" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="weightOz">Shipping weight (oz)</Label>
+              <Label htmlFor="weightOz">Weight per item (oz)</Label>
               <Input
                 id="weightOz"
                 type="number"
