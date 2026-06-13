@@ -13,6 +13,7 @@ import { ProductImageManager } from "@/components/admin/ProductImageManager";
 import { AIProductGenerator } from "@/components/admin/AIProductGenerator";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
+import { ByobProductFields } from "@/components/admin/ByobProductFields";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -86,6 +87,10 @@ export default function EditProductPage() {
           metaTitle: data.metaTitle || "",
           metaDescription: data.metaDescription || "",
           hasVariants: data.hasVariants === true,
+          byobEligible: data.byobEligible === true,
+          byobTaste: data.byobTaste || "",
+          byobColor: data.byobColor || "",
+          byobFlavor: data.byobFlavor || "",
         });
         setImages(data.images || []);
       }
@@ -111,6 +116,9 @@ export default function EditProductPage() {
           categoryIds: form.categoryIds,
           tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a: string) => a.trim()) : [],
+          byobTaste: form.byobTaste || null,
+          byobColor: form.byobColor || null,
+          byobFlavor: form.byobFlavor || null,
         }),
       });
       if (res.ok) {
@@ -424,6 +432,16 @@ export default function EditProductPage() {
             onHasVariantsChange={(v) => setForm({ ...form, hasVariants: v })}
           />
         </div>
+
+        <ByobProductFields
+          value={{
+            byobEligible: !!form.byobEligible,
+            byobTaste: form.byobTaste || "",
+            byobColor: form.byobColor || "",
+            byobFlavor: form.byobFlavor || "",
+          }}
+          onChange={(patch) => setForm((f: any) => ({ ...f, ...patch }))}
+        />
 
         <div className="flex gap-4">
           <Button type="submit" disabled={saving} className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8">

@@ -73,6 +73,13 @@ export type CartItem = {
   image: string;
   quantity: number;
   slug: string;
+  // Build-Your-Box: when set, this line is a custom box. `boxId` keys the
+  // admin-configured box size (authoritative price is re-resolved server-side
+  // at checkout); `boxContents` lists the chosen candies (real product ids)
+  // for shipping-weight expansion and order fulfillment.
+  isCustomBox?: boolean;
+  boxId?: string;
+  boxContents?: { productId: string; name: string }[];
 };
 
 export type CartState = {

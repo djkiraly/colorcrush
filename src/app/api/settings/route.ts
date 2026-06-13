@@ -88,6 +88,7 @@ export async function PUT(request: NextRequest) {
     "hero",
     "analytics",
     "ggsa",
+    "byob",
   ];
 
   if (!allowedKeys.includes(key)) {

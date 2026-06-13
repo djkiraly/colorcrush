@@ -8,13 +8,15 @@ import { logOrderAction } from "@/lib/order-audit";
 import { finalizeOrderAfterPayment } from "@/lib/admin-orders/finalize";
 
 type CheckoutCartItem = {
-  productId: string;
+  productId: string | null;
   variantId: string | null;
   sku?: string | null;
   name: string;
   variantDescription: string | null;
   unitPrice: number;
   quantity: number;
+  isCustom?: boolean;
+  customDescription?: string | null;
 };
 
 function decodeCartItems(metadata: Stripe.Metadata): CheckoutCartItem[] | null {
@@ -169,7 +171,7 @@ export async function POST(request: NextRequest) {
         for (const ci of cartItems) {
           await db.insert(orderItems).values({
             orderId: order.id,
-            productId: ci.productId,
+            productId: ci.productId ?? null,
             variantId: ci.variantId,
             sku: ci.sku ?? null,
             productName: ci.name,
@@ -177,6 +179,8 @@ export async function POST(request: NextRequest) {
             quantity: ci.quantity,
             unitPrice: ci.unitPrice.toFixed(2),
             totalPrice: (ci.unitPrice * ci.quantity).toFixed(2),
+            isCustom: ci.isCustom ?? false,
+            customDescription: ci.customDescription ?? null,
           });
         }
       } else {

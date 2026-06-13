@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { AIProductGenerator } from "@/components/admin/AIProductGenerator";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { ByobProductFields } from "@/components/admin/ByobProductFields";
 
 function slugify(text: string) {
   return text
@@ -58,6 +59,10 @@ export default function NewProductPage() {
     ingredients: "",
     metaTitle: "",
     metaDescription: "",
+    byobEligible: false,
+    byobTaste: "",
+    byobColor: "",
+    byobFlavor: "",
   });
 
   const handleNameChange = (name: string) => {
@@ -81,6 +86,9 @@ export default function NewProductPage() {
           tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
           allergens: form.allergens ? form.allergens.split(",").map((a) => a.trim()) : [],
           categoryIds: form.categoryIds,
+          byobTaste: form.byobTaste || null,
+          byobColor: form.byobColor || null,
+          byobFlavor: form.byobFlavor || null,
         }),
       });
 
@@ -283,6 +291,16 @@ export default function NewProductPage() {
             <Textarea id="ingredients" value={form.ingredients} onChange={(e) => setForm({ ...form, ingredients: e.target.value })} rows={3} />
           </div>
         </div>
+
+        <ByobProductFields
+          value={{
+            byobEligible: form.byobEligible,
+            byobTaste: form.byobTaste,
+            byobColor: form.byobColor,
+            byobFlavor: form.byobFlavor,
+          }}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        />
 
         {/* SEO */}
         <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">

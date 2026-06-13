@@ -142,13 +142,20 @@ export default function CheckoutPage() {
     };
   }, [activeAddress]);
 
+  // For shipping-rate calc we need real product UUIDs (the endpoint validates
+  // them). A custom box's synthetic id isn't a product, so expand it into its
+  // chosen candies — that also yields correct combined weight.
   const cartLines = useMemo(
     () =>
-      items.map((i) => ({
-        productId: i.productId,
-        variantId: i.variantId ?? null,
-        quantity: i.quantity,
-      })),
+      items.flatMap((i) =>
+        i.isCustomBox && i.boxContents
+          ? i.boxContents.map((c) => ({
+              productId: c.productId,
+              variantId: null,
+              quantity: i.quantity,
+            }))
+          : [{ productId: i.productId, variantId: i.variantId ?? null, quantity: i.quantity }]
+      ),
     [items]
   );
 
@@ -237,11 +244,20 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((i) => ({
-            productId: i.productId,
-            variantId: i.variantId ?? null,
-            quantity: i.quantity,
-          })),
+          items: items.map((i) =>
+            i.isCustomBox
+              ? {
+                  isCustomBox: true as const,
+                  boxId: i.boxId,
+                  contents: (i.boxContents ?? []).map((c) => c.name).join(", "),
+                  quantity: i.quantity,
+                }
+              : {
+                  productId: i.productId,
+                  variantId: i.variantId ?? null,
+                  quantity: i.quantity,
+                }
+          ),
           shippingMethod: "standard", // legacy field; carrier/service comes from selectedRate
           shippingRate: {
             rateId: selectedRate.rateId,

@@ -127,6 +127,46 @@ export const siteConfig = {
     logoGgsa: "",
     productImages: [] as string[],
   },
+
+  // ═══ BUILD YOUR BOX ═══
+  // Admin-configurable in Admin → Settings → Build Your Box. `boxes` are the
+  // selectable sizes (flat price per size). `tastes` / `colors` / `flavors`
+  // are the filter taxonomy on the public /build-your-box page — products are
+  // tagged with these slugs (byobTaste / byobColor / byobFlavor) when marked
+  // BYOB-eligible.
+  byob: {
+    enabled: true,
+    boxes: [
+      { id: "box-4", label: "4-Piece Box", pieces: 4, price: 12, cols: 2, rows: 2, sortOrder: 0 },
+      { id: "box-8", label: "8-Piece Box", pieces: 8, price: 22, cols: 4, rows: 2, sortOrder: 1 },
+      { id: "box-12", label: "12-Piece Box", pieces: 12, price: 30, cols: 4, rows: 3, sortOrder: 2 },
+      { id: "box-16", label: "16-Piece Box", pieces: 16, price: 38, cols: 4, rows: 4, sortOrder: 3 },
+    ],
+    tastes: [
+      { slug: "sweet", label: "Sweet", hex: "#F9A8D4" },
+      { slug: "sour", label: "Sour", hex: "#A7F3D0" },
+      { slug: "spicy", label: "Spicy", hex: "#FDBA74" },
+    ],
+    colors: [
+      { slug: "red", label: "Red", hex: "#EF4444" },
+      { slug: "orange", label: "Orange", hex: "#F97316" },
+      { slug: "yellow", label: "Yellow", hex: "#EAB308" },
+      { slug: "green", label: "Green", hex: "#22C55E" },
+      { slug: "blue", label: "Blue", hex: "#3B82F6" },
+      { slug: "purple", label: "Purple", hex: "#A855F7" },
+      { slug: "pink", label: "Pink", hex: "#EC4899" },
+    ],
+    flavors: [
+      { slug: "cherry", label: "Cherry", hex: "" },
+      { slug: "strawberry", label: "Strawberry", hex: "" },
+      { slug: "watermelon", label: "Watermelon", hex: "" },
+      { slug: "blue-raspberry", label: "Blue Raspberry", hex: "" },
+      { slug: "green-apple", label: "Green Apple", hex: "" },
+      { slug: "grape", label: "Grape", hex: "" },
+      { slug: "caramel", label: "Caramel", hex: "" },
+      { slug: "chocolate", label: "Chocolate", hex: "" },
+    ],
+  },
 } as const;
 
 export type ShippingConfig = {
@@ -159,9 +199,34 @@ export type GgsaConfig = {
   productImages: readonly string[];
 };
 
-export type SiteConfig = Omit<typeof siteConfig, "shipping" | "ggsa"> & {
+export type ByobBoxSize = {
+  id: string;
+  label: string;
+  pieces: number;
+  price: number;
+  cols: number;
+  rows: number;
+  sortOrder: number;
+};
+
+export type ByobTaxonomyItem = {
+  slug: string;
+  label: string;
+  hex?: string;
+};
+
+export type ByobConfig = {
+  enabled: boolean;
+  boxes: readonly ByobBoxSize[];
+  tastes: readonly ByobTaxonomyItem[];
+  colors: readonly ByobTaxonomyItem[];
+  flavors: readonly ByobTaxonomyItem[];
+};
+
+export type SiteConfig = Omit<typeof siteConfig, "shipping" | "ggsa" | "byob"> & {
   shipping: ShippingConfig;
   ggsa: GgsaConfig;
+  byob: ByobConfig;
   logoUrl?: string;
   faviconUrl?: string;
   maintenanceMode?: {

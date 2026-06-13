@@ -185,6 +185,13 @@ export const products = pgTable(
     metaTitle: varchar("meta_title", { length: 255 }),
     metaDescription: text("meta_description"),
     hasVariants: boolean("has_variants").default(false).notNull(),
+    // Build-Your-Box: when eligible, this product shows in the BYOB candy grid.
+    // Taste / color / flavor store taxonomy slugs from site_settings.byob and
+    // drive the public-page filter chips.
+    byobEligible: boolean("byob_eligible").default(false).notNull(),
+    byobTaste: varchar("byob_taste", { length: 50 }),
+    byobColor: varchar("byob_color", { length: 50 }),
+    byobFlavor: varchar("byob_flavor", { length: 50 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -192,6 +199,7 @@ export const products = pgTable(
     uniqueIndex("products_slug_idx").on(table.slug),
     index("products_category_idx").on(table.categoryId),
     index("products_active_idx").on(table.isActive),
+    index("products_byob_idx").on(table.byobEligible),
   ]
 );
 

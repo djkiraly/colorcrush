@@ -14,8 +14,28 @@ import { asc, eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { siteConfig } from "../../../../site.config";
+import { getSettings } from "@/lib/settings";
 import { recordSystemAlert } from "@/lib/system-alerts";
 import { getPublicBaseUrl } from "@/lib/app-url";
+
+// A custom Build-Your-Box line. `boxId` keys the admin-configured size; price
+// and label are re-resolved server-side from settings so the client can't set
+// its own price. `contents` is the chosen-candy list (display/fulfillment).
+type CheckoutBoxItem = {
+  isCustomBox: true;
+  boxId: string;
+  contents?: string;
+  quantity: number;
+};
+type CheckoutProductItem = {
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+};
+type CheckoutItem = CheckoutProductItem | CheckoutBoxItem;
+function isBoxItem(i: CheckoutItem): i is CheckoutBoxItem {
+  return (i as CheckoutBoxItem).isCustomBox === true;
+}
 
 interface SelectedRateInput {
   rateId: string;
@@ -65,7 +85,7 @@ export async function POST(request: NextRequest) {
       shippingRate,
       attribution,
     }: {
-      items: { productId: string; variantId?: string | null; quantity: number }[];
+      items: CheckoutItem[];
       couponCode?: string;
       giftMessage?: string;
       isGift?: boolean;
@@ -174,10 +194,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Split custom boxes from regular product lines — boxes don't map to a
+    // product row and are priced from settings, not the products table.
+    const productItems = items.filter(
+      (i): i is CheckoutProductItem => !isBoxItem(i)
+    );
+    const boxItems = items.filter(isBoxItem);
+
     // Resolve product + variant pricing server-side. The cart's prices are display-only;
     // authoritative values come from the DB so a tampered client can't underpay.
-    const productIds = items.map((i) => i.productId);
-    const variantIds = items
+    const productIds = productItems.map((i) => i.productId);
+    const variantIds = productItems
       .map((i) => i.variantId)
       .filter((v): v is string => !!v);
 
@@ -220,7 +247,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resolved = items.map((item) => {
+    const resolvedProducts = productItems.map((item) => {
       const product = productRows.find((p) => p.id === item.productId);
       if (!product) throw new Error(`Product ${item.productId} not found`);
       const variant = item.variantId
@@ -237,17 +264,48 @@ export async function POST(request: NextRequest) {
         ? `${product.name} — ${variantDescription}`
         : product.name;
       return {
-        productId: product.id,
+        productId: product.id as string | null,
         variantId: variant?.id ?? null,
         name: product.name,
         displayName,
         description: product.shortDescription || undefined,
         unitPrice,
-        sku: variant?.sku || product.sku,
+        sku: variant?.sku || (product.sku as string | null),
         variantDescription,
         quantity: item.quantity,
+        isCustom: false,
+        customDescription: null as string | null,
       };
     });
+
+    // Resolve custom boxes from the admin-configured Build Your Box settings
+    // (authoritative price + label). The chosen candies travel as the line's
+    // description and are frozen onto the order item for fulfillment.
+    let resolvedBoxes: typeof resolvedProducts = [];
+    if (boxItems.length > 0) {
+      const settings = await getSettings();
+      const boxesById = new Map(settings.byob.boxes.map((b) => [b.id, b]));
+      resolvedBoxes = boxItems.map((item) => {
+        const box = boxesById.get(item.boxId);
+        if (!box) throw new Error(`Build Your Box size ${item.boxId} not found`);
+        const contents = (item.contents || "").slice(0, 480);
+        return {
+          productId: null,
+          variantId: null,
+          name: `Custom ${box.label}`,
+          displayName: `Custom ${box.label}`,
+          description: contents || undefined,
+          unitPrice: box.price,
+          sku: null,
+          variantDescription: contents || null,
+          quantity: item.quantity,
+          isCustom: true,
+          customDescription: contents || null,
+        };
+      });
+    }
+
+    const resolved = [...resolvedProducts, ...resolvedBoxes];
 
     const lineItems = resolved.map((r) => ({
       price_data: {
@@ -331,6 +389,8 @@ export async function POST(request: NextRequest) {
           variantDescription: r.variantDescription,
           unitPrice: r.unitPrice,
           quantity: r.quantity,
+          isCustom: r.isCustom,
+          customDescription: r.customDescription,
         })),
       }),
       success_url: `${await getPublicBaseUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,

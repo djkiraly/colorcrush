@@ -141,6 +141,13 @@
       "when": 1781108993248,
       "tag": "0019_short_viper",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1781333360780,
+      "tag": "0020_last_magma",
+      "breakpoints": true
     }
   ]
 }

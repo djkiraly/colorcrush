@@ -76,6 +76,21 @@ export type SiteSettingsOverrides = {
     logoGgsa?: string;
     productImages?: string[];
   };
+  byob?: {
+    enabled?: boolean;
+    boxes?: {
+      id: string;
+      label: string;
+      pieces: number;
+      price: number;
+      cols: number;
+      rows: number;
+      sortOrder: number;
+    }[];
+    tastes?: { slug: string; label: string; hex?: string }[];
+    colors?: { slug: string; label: string; hex?: string }[];
+    flavors?: { slug: string; label: string; hex?: string }[];
+  };
   colors?: {
     primary?: string;
     primaryHover?: string;
