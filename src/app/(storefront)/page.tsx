@@ -197,9 +197,13 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
             {[
-              showFreeShipping
-                ? { icon: "🚚", text: `Free Shipping Over $${settings.freeShippingThreshold}` }
-                : { icon: "🚚", text: "Fast Shipping" },
+              // TEMP: Free shipping is not being offered for now — always show
+              // "Fast Shipping". Restore the showFreeShipping ternary below to
+              // re-enable the "Free Shipping Over $X" badge.
+              // showFreeShipping
+              //   ? { icon: "🚚", text: `Free Shipping Over $${settings.freeShippingThreshold}` }
+              //   : { icon: "🚚", text: "Fast Shipping" },
+              { icon: "🚚", text: "Fast Shipping" },
               { icon: "🍬", text: "Handcrafted with Love" },
               { icon: "🔒", text: "Secure Checkout" },
               { icon: "😊", text: "Satisfaction Guaranteed" },

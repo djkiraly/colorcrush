@@ -5,10 +5,15 @@
 export function isFreeShippingEnabled(
   threshold: number | undefined | null
 ): threshold is number {
-  return Boolean(
-    threshold &&
-      Number.isFinite(threshold) &&
-      threshold > 0 &&
-      threshold < Number.MAX_SAFE_INTEGER
-  );
+  // TEMP: Free shipping is not being offered for now. Force-disabled so the
+  // cart never computes a $0 ("FREE") shipping line and no public-facing
+  // free-shipping copy renders, regardless of the admin Free Shipping
+  // Threshold setting. To re-enable, restore the original return below.
+  return false;
+  // return Boolean(
+  //   threshold &&
+  //     Number.isFinite(threshold) &&
+  //     threshold > 0 &&
+  //     threshold < Number.MAX_SAFE_INTEGER
+  // );
 }

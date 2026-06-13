@@ -40,11 +40,14 @@ export function CartDrawer() {
           </div>
         ) : (
           <>
+            {/* TEMP: Free shipping is not being offered for now — message hidden.
+                Restore this block to re-enable the "$X more for free shipping" prompt.
             {freeShippingEnabled && freeShippingRemaining > 0 && (
               <div className="mx-4 bg-brand-mint/30 rounded-lg px-4 py-2 text-sm text-center">
                 Add <strong>${freeShippingRemaining.toFixed(2)}</strong> more for free shipping!
               </div>
             )}
+            */}
 
             <div className="flex-1 overflow-y-auto space-y-4 px-4 py-4">
               {items.map((item) => (

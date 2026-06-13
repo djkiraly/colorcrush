@@ -154,11 +154,14 @@ export default function CartPage() {
             Order Summary
           </h2>
 
+          {/* TEMP: Free shipping is not being offered for now — message hidden.
+              Restore this block to re-enable the "$X more for free shipping" prompt.
           {freeShippingEnabled && freeShippingRemaining > 0 && (
             <div className="bg-brand-mint/30 rounded-lg px-4 py-2 text-sm mb-4">
               Add <strong>${freeShippingRemaining.toFixed(2)}</strong> more for free shipping!
             </div>
           )}
+          */}
 
           {/* Coupon */}
           <div className="flex gap-2 mb-4">

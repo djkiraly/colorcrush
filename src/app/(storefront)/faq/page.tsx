@@ -25,14 +25,16 @@ export default async function FAQPage() {
       q: "How long does shipping take?",
       a: "Standard shipping takes 5-7 business days. Express shipping is 2-3 business days, and overnight is available for next-day delivery.",
     },
-    ...(freeShippingOn
-      ? [
-          {
-            q: "Do you offer free shipping?",
-            a: `Yes! We offer free standard shipping on all orders over $${settings.freeShippingThreshold}.`,
-          },
-        ]
-      : []),
+    // TEMP: Free shipping is not being offered for now — Q&A removed.
+    // Restore this conditional to re-add the "Do you offer free shipping?" entry.
+    // ...(freeShippingOn
+    //   ? [
+    //       {
+    //         q: "Do you offer free shipping?",
+    //         a: `Yes! We offer free standard shipping on all orders over $${settings.freeShippingThreshold}.`,
+    //       },
+    //     ]
+    //   : []),
     {
       q: "Can I customize a gift box?",
       a: "Absolutely! Our Build Your Box feature lets you choose the size and fill each compartment with your favorite treats.",

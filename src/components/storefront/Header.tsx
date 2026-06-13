@@ -66,13 +66,19 @@ export function Header() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
         {(() => {
           if (siteConfig.announcementBar?.enabled === false) return null;
-          const freeShippingOn = isFreeShippingEnabled(siteConfig.freeShippingThreshold);
+          // TEMP: Free shipping is not being offered for now. The announcement
+          // bar no longer shows the default free-shipping pitch — only admin
+          // custom text renders (and it's suppressed if it still references the
+          // {freeShippingThreshold} token). Restore the block below to re-enable.
           const customText = siteConfig.announcementBar?.text?.trim();
-          // If admin hasn't set custom text, the default copy is a free-shipping
-          // pitch — suppress it entirely when free shipping is disabled.
+          // No custom text → nothing to show (default was the free-shipping pitch).
+          if (!customText) return null;
+          // Custom text still references the threshold token → suppress.
+          if (/\{freeShippingThreshold\}/.test(customText)) return null;
+          const text = customText;
+          /* Original free-shipping-aware logic:
+          const freeShippingOn = isFreeShippingEnabled(siteConfig.freeShippingThreshold);
           if (!customText && !freeShippingOn) return null;
-          // If the custom text references the threshold token but free shipping
-          // is disabled, suppress rather than render a nonsensical value.
           if (customText && !freeShippingOn && /\{freeShippingThreshold\}/.test(customText)) {
             return null;
           }
@@ -82,6 +88,7 @@ export function Header() {
                 String(siteConfig.freeShippingThreshold)
               )
             : `Free shipping on orders over $${siteConfig.freeShippingThreshold}!`;
+          */
           return (
             <div className="bg-brand-secondary text-white text-center text-sm py-1.5 px-4">
               <p>{text}</p>
