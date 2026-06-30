@@ -5,11 +5,11 @@ import { products } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getNutritionByProductId } from "@/lib/queries/nutrition";
 import { buildLabelModel } from "@/lib/label-model";
+import { LabelPrintView } from "@/components/admin/LabelPrintView";
 import {
-  LabelPrintView,
   AVERY_TEMPLATE_IDS,
   type AveryTemplateId,
-} from "@/components/admin/LabelPrintView";
+} from "@/lib/avery-templates";
 
 // Admin access is enforced by src/app/admin/layout.tsx (role gate).
 export default async function ProductLabelPage({
