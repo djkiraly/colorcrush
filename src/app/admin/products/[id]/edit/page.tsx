@@ -148,9 +148,18 @@ export default function EditProductPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-heading font-bold text-brand-secondary mb-6">
-        Edit Product
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-heading font-bold text-brand-secondary">
+          Edit Product
+        </h1>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push(`/admin/products/${params.id}/nutrition`)}
+        >
+          Nutrition &amp; Allergens
+        </Button>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
         <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
