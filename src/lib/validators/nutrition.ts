@@ -58,6 +58,14 @@ export const nutritionSchema = z.object({
     .default([]),
   crossContactNote: optionalText,
   noMajorAllergensReviewed: z.boolean().default(false),
+  // ── Printable retail-bag label fields ──
+  labelStatementOfIdentity: z
+    .preprocess(blankToNull, z.string().max(255).nullable())
+    .optional(),
+  netWeightOz: numField,
+  distributedByOverride: optionalText,
+  showNutritionPanelOnLabel: z.boolean().default(false),
+  showQrOnLabel: z.boolean().default(true),
 });
 
 export type NutritionInput = z.infer<typeof nutritionSchema>;

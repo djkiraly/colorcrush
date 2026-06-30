@@ -77,6 +77,11 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     majorAllergens: data.majorAllergens,
     crossContactNote: data.crossContactNote ?? null,
     noMajorAllergensReviewed: data.noMajorAllergensReviewed,
+    labelStatementOfIdentity: data.labelStatementOfIdentity ?? null,
+    netWeightOz: numStr(data.netWeightOz),
+    distributedByOverride: data.distributedByOverride ?? null,
+    showNutritionPanelOnLabel: data.showNutritionPanelOnLabel,
+    showQrOnLabel: data.showQrOnLabel,
   };
 
   const [row] = await db

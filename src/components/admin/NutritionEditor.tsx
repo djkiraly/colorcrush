@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Check, X } from "lucide-react";
 import {
   MAJOR_ALLERGENS,
   formatContainsStatement,
@@ -17,6 +17,10 @@ import {
   type AllergenDeclaration,
   type MajorAllergenKey,
 } from "@/lib/allergens";
+import {
+  formatNetWeightLine,
+  resolveDistributedBy,
+} from "@/lib/label-model";
 import type { ProductNutritionRecord } from "@/lib/queries/nutrition";
 
 type ProductSummary = { id: string; name: string; slug: string };
@@ -77,7 +81,19 @@ export function NutritionEditor({
     servingsPerContainer: initialNutrition?.servingsPerContainer ?? "",
     ingredients: initialNutrition?.ingredients ?? "",
     crossContactNote: initialNutrition?.crossContactNote ?? "",
+    labelStatementOfIdentity: initialNutrition?.labelStatementOfIdentity ?? "",
+    distributedByOverride: initialNutrition?.distributedByOverride ?? "",
+    netWeightOz:
+      initialNutrition?.netWeightOz != null
+        ? String(Number(initialNutrition.netWeightOz))
+        : "",
   });
+  const [showNutritionPanelOnLabel, setShowNutritionPanelOnLabel] = useState(
+    initialNutrition?.showNutritionPanelOnLabel ?? false
+  );
+  const [showQrOnLabel, setShowQrOnLabel] = useState(
+    initialNutrition?.showQrOnLabel ?? true
+  );
 
   const [nutrients, setNutrients] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
@@ -116,6 +132,22 @@ export function NutritionEditor({
     [declarations, text.ingredients]
   );
 
+  // Live label-field derivations (cheap — recompute each render).
+  const netWeightPreview = formatNetWeightLine(text.netWeightOz);
+  const defaultDistributedBy = resolveDistributedBy(null);
+  const checklist = [
+    {
+      label: "Statement of identity",
+      ok: Boolean(text.labelStatementOfIdentity.trim() || product.name),
+    },
+    { label: "Net weight", ok: netWeightPreview !== null },
+    { label: "Ingredients", ok: text.ingredients.trim().length > 0 },
+    {
+      label: "Allergen review done",
+      ok: declarations.length > 0 || noMajorAllergensReviewed,
+    },
+  ];
+
   function toggleAllergen(key: string, checked: boolean) {
     setAllergens((prev) => ({
       ...prev,
@@ -144,6 +176,11 @@ export function NutritionEditor({
         crossContactNote: text.crossContactNote,
         noMajorAllergensReviewed,
         majorAllergens: declarations,
+        labelStatementOfIdentity: text.labelStatementOfIdentity,
+        distributedByOverride: text.distributedByOverride,
+        netWeightOz: text.netWeightOz,
+        showNutritionPanelOnLabel,
+        showQrOnLabel,
         ...Object.fromEntries(
           NUTRIENT_FIELDS.map((f) => [f.key, nutrients[f.key as string]])
         ),
@@ -172,13 +209,22 @@ export function NutritionEditor({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-heading font-bold text-brand-secondary">
-          Nutrition & Allergens
-        </h1>
-        <p className="text-sm text-brand-text-secondary mt-1">
-          {product.name}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-brand-secondary">
+            Nutrition & Allergens
+          </h1>
+          <p className="text-sm text-brand-text-secondary mt-1">
+            {product.name}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push(`/admin/products/${product.id}/label`)}
+        >
+          Print Label
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
@@ -347,6 +393,81 @@ export function NutritionEditor({
             />
           </div>
 
+          {/* Retail bag label */}
+          <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
+            <div>
+              <h2 className="font-heading font-semibold text-brand-secondary">
+                Retail Bag Label
+              </h2>
+              <p className="text-xs text-brand-text-muted mt-1">
+                Fields for the printable retail-bag label. Print it from the
+                &quot;Print Label&quot; button above.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Statement of Identity</Label>
+              <Input
+                value={text.labelStatementOfIdentity}
+                placeholder={product.name}
+                onChange={(e) =>
+                  setText({ ...text, labelStatementOfIdentity: e.target.value })
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                The product common name as printed. Defaults to{" "}
+                <span className="font-medium">{product.name}</span> when blank.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Net Weight{" "}
+                <span className="text-brand-text-muted">(oz)</span>
+              </Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={text.netWeightOz}
+                placeholder="8"
+                onChange={(e) =>
+                  setText({ ...text, netWeightOz: e.target.value })
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                {netWeightPreview
+                  ? `Prints as: ${netWeightPreview}`
+                  : "Enter ounces to preview the printed NET WT line."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Distributed By (override)</Label>
+              <Textarea
+                rows={2}
+                value={text.distributedByOverride}
+                placeholder={defaultDistributedBy}
+                onChange={(e) =>
+                  setText({ ...text, distributedByOverride: e.target.value })
+                }
+              />
+              <p className="text-xs text-brand-text-muted">
+                Defaults to{" "}
+                <span className="font-medium">{defaultDistributedBy}</span> when
+                blank.
+              </p>
+            </div>
+            <div className="flex items-center justify-between border-t pt-4">
+              <Label>Show Nutrition Facts panel on label</Label>
+              <Switch
+                checked={showNutritionPanelOnLabel}
+                onCheckedChange={setShowNutritionPanelOnLabel}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Show QR code on label</Label>
+              <Switch checked={showQrOnLabel} onCheckedChange={setShowQrOnLabel} />
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <Button
               type="button"
@@ -368,6 +489,38 @@ export function NutritionEditor({
 
         {/* ── Live preview column ── */}
         <div className="space-y-6">
+          {/* Label compliance checklist (advisory, non-blocking) */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="font-heading font-semibold text-brand-secondary mb-1">
+              Label Compliance Checklist
+            </h2>
+            <p className="text-xs text-brand-text-muted mb-3">
+              The four elements a retail-bag label always requires. Advisory
+              only — printing isn&apos;t blocked.
+            </p>
+            <ul className="space-y-1.5">
+              {checklist.map((item) => (
+                <li
+                  key={item.label}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  {item.ok ? (
+                    <Check className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <X className="h-4 w-4 text-red-600" />
+                  )}
+                  <span
+                    className={
+                      item.ok ? "text-brand-text" : "text-brand-text-secondary"
+                    }
+                  >
+                    {item.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <h2 className="font-heading font-semibold text-brand-secondary mb-3">
               Public Preview
