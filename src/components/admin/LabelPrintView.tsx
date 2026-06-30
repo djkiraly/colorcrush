@@ -32,7 +32,9 @@ function LabelContent({
   showQr: boolean;
   showPanel: boolean;
 }) {
-  const pt = (base: number) => `${(base * fs).toFixed(1)}pt`;
+  // Flat +2pt over the scaled base size on every label for legibility — label
+  // physical sizes are unchanged, so small labels just fill more of the cell.
+  const pt = (base: number) => `${(base * fs + 2).toFixed(1)}pt`;
 
   return (
     <div
