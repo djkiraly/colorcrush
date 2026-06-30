@@ -75,36 +75,19 @@ export function LabelPrintView({
     <div>
       <style dangerouslySetInnerHTML={{ __html: printCss }} />
 
-      {/* ── Toolbar (never prints) ── */}
-      <div className="label-no-print mb-6 flex flex-wrap items-center gap-3">
+      {/* ── Header (never prints) ── */}
+      <div className="label-no-print mb-4 flex items-center gap-3">
         <h1 className="font-heading text-2xl font-bold text-brand-secondary">
           Print Label
         </h1>
-        <div className="ml-auto flex items-center gap-2">
-          <label className="text-sm text-brand-text-secondary">Size</label>
-          <select
-            value={size}
-            onChange={(e) => setSize(e.target.value as LabelSize)}
-            className="rounded-md border px-2 py-1.5 text-sm"
-          >
-            {(Object.keys(SIZE_CONFIG) as LabelSize[]).map((s) => (
-              <option key={s} value={s}>
-                {SIZE_CONFIG[s].label}
-              </option>
-            ))}
-          </select>
-          <Button
-            type="button"
-            onClick={() => window.print()}
-            disabled={!hasIngredients}
-            className="bg-brand-primary hover:bg-brand-primary-hover text-white"
-          >
-            Print
-          </Button>
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            Back
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          className="ml-auto"
+        >
+          Back
+        </Button>
       </div>
 
       {/* ── Advisory warnings (never print) ── */}
@@ -122,6 +105,29 @@ export function LabelPrintView({
               panel — consider the 4″ × 3″ size for legibility.
             </div>
           ) : null}
+
+          {/* ── Print controls, kept right next to the label ── */}
+          <div className="label-no-print mb-3 flex items-center gap-3">
+            <Button
+              type="button"
+              onClick={() => window.print()}
+              className="bg-brand-secondary text-white hover:opacity-90"
+            >
+              Print
+            </Button>
+            <label className="text-sm text-brand-text-secondary">Size</label>
+            <select
+              value={size}
+              onChange={(e) => setSize(e.target.value as LabelSize)}
+              className="rounded-md border px-2 py-1.5 text-sm"
+            >
+              {(Object.keys(SIZE_CONFIG) as LabelSize[]).map((s) => (
+                <option key={s} value={s}>
+                  {SIZE_CONFIG[s].label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* ── The printable sticker ── */}
           <div

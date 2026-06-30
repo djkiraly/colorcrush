@@ -209,22 +209,13 @@ export function NutritionEditor({
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-brand-secondary">
-            Nutrition & Allergens
-          </h1>
-          <p className="text-sm text-brand-text-secondary mt-1">
-            {product.name}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push(`/admin/products/${product.id}/label`)}
-        >
-          Print Label
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-heading font-bold text-brand-secondary">
+          Nutrition & Allergens
+        </h1>
+        <p className="text-sm text-brand-text-secondary mt-1">
+          {product.name}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
@@ -578,6 +569,13 @@ export function NutritionEditor({
                 Download PNG
               </a>
             </div>
+            <Button
+              type="button"
+              onClick={() => router.push(`/admin/products/${product.id}/label`)}
+              className="w-full bg-brand-secondary text-white hover:opacity-90"
+            >
+              Print Label
+            </Button>
           </div>
         </div>
       </div>

@@ -162,8 +162,8 @@ export default function EditProductPage() {
           </Button>
           <Button
             type="button"
-            variant="outline"
             onClick={() => router.push(`/admin/products/${params.id}/label`)}
+            className="bg-brand-secondary text-white hover:opacity-90"
           >
             Print Label
           </Button>
