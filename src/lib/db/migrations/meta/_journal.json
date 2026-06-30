@@ -148,6 +148,13 @@
       "when": 1781333360780,
       "tag": "0020_last_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1782830650362,
+      "tag": "0021_slow_exodus",
+      "breakpoints": true
     }
   ]
 }

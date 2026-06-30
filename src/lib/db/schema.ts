@@ -319,6 +319,56 @@ export const productImages = pgTable("product_images", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ═══ PRODUCT NUTRITION & ALLERGENS ═══
+// One row per product. Holds admin-entered (pasted manufacturer) nutrition
+// facts and FALCPA allergen declarations. Nothing here is calculated or
+// scraped — every numeric value is admin-supplied input. Units are documented
+// per column: fat / carbs / protein / fiber / sugars in grams; cholesterol and
+// sodium in milligrams.
+export const productNutrition = pgTable(
+  "product_nutrition",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    productId: uuid("product_id")
+      .notNull()
+      .unique()
+      .references(() => products.id, { onDelete: "cascade" }),
+    servingSize: text("serving_size"), // e.g. "1 oz (28g)"
+    servingsPerContainer: text("servings_per_container"),
+    calories: integer("calories"),
+    totalFat: numeric("total_fat", { precision: 8, scale: 2 }), // grams
+    saturatedFat: numeric("saturated_fat", { precision: 8, scale: 2 }), // grams
+    transFat: numeric("trans_fat", { precision: 8, scale: 2 }), // grams
+    cholesterol: numeric("cholesterol", { precision: 8, scale: 2 }), // mg
+    sodium: numeric("sodium", { precision: 8, scale: 2 }), // mg
+    totalCarbs: numeric("total_carbs", { precision: 8, scale: 2 }), // grams
+    dietaryFiber: numeric("dietary_fiber", { precision: 8, scale: 2 }), // grams
+    totalSugars: numeric("total_sugars", { precision: 8, scale: 2 }), // grams
+    addedSugars: numeric("added_sugars", { precision: 8, scale: 2 }), // grams
+    protein: numeric("protein", { precision: 8, scale: 2 }), // grams
+    ingredients: text("ingredients").notNull(),
+    // Array of { allergen: <MAJOR_ALLERGENS key>, specificType?: string }.
+    // The `allergen` value is validated against lib/allergens.ts at the API
+    // layer; the column itself stores it as jsonb for flexibility.
+    majorAllergens: jsonb("major_allergens")
+      .$type<{ allergen: string; specificType?: string }[]>()
+      .default([])
+      .notNull(),
+    // Advisory / "may contain" free text. SEPARATE from the FALCPA "Contains"
+    // statement — never merged into it.
+    crossContactNote: text("cross_contact_note"),
+    // Admin explicitly reviewed and confirmed no major allergens present.
+    noMajorAllergensReviewed: boolean("no_major_allergens_reviewed")
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("product_nutrition_product_idx").on(table.productId),
+  ]
+);
+
 export const inventory = pgTable(
   "inventory",
   {
@@ -826,7 +876,21 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   variants: many(productVariants),
   reviews: many(reviews),
   orderItems: many(orderItems),
+  nutrition: one(productNutrition, {
+    fields: [products.id],
+    references: [productNutrition.productId],
+  }),
 }));
+
+export const productNutritionRelations = relations(
+  productNutrition,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productNutrition.productId],
+      references: [products.id],
+    }),
+  })
+);
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, {
