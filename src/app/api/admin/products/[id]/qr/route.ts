@@ -34,6 +34,9 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     request.nextUrl.searchParams.get("format") === "png" ? "png" : "svg";
   // Attachment download by default; pass ?download=0 for an inline preview.
   const inline = request.nextUrl.searchParams.get("download") === "0";
+  // ?bare=1 returns just the QR (no product name / label composite) — used for
+  // the small inline QR on the printable retail-bag label.
+  const bare = request.nextUrl.searchParams.get("bare") === "1";
 
   const [product] = await db
     .select({ slug: products.slug, name: products.name })
@@ -49,16 +52,20 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   const disposition = `${inline ? "inline" : "attachment"}; filename="${filename}"`;
 
   // Compose the printable sticker: product name + QR + "Nutrition Info" label.
+  // When ?bare=1, serve just the QR with no surrounding composition.
   const qrSvg = await QRCode.toString(target, { type: "svg", margin: 1 });
-  const stickerSvg = buildNutritionStickerSvg(qrSvg, product.name);
+  const svgToServe = bare
+    ? qrSvg
+    : buildNutritionStickerSvg(qrSvg, product.name);
 
   if (format === "png") {
-    // Rasterize the vector sticker at high density, then size to ~1024px wide
-    // for label software that wants raster.
-    const buffer = await sharp(Buffer.from(stickerSvg), { density: 288 })
-      .resize({ width: 1024 })
-      .png()
-      .toBuffer();
+    const buffer = bare
+      ? await QRCode.toBuffer(target, { type: "png", width: 1024, margin: 1 })
+      : await sharp(Buffer.from(svgToServe), { density: 288 })
+          // High density → size to ~1024px wide for raster label software.
+          .resize({ width: 1024 })
+          .png()
+          .toBuffer();
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "image/png",
@@ -68,7 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     });
   }
 
-  return new NextResponse(stickerSvg, {
+  return new NextResponse(svgToServe, {
     headers: {
       "Content-Type": "image/svg+xml",
       "Content-Disposition": disposition,
