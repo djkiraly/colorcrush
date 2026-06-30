@@ -361,6 +361,21 @@ export const productNutrition = pgTable(
     noMajorAllergensReviewed: boolean("no_major_allergens_reviewed")
       .default(false)
       .notNull(),
+    // ── Printable retail-bag label fields ──
+    // Statement of identity for the LABEL specifically — may differ from the
+    // marketing product name (e.g. "Gummy Bears" vs "Bulldog Crush Mix").
+    labelStatementOfIdentity: text("label_statement_of_identity"),
+    // Net weight as printed; store the ounce value, derive grams in code.
+    // Supports fractional oz (e.g. 3.5).
+    netWeightOz: numeric("net_weight_oz", { precision: 8, scale: 2 }),
+    // Per-product override of the default "Distributed by" business identity.
+    distributedByOverride: text("distributed_by_override"),
+    // Per-product: include the Nutrition Facts panel on the printed label?
+    showNutritionPanelOnLabel: boolean("show_nutrition_panel_on_label")
+      .default(false)
+      .notNull(),
+    // Per-product: include the QR code on the printed label?
+    showQrOnLabel: boolean("show_qr_on_label").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

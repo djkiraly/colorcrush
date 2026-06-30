@@ -35,6 +35,14 @@ export const siteConfig = {
   },
 
   // ═══ BUSINESS ═══
+  // Legal business identity printed in the "Distributed by" block on retail-bag
+  // labels. Editable here; per-product overrides live in product_nutrition.
+  business: {
+    legalName: "Color Crush Candy, LLC",
+    city: "Gering",
+    state: "NE",
+    zip: "69341",
+  },
   currency: "USD",
   locale: "en-US",
   taxRate: 0.08,
