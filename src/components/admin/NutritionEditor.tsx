@@ -408,8 +408,8 @@ export function NutritionEditor({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`/api/admin/products/${product.id}/qr?format=png&download=0`}
-              alt={`QR code for ${product.name} nutrition page`}
-              className="h-40 w-40 border rounded-lg"
+              alt={`Nutrition QR sticker for ${product.name}`}
+              className="w-48 h-auto border rounded-lg"
             />
             <div className="flex gap-3">
               <a
