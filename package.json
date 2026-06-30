@@ -1,6 +1,6 @@
 {
   "name": "candy",
-  "version": "0.1.130",
+  "version": "0.1.131",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "migrate": "tsx scripts/migrate.ts",
     "migrate:status": "tsx scripts/migrate.ts --status",
     "db:generate": "drizzle-kit generate"
