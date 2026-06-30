@@ -367,8 +367,8 @@ export function NutritionEditor({
         </div>
 
         {/* ── Live preview column ── */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl p-6 shadow-sm sticky top-6">
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm">
             <h2 className="font-heading font-semibold text-brand-secondary mb-3">
               Public Preview
             </h2>
@@ -391,6 +391,39 @@ export function NutritionEditor({
                   {text.crossContactNote.trim()}
                 </p>
               ) : null}
+            </div>
+          </div>
+
+          {/* ── QR sticker ── */}
+          <div className="bg-white rounded-xl p-6 shadow-sm space-y-3">
+            <h2 className="font-heading font-semibold text-brand-secondary">
+              QR Sticker
+            </h2>
+            <p className="text-xs text-brand-text-muted">
+              Links to the public nutrition page{" "}
+              <span className="font-mono">/products/{product.slug}/nutrition</span>.
+              The QR encodes the page URL, so printed stickers stay valid even
+              after you correct the nutrition text.
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/admin/products/${product.id}/qr?format=png&download=0`}
+              alt={`QR code for ${product.name} nutrition page`}
+              className="h-40 w-40 border rounded-lg"
+            />
+            <div className="flex gap-3">
+              <a
+                href={`/api/admin/products/${product.id}/qr?format=svg`}
+                className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-brand-bg"
+              >
+                Download SVG
+              </a>
+              <a
+                href={`/api/admin/products/${product.id}/qr?format=png`}
+                className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-brand-bg"
+              >
+                Download PNG
+              </a>
             </div>
           </div>
         </div>
