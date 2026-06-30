@@ -86,6 +86,9 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
         <>
           {/* Mobile image: shown <640px, full-bleed cover-cropped to the 4:5 section. */}
           {mobileImg && (
+            // Art-directed responsive hero; next/image can't swap mobile/desktop
+            // sources with object-cover cleanly.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={mobileImg}
               alt={hero.imageAlt ?? ""}
@@ -98,6 +101,7 @@ export function ConfigurableHero({ hero }: { hero: HeroSettings }) {
           )}
           {/* Desktop image: shown ≥640px, native 1440×900 centered in the section. */}
           {desktopImg && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={desktopImg}
               alt={hero.imageAlt ?? ""}

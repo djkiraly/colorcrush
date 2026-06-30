@@ -397,7 +397,7 @@ function AdminChargeModal({
         <DialogHeader>
           <DialogTitle>Take payment</DialogTitle>
           <DialogDescription>
-            Enter the customer's card details. The order will be confirmed automatically once
+            Enter the customer&apos;s card details. The order will be confirmed automatically once
             payment succeeds.
           </DialogDescription>
         </DialogHeader>

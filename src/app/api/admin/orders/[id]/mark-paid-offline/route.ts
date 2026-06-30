@@ -23,7 +23,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  const adminId = (session?.user as { id?: string })?.id!;
+  const adminId = (session!.user as { id: string }).id;
 
   let parsed;
   try {

@@ -89,7 +89,6 @@ interface SendEmailOptions {
  */
 function encodeHeaderWord(value: string): string {
   // Fast path: pure ASCII, no encoding needed.
-  // eslint-disable-next-line no-control-regex
   if (/^[\x00-\x7F]*$/.test(value)) return value;
   const base64 = Buffer.from(value, "utf8").toString("base64");
   return `=?UTF-8?B?${base64}?=`;

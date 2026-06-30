@@ -36,7 +36,7 @@ export default async function PaySuccessPage({
         <>
           <h1 className="font-heading text-3xl font-bold mb-4">Processing your payment…</h1>
           <p className="text-muted-foreground mb-8">
-            We're confirming your payment with Stripe. This page will refresh automatically.
+            We&apos;re confirming your payment with Stripe. This page will refresh automatically.
           </p>
           <meta httpEquiv="refresh" content="3" />
         </>
