@@ -35,9 +35,15 @@ export default async function ProductLabelPage({
 
   // Generate the bare QR once server-side and inline it into every label cell,
   // so a 30-up sheet doesn't fire 30 identical image requests at print time.
-  const qrSvg = model.qrUrl
-    ? await QRCode.toString(model.qrUrl, { type: "svg", margin: 1 })
-    : null;
+  // QR is optional — never let a generation failure crash the whole label.
+  let qrSvg: string | null = null;
+  if (model.qrUrl) {
+    try {
+      qrSvg = await QRCode.toString(model.qrUrl, { type: "svg", margin: 1 });
+    } catch {
+      qrSvg = null;
+    }
+  }
 
   const initialTemplate: AveryTemplateId = AVERY_TEMPLATE_IDS.includes(
     template as AveryTemplateId
