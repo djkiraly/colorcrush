@@ -14,7 +14,7 @@ async function seed() {
   // ═══ USERS ═══
   const passwordHash = await bcrypt.hash("password123", 12);
 
-  const [superAdmin] = await db
+  await db
     .insert(schema.users)
     .values({
       email: "admin@sweethaven.com",
@@ -249,7 +249,6 @@ async function seed() {
 
   // ═══ PRODUCT IMAGES ═══
   for (const product of insertedProducts) {
-    const imageNum = Math.floor(Math.random() * 200) + 1;
     await db.insert(schema.productImages).values({
       productId: product.id,
       url: `https://picsum.photos/seed/${product.slug}/600/600`,

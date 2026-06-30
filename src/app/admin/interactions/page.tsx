@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { DataTable } from "@/components/admin/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 
 const priorityColors: Record<string, string> = {
   low: "bg-gray-100 text-gray-800",
@@ -27,7 +22,7 @@ const statusColors: Record<string, string> = {
 
 export default function AdminInteractionsPage() {
   const [interactions, setInteractions] = useState<any[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [, setDialogOpen] = useState(false);
 
   const fetchInteractions = async () => {
     const res = await fetch("/api/interactions");

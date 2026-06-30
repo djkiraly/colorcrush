@@ -48,12 +48,6 @@ export default function AdminInventoryPage() {
     }
   };
 
-  const getStockColor = (item: any) => {
-    if (item.quantity === 0) return "bg-red-50";
-    if (item.quantity <= item.lowStockThreshold) return "bg-yellow-50";
-    return "";
-  };
-
   const columns = [
     { key: "productName", header: "Product" },
     { key: "sku", header: "SKU", render: (i: any) => <span className="text-xs font-mono">{i.sku}</span> },

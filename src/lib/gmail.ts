@@ -12,9 +12,6 @@ interface GmailSettings {
   sendFrom: string;
 }
 
-let cachedGmail: ReturnType<typeof google.gmail> | null = null;
-let cachedSendFrom: string | null = null;
-
 async function loadGmailConfig(): Promise<GmailSettings> {
   try {
     const [row] = await db
@@ -68,8 +65,7 @@ async function getGmailClient() {
  * Force-rebuild the Gmail client on next call (e.g. after settings change).
  */
 export function invalidateGmailClient(): void {
-  cachedGmail = null;
-  cachedSendFrom = null;
+  // No-op: Gmail client is not cached.
 }
 
 interface SendEmailOptions {

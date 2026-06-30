@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
-import { isFreeShippingEnabled } from "@/lib/free-shipping";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
@@ -17,8 +16,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function FAQPage() {
   const settings = await getSettings();
-
-  const freeShippingOn = isFreeShippingEnabled(settings.freeShippingThreshold);
 
   const faqs = [
     {

@@ -11,7 +11,7 @@ import Link from "next/link";
 export function CartDrawer() {
   const isOpen = useCartStore((s) => s.isOpen);
   const setOpen = useCartStore((s) => s.setOpen);
-  const { items, subtotal, shippingCost, taxAmount, total, totalItems, freeShippingEnabled, freeShippingRemaining, updateQuantity, removeItem } = useCart();
+  const { items, subtotal, shippingCost, taxAmount, total, totalItems, updateQuantity, removeItem } = useCart();
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>

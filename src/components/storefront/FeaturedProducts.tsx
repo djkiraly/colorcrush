@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ProductCard } from "./ProductCard";
-import Link from "next/link";
 
 export function FeaturedProducts() {
   const [products, setProducts] = useState<any[]>([]);

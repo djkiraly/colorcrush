@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ export function AuthPromptModal({ open, onClose, pendingItem }: AuthPromptModalP
   const [loading, setLoading] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setOpen);
-  const router = useRouter();
 
   // Login state
   const [loginEmail, setLoginEmail] = useState("");

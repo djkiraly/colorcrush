@@ -27,7 +27,6 @@ import {
 } from "@/components/admin/charts";
 import {
   PageViewsChart,
-  TopPagesChart,
   ProductViewsChart,
   DonutChart,
   ReferrersChart,

@@ -8,7 +8,6 @@ import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import { useCartStore } from "@/stores/cart-store";
 import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
-import { isFreeShippingEnabled } from "@/lib/free-shipping";
 import { Button } from "@/components/ui/button";
 import { SearchOverlay } from "./SearchOverlay";
 import { AccountMenu } from "./AccountMenu";

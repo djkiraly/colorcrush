@@ -11,7 +11,7 @@ import {
   orderItems,
   orders,
 } from "@/lib/db/schema";
-import { eq, and, inArray, ne } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
@@ -111,7 +111,8 @@ export async function PUT(
 
   const hasCategoryIds = Array.isArray(body.categoryIds);
   const categoryIds: string[] = hasCategoryIds ? body.categoryIds.filter(Boolean) : [];
-  const { categoryIds: _ignore, ...rest } = body;
+  const rest = { ...body };
+  delete rest.categoryIds;
 
   const updatePayload: Record<string, unknown> = {
     ...rest,

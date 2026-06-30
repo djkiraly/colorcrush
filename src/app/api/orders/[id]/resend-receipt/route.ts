@@ -23,7 +23,7 @@ export async function POST(
       details: "Order confirmation receipt resent to customer",
     }).catch(() => {});
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to send receipt" },
       { status: 500 }

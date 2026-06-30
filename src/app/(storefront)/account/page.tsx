@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, MapPin, Heart, Settings, LogOut, Shield } from "lucide-react";
+import { Package, MapPin, Heart, Settings, Shield } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 const accountLinks = [

@@ -46,7 +46,7 @@ export default function AdminStripePage() {
   const [testLoading, setTestLoading] = useState(false);
 
   // Env var presence indicators
-  const [envHints, setEnvHints] = useState({
+  const [, setEnvHints] = useState({
     hasSecretKey: false,
     hasPublishableKey: false,
     hasWebhookSecret: false,

@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSiteSettings } from "@/components/providers/SiteSettingsProvider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TermsAndConditionsPage() {
-  const siteConfig = useSiteSettings();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
 

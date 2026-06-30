@@ -230,7 +230,7 @@ export default function AdminOrderDetailPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <h2 className="font-heading font-semibold mb-4">Status Timeline</h2>
             <div className="space-y-4">
-              {ORDER_STATUSES.slice(0, ORDER_STATUSES.indexOf(order.status) + 1).map((s, i) => (
+              {ORDER_STATUSES.slice(0, ORDER_STATUSES.indexOf(order.status) + 1).map((s) => (
                 <div key={s} className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${s === order.status ? "bg-brand-primary" : "bg-gray-300"}`} />
                   <span className={`text-sm capitalize ${s === order.status ? "font-semibold text-brand-primary" : "text-brand-text-muted"}`}>

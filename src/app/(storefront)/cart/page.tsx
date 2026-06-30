@@ -21,8 +21,6 @@ export default function CartPage() {
     total,
     discount,
     couponCode,
-    freeShippingEnabled,
-    freeShippingRemaining,
     updateQuantity,
     removeItem,
     setCoupon,

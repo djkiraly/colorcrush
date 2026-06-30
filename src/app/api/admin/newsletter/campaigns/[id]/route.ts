@@ -3,9 +3,8 @@ import { db } from "@/lib/db";
 import {
   newsletterCampaigns,
   newsletterSends,
-  newsletterSubscribers,
 } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
 export async function GET(

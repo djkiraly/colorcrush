@@ -5,7 +5,7 @@ import {
   newsletterSends,
   newsletterSubscribers,
 } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 import { sendEmail } from "@/lib/gmail";
 import { getSettings } from "@/lib/settings";

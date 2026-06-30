@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { pageViews, orders } from "@/lib/db/schema";
-import { and, desc, eq, gte, lte, sql, ne } from "drizzle-orm";
+import { and, desc, gte, lte, sql, ne } from "drizzle-orm";
 
 function periodStart(period: string): Date {
   switch (period) {

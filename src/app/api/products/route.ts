@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
 
     const sku = await generateSku(categoryName, body.name);
 
-    const { categoryIds: _ignore, ...rest } = body;
+    const rest = { ...body };
+    delete rest.categoryIds;
     const [product] = await db
       .insert(products)
       .values({

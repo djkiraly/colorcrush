@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, orderItems, products, users, addresses, customerInteractions, emailLog } from "@/lib/db/schema";
+import { orders, orderItems, users, addresses, customerInteractions, emailLog } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getAuthSession, isAdmin } from "@/lib/auth-helpers";
 
