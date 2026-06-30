@@ -43,13 +43,31 @@ export function LabelPrintView({
 
   const pt = (base: number) => `${(base * cfg.fs).toFixed(1)}pt`;
 
-  // Dynamic @page size + print rules for the selected preset.
+  // Dynamic @page size + print rules for the selected preset. We isolate the
+  // label sheet from the admin layout (sidebar, topbar, toolbar) by hiding
+  // everything, then re-showing only the sheet and pinning it to the page
+  // origin — so the browser prints just the sticker, not the whole page.
   const printCss = `
     @page { size: ${cfg.w}in ${cfg.h}in; margin: 0; }
     @media print {
-      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+      }
+      body * { visibility: hidden !important; }
+      .label-sheet, .label-sheet * { visibility: visible !important; }
       .label-no-print { display: none !important; }
-      .label-sheet { box-shadow: none !important; border: none !important; }
+      .label-sheet {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
     }
   `;
 
