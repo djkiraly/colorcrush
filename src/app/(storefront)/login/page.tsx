@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -19,10 +19,6 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const siteConfig = useSiteSettings();
-
-  useEffect(() => {
-    if (prefillEmail) setEmail(prefillEmail);
-  }, [prefillEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

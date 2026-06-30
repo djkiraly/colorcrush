@@ -52,11 +52,13 @@ export default function AdminTaxonomiesPage() {
   const [activeTab, setActiveTab] = useState<RootKind>("type");
   const [loading, setLoading] = useState(true);
 
-  const fetchCategories = async () => {
-    const res = await fetch("/api/categories");
-    const data = await res.json();
-    setCategories(data.categories || []);
-    setLoading(false);
+  const fetchCategories = () => {
+    fetch("/api/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        setCategories(data.categories || []);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {

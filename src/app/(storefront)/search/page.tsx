@@ -12,7 +12,8 @@ function SearchContent() {
 
   useEffect(() => {
     if (!query) {
-      setProducts([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProducts([]); // reset results when query is empty
       setLoading(false);
       return;
     }

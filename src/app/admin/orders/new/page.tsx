@@ -507,7 +507,8 @@ function CustomerSearch({
 
   useEffect(() => {
     if (!q.trim()) {
-      setResults([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResults([]); // reset results when query is empty
       return;
     }
     const t = setTimeout(() => {
@@ -578,7 +579,8 @@ function ProductSearch({ onPick }: { onPick: (p: ProductOption) => void }) {
 
   useEffect(() => {
     if (!q.trim()) {
-      setResults([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResults([]); // reset results when query is empty
       return;
     }
     const t = setTimeout(() => {

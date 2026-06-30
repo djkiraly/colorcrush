@@ -11,10 +11,10 @@ import { Check, X } from "lucide-react";
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
 
-  const fetchReviews = async () => {
-    const res = await fetch("/api/reviews");
-    const data = await res.json();
-    setReviews(data.reviews || []);
+  const fetchReviews = () => {
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => setReviews(data.reviews || []));
   };
 
   useEffect(() => { fetchReviews(); }, []);

@@ -41,10 +41,10 @@ export default function AdminCouponsPage() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const fetchCoupons = async () => {
-    const res = await fetch("/api/coupons");
-    const data = await res.json();
-    setCoupons(data.coupons || []);
+  const fetchCoupons = () => {
+    fetch("/api/coupons")
+      .then((res) => res.json())
+      .then((data) => setCoupons(data.coupons || []));
   };
 
   useEffect(() => { fetchCoupons(); }, []);

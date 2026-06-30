@@ -19,10 +19,10 @@ export default function AdminInventoryPage() {
   const [adjustReason, setAdjustReason] = useState("restock");
   const [adjustNotes, setAdjustNotes] = useState("");
 
-  const fetchInventory = async () => {
-    const res = await fetch("/api/inventory");
-    const data = await res.json();
-    setItems(data.items || []);
+  const fetchInventory = () => {
+    fetch("/api/inventory")
+      .then((res) => res.json())
+      .then((data) => setItems(data.items || []));
   };
 
   useEffect(() => { fetchInventory(); }, []);

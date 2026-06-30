@@ -73,13 +73,14 @@ export default function AdminAlertsPage() {
   const [leadDays, setLeadDays] = useState("60");
   const [selectedHoliday, setSelectedHoliday] = useState<string>("");
 
-  const fetchAll = async () => {
-    const [alertsRes, productsRes] = await Promise.all([
+  const fetchAll = () => {
+    Promise.all([
       fetch("/api/alerts").then((r) => r.json()),
       fetch("/api/products?limit=500&includeInactive=true").then((r) => r.json()),
-    ]);
-    setAlerts(alertsRes.alerts || []);
-    setProducts((productsRes.products || []).map((p: Product) => ({ id: p.id, name: p.name })));
+    ]).then(([alertsRes, productsRes]) => {
+      setAlerts(alertsRes.alerts || []);
+      setProducts((productsRes.products || []).map((p: Product) => ({ id: p.id, name: p.name })));
+    });
   };
 
   useEffect(() => {

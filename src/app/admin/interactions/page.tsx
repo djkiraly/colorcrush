@@ -24,10 +24,10 @@ export default function AdminInteractionsPage() {
   const [interactions, setInteractions] = useState<any[]>([]);
   const [, setDialogOpen] = useState(false);
 
-  const fetchInteractions = async () => {
-    const res = await fetch("/api/interactions");
-    const data = await res.json();
-    setInteractions(data.interactions || []);
+  const fetchInteractions = () => {
+    fetch("/api/interactions")
+      .then((res) => res.json())
+      .then((data) => setInteractions(data.interactions || []));
   };
 
   useEffect(() => { fetchInteractions(); }, []);

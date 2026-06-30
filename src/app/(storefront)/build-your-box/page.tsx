@@ -42,6 +42,45 @@ interface Candy {
   stock: number;
 }
 
+function FilterRow({
+  label,
+  items,
+  active,
+  onPick,
+}: {
+  label: string;
+  items: TaxItem[];
+  active: string | null;
+  onPick: (slug: string | null) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs font-semibold text-brand-text-muted w-16">{label}</span>
+      <button
+        onClick={() => onPick(null)}
+        className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+          active === null ? "bg-brand-secondary text-white border-brand-secondary" : "border-gray-300 hover:border-brand-primary"
+        }`}
+      >
+        All
+      </button>
+      {items.map((it) => (
+        <button
+          key={it.slug}
+          onClick={() => onPick(it.slug)}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors inline-flex items-center gap-1.5 ${
+            active === it.slug ? "bg-brand-primary text-white border-brand-primary" : "border-gray-300 hover:border-brand-primary"
+          }`}
+        >
+          {it.hex ? <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: it.hex }} /> : null}
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function BuildYourBoxPage() {
   const [config, setConfig] = useState<ByobConfig | null>(null);
   const [candies, setCandies] = useState<Candy[]>([]);
@@ -81,7 +120,8 @@ export default function BuildYourBoxPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedSize) setSlots(new Array(selectedSize.pieces).fill(null));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selectedSize) setSlots(new Array(selectedSize.pieces).fill(null)); // reset slots when box size changes
   }, [selectedSize]);
 
   const filteredCandies = useMemo(
@@ -143,45 +183,6 @@ export default function BuildYourBoxPage() {
     });
     setCartOpen(true);
     toast.success("Custom box added to cart!");
-  };
-
-  const FilterRow = ({
-    label,
-    items,
-    active,
-    onPick,
-  }: {
-    label: string;
-    items: TaxItem[];
-    active: string | null;
-    onPick: (slug: string | null) => void;
-  }) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-brand-text-muted w-16">{label}</span>
-        <button
-          onClick={() => onPick(null)}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-            active === null ? "bg-brand-secondary text-white border-brand-secondary" : "border-gray-300 hover:border-brand-primary"
-          }`}
-        >
-          All
-        </button>
-        {items.map((it) => (
-          <button
-            key={it.slug}
-            onClick={() => onPick(it.slug)}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors inline-flex items-center gap-1.5 ${
-              active === it.slug ? "bg-brand-primary text-white border-brand-primary" : "border-gray-300 hover:border-brand-primary"
-            }`}
-          >
-            {it.hex ? <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: it.hex }} /> : null}
-            {it.label}
-          </button>
-        ))}
-      </div>
-    );
   };
 
   return (

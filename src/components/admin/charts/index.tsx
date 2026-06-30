@@ -387,11 +387,12 @@ export function InventoryChart({ data }: ChartProps) {
 // ---------------------------------------------------------------------------
 
 export function CustomerGrowthChart({ data }: ChartProps) {
-  let cumulative = 0;
-  const chartData = data.map((d: any) => {
-    cumulative += d.newCustomers;
-    return { ...d, cumulative };
-  });
+  const chartData = data.map((d: any, i: number) => ({
+    ...d,
+    cumulative: data
+      .slice(0, i + 1)
+      .reduce((sum: number, r: { newCustomers: number }) => sum + r.newCustomers, 0),
+  }));
 
   return (
     <ResponsiveContainer width="100%" height={300}>

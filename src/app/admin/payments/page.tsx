@@ -116,38 +116,39 @@ export default function AdminPaymentsPage() {
   const [refundReason, setRefundReason] = useState("");
   const [refundSubmitting, setRefundSubmitting] = useState(false);
 
-  const fetchPayments = useCallback(async (startingAfter?: string) => {
+  const fetchPayments = useCallback((startingAfter?: string) => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({ limit: "25" });
-      if (startingAfter) params.set("starting_after", startingAfter);
-      const res = await fetch(`/api/admin/payments?${params}`);
-      const data = await res.json();
-      setPayments(data.payments || []);
-      setHasMore(data.hasMore ?? false);
-      setLastId(data.lastId ?? null);
-    } catch {
-      setPayments([]);
-      setHasMore(false);
-    }
-    setLoading(false);
+    const params = new URLSearchParams({ limit: "25" });
+    if (startingAfter) params.set("starting_after", startingAfter);
+    return fetch(`/api/admin/payments?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setPayments(data.payments || []);
+        setHasMore(data.hasMore ?? false);
+        setLastId(data.lastId ?? null);
+      })
+      .catch(() => {
+        setPayments([]);
+        setHasMore(false);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(() => {
     setStatsLoading(true);
-    try {
-      const res = await fetch("/api/admin/payments/balance");
-      const data = await res.json();
-      setStats(data);
-    } catch {
-      // Stats are non-critical
-    }
-    setStatsLoading(false);
+    return fetch("/api/admin/payments/balance")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch(() => {
+        // Stats are non-critical
+      })
+      .finally(() => setStatsLoading(false));
   }, []);
 
   useEffect(() => {
-    fetchPayments();
-    fetchStats();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPayments(); // intentional fetch-on-mount (sets loading flag)
+    fetchStats(); // intentional fetch-on-mount (sets loading flag)
   }, [fetchPayments, fetchStats]);
 
   const nextPage = () => {

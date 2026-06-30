@@ -40,18 +40,21 @@ export default function ProductOptionsAdminPage() {
   });
   const [busy, setBusy] = useState(false);
 
-  const load = async () => {
+  const load = () => {
     setLoading(true);
-    const res = await fetch("/api/admin/option-types");
-    const data = await res.json();
-    setTypes(data.types || []);
-    if (!selectedTypeId && data.types?.[0]) setSelectedTypeId(data.types[0].id);
-    setLoading(false);
+    return fetch("/api/admin/option-types")
+      .then((res) => res.json())
+      .then((data) => {
+        setTypes(data.types || []);
+        if (!selectedTypeId && data.types?.[0]) setSelectedTypeId(data.types[0].id);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
 
   const selected = types.find((t) => t.id === selectedTypeId) ?? null;
 
