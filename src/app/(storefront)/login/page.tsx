@@ -83,6 +83,9 @@ function LoginForm() {
             </Button>
           </form>
 
+          {/* TEMP: "Continue with Google" hidden for now — revisit later. The
+              "or" divider is hidden too since it only separates the Google
+              option. Restore this block to re-enable Google sign-in.
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t" />
@@ -99,6 +102,7 @@ function LoginForm() {
           >
             Continue with Google
           </Button>
+          */}
 
           <p className="text-center text-sm text-brand-text-muted mt-6">
             Don&apos;t have an account?{" "}

@@ -1,1 +1,9 @@
 npx lint-staged
+
+# Auto-increment the patch version on every commit so each commit carries a
+# unique, higher version. Runs only after lint-staged passes (a failing lint
+# aborts the commit before the bump). --no-git-tag-version just rewrites
+# package.json + package-lock.json without creating a git tag or requiring a
+# clean tree; we re-stage them so the bump lands in this same commit.
+npm --no-git-tag-version version patch >/dev/null
+git add package.json package-lock.json
