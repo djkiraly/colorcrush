@@ -42,7 +42,7 @@ export async function PATCH(
 
   try {
     // computeTotals expects the customer field — synthesize a placeholder since we're only updating items/adjustments.
-    const { resolvedItems, totals } = await computeTotals({
+    const { resolvedItems, totals, shippingDetail } = await computeTotals({
       ...parsed,
       customer: { mode: "existing", userId: order.userId },
     });
@@ -73,7 +73,11 @@ export async function PATCH(
         manualDiscountAmount: totals.manualDiscount.toFixed(2),
         manualDiscountReason: parsed.manualDiscount?.reason || null,
         total: totals.total.toFixed(2),
-        shippingMethod: parsed.shippingMethod,
+        shippingCarrier: shippingDetail.shippingCarrier,
+        shippingService: shippingDetail.shippingService,
+        shippingRateCents: shippingDetail.shippingRateCents,
+        shippingEstimatedDays: shippingDetail.shippingEstimatedDays,
+        shippoRateId: shippingDetail.shippoRateId,
         isGift: parsed.isGift,
         giftMessage: parsed.giftMessage || null,
         notes: parsed.notes || null,

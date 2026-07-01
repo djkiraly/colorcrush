@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Trash2, Plus, Search } from "lucide-react";
+import { Trash2, Plus, Search, Loader2, AlertCircle, Truck } from "lucide-react";
+import type { ShippingRateOption } from "@/lib/shipping/rates";
+import type { ShippingDestination } from "@/lib/validators/shipping";
 
 type CatalogItem = {
   kind: "catalog";
@@ -79,8 +81,12 @@ export default function NewManualOrderPage() {
   // Items
   const [items, setItems] = useState<LineItem[]>([]);
 
+  // Shipping (live Shippo rates or a custom amount)
+  const [shippingMode, setShippingMode] = useState<"live" | "custom">("live");
+  const [selectedRate, setSelectedRate] = useState<ShippingRateOption | null>(null);
+  const [customShippingAmount, setCustomShippingAmount] = useState("");
+
   // Adjustments
-  const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "overnight">("standard");
   const [couponCode, setCouponCode] = useState("");
   const [manualDiscountType, setManualDiscountType] = useState<"none" | "fixed" | "percent">("none");
   const [manualDiscountValue, setManualDiscountValue] = useState("");
@@ -115,6 +121,65 @@ export default function NewManualOrderPage() {
     }
   }, [customer, customerMode]);
 
+  // Destination address for live rate lookups. Resolved from the selected saved
+  // address or the inline entry; null until it's complete enough to rate.
+  const shippingDestination = useMemo<ShippingDestination | null>(() => {
+    const src =
+      shippingAddrMode === "saved" && shippingAddrId
+        ? savedAddresses.find((a) => a.id === shippingAddrId)
+        : null;
+    const a = src
+      ? {
+          line1: src.line1,
+          line2: src.line2 || "",
+          city: src.city,
+          state: src.state,
+          zip: src.zip,
+          country: src.country,
+        }
+      : shippingInline;
+    if (!a.line1?.trim() || !a.city?.trim() || a.state?.length !== 2 || (a.zip?.length ?? 0) < 5) {
+      return null;
+    }
+    // Recipient name/phone print on the carrier label (Shippo `addressTo.name`),
+    // so carry the customer's details through the rate call.
+    const recipientName =
+      customerMode === "existing" ? customer?.name : newCustomer.name;
+    const recipientPhone = customerMode === "new" ? newCustomer.phone : undefined;
+    return {
+      name: recipientName?.trim() || undefined,
+      phone: recipientPhone?.trim() || undefined,
+      street1: a.line1,
+      street2: a.line2 || undefined,
+      city: a.city,
+      state: a.state,
+      zip: a.zip,
+      country: (a.country || "US") as "US",
+    };
+  }, [
+    shippingAddrMode,
+    shippingAddrId,
+    savedAddresses,
+    shippingInline,
+    customerMode,
+    customer,
+    newCustomer,
+  ]);
+
+  // Only catalog items carry weight/box info; custom lines are excluded.
+  const catalogItemsForRates = useMemo(
+    () =>
+      items
+        .filter((i): i is CatalogItem => i.kind === "catalog")
+        .map((i) => ({ productId: i.productId, quantity: i.quantity })),
+    [items]
+  );
+
+  const shippingAmount = useMemo(() => {
+    if (shippingMode === "custom") return Math.max(0, parseFloat(customShippingAmount) || 0);
+    return selectedRate ? selectedRate.amountCents / 100 : 0;
+  }, [shippingMode, customShippingAmount, selectedRate]);
+
   // Live totals computation (mirrors server logic; advisory only)
   const totals = useMemo(() => {
     const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
@@ -124,13 +189,14 @@ export default function NewManualOrderPage() {
     else if (manualDiscountType === "fixed") manualDiscount = v;
 
     const discounted = Math.max(0, subtotal - manualDiscount);
-    const rates = { standard: 5.99, express: 12.99, overnight: 24.99 } as const;
-    const shipping = discounted >= 50 ? 0 : rates[shippingMethod];
+    // Shipping is the admin-selected rate (or custom amount) — no free-ship
+    // auto-zero, matching the server.
+    const shipping = shippingAmount;
 
     const tax = taxOverride !== "" ? parseFloat(taxOverride) || 0 : Math.round(discounted * 0.08 * 100) / 100;
     const total = discounted + shipping + tax;
     return { subtotal, manualDiscount, shipping, tax, total };
-  }, [items, manualDiscountType, manualDiscountValue, taxOverride, shippingMethod]);
+  }, [items, manualDiscountType, manualDiscountValue, taxOverride, shippingAmount]);
 
   function addCatalogItem(p: ProductOption) {
     setItems((prev) => [
@@ -176,6 +242,27 @@ export default function NewManualOrderPage() {
       toast.error("Customer name and email are required");
       return;
     }
+    if (shippingMode === "live" && !selectedRate) {
+      toast.error("Select a shipping rate (or switch to a custom amount)");
+      return;
+    }
+
+    const shipping =
+      shippingMode === "custom"
+        ? {
+            mode: "custom" as const,
+            amountCents: Math.round((parseFloat(customShippingAmount) || 0) * 100),
+            label: "Custom shipping",
+          }
+        : {
+            mode: "live" as const,
+            rateId: selectedRate!.rateId,
+            carrier: selectedRate!.carrier,
+            service: selectedRate!.service,
+            amountCents: selectedRate!.amountCents,
+            estimatedDays: selectedRate!.estimatedDays,
+            isFlatRate: selectedRate!.isFlatRate,
+          };
 
     const shippingAddress =
       shippingAddrMode === "saved" && shippingAddrId
@@ -211,7 +298,7 @@ export default function NewManualOrderPage() {
               unitPrice: it.unitPrice,
             }
       ),
-      shippingMethod,
+      shipping,
       couponCode: couponCode.trim() || undefined,
       manualDiscount:
         manualDiscountType !== "none" && manualDiscountValue
@@ -338,22 +425,25 @@ export default function NewManualOrderPage() {
             </div>
           </Section>
 
+          {/* Shipping */}
+          <Section title="Shipping">
+            <ShippingSection
+              destination={shippingDestination}
+              items={catalogItemsForRates}
+              mode={shippingMode}
+              setMode={setShippingMode}
+              selectedRate={selectedRate}
+              setSelectedRate={setSelectedRate}
+              customAmount={customShippingAmount}
+              setCustomAmount={setCustomShippingAmount}
+            />
+          </Section>
+
           {/* Adjustments */}
           <Section title="Adjustments">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="Coupon code">
                 <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="e.g. SUMMER10" />
-              </Field>
-              <Field label="Shipping method">
-                <select
-                  value={shippingMethod}
-                  onChange={(e) => setShippingMethod(e.target.value as typeof shippingMethod)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
-                >
-                  <option value="standard">Standard</option>
-                  <option value="express">Express</option>
-                  <option value="overnight">Overnight</option>
-                </select>
               </Field>
               <Field label="Manual discount">
                 <div className="flex gap-2">
@@ -685,6 +775,203 @@ function LineItemRow({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+function shipDestKey(d: ShippingDestination | null) {
+  if (!d) return "";
+  return [d.name || "", d.street1, d.street2 || "", d.city, d.state, d.zip, d.country].join("|");
+}
+
+function shipItemsKey(items: { productId: string; quantity: number }[]) {
+  return items
+    .map((i) => `${i.productId}:${i.quantity}`)
+    .sort()
+    .join(",");
+}
+
+function ShippingSection({
+  destination,
+  items,
+  mode,
+  setMode,
+  selectedRate,
+  setSelectedRate,
+  customAmount,
+  setCustomAmount,
+}: {
+  destination: ShippingDestination | null;
+  items: { productId: string; quantity: number }[];
+  mode: "live" | "custom";
+  setMode: (m: "live" | "custom") => void;
+  selectedRate: ShippingRateOption | null;
+  setSelectedRate: (r: ShippingRateOption | null) => void;
+  customAmount: string;
+  setCustomAmount: (s: string) => void;
+}) {
+  const [rates, setRates] = useState<ShippingRateOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lastKeyRef = useRef<string>("");
+
+  const canRate = Boolean(destination) && items.length > 0;
+
+  useEffect(() => {
+    if (mode !== "live") return;
+    if (!destination || items.length === 0) {
+      // Schedule on a microtask so we don't set state synchronously in-effect.
+      Promise.resolve().then(() => {
+        setRates([]);
+        setError(null);
+      });
+      return;
+    }
+
+    const key = `${shipDestKey(destination)}::${shipItemsKey(items)}`;
+    if (key === lastKeyRef.current) return;
+    lastKeyRef.current = key;
+
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return;
+        setSelectedRate(null);
+        setLoading(true);
+        setError(null);
+      })
+      .then(() =>
+        fetch("/api/shipping/rates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destination, items }),
+        })
+      )
+      .then(async (r) => ({ status: r.status, body: await r.json() }))
+      .then(({ status, body }) => {
+        if (cancelled) return;
+        if (status !== 200) {
+          setError(
+            [body?.error, ...(body?.carrierMessages || [])].filter(Boolean).join(" — ") ||
+              "Could not fetch shipping rates"
+          );
+          setRates([]);
+          return;
+        }
+        const list: ShippingRateOption[] = body.rates || [];
+        setRates(list);
+        if (list.length > 0) setSelectedRate(list[0]);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Network error");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [destination, items, mode, setSelectedRate]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <ToggleButton active={mode === "live"} onClick={() => setMode("live")}>
+          Live carrier rates
+        </ToggleButton>
+        <ToggleButton active={mode === "custom"} onClick={() => setMode("custom")}>
+          Custom amount
+        </ToggleButton>
+      </div>
+
+      {mode === "live" ? (
+        !canRate ? (
+          <div className="rounded-lg border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
+            Enter a complete shipping address and add at least one catalog product to
+            fetch live rates. Orders made only of custom lines should use a custom amount.
+          </div>
+        ) : loading ? (
+          <div className="flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Fetching live shipping rates…
+          </div>
+        ) : error ? (
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : rates.length === 0 ? (
+          <div className="rounded-lg border bg-amber-50 p-4 text-sm text-amber-900">
+            No shipping options available for this address. Verify the address or use a
+            custom amount.
+          </div>
+        ) : (
+          <div role="radiogroup" aria-label="Shipping rate" className="space-y-2">
+            {rates.map((rate) => {
+              const isSelected = selectedRate?.rateId === rate.rateId;
+              const id = `admin-rate-${rate.rateId}`;
+              return (
+                <label
+                  key={rate.rateId}
+                  htmlFor={id}
+                  className={`flex cursor-pointer items-center justify-between gap-4 rounded-lg border p-3 transition-all ${
+                    isSelected
+                      ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/20"
+                      : "border-input hover:border-brand-primary/40"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      id={id}
+                      type="radio"
+                      name="admin-shipping-rate"
+                      checked={isSelected}
+                      onChange={() => setSelectedRate(rate)}
+                      className="accent-brand-primary h-4 w-4"
+                    />
+                    <Truck
+                      className={`h-4 w-4 ${isSelected ? "text-brand-primary" : "text-muted-foreground"}`}
+                      aria-hidden
+                    />
+                    <div>
+                      <div className="text-sm font-medium capitalize">
+                        {rate.carrier === "flat"
+                          ? rate.service
+                          : `${rate.carrier.toUpperCase()} · ${rate.service}`}
+                      </div>
+                      {rate.estimatedDays !== null && (
+                        <div className="text-xs text-muted-foreground">
+                          Est. {rate.estimatedDays} business day
+                          {rate.estimatedDays === 1 ? "" : "s"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold">
+                    ${(rate.amountCents / 100).toFixed(2)}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <Field label="Custom shipping amount ($)">
+          <Input
+            type="number"
+            step="0.01"
+            min={0}
+            value={customAmount}
+            onChange={(e) => setCustomAmount(e.target.value)}
+            placeholder="0.00"
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter 0 to comp shipping. Custom-amount orders have no Shippo rate, so a label
+            must be bought manually in the Shippo dashboard.
+          </p>
+        </Field>
+      )}
     </div>
   );
 }

@@ -30,6 +30,49 @@ export type ComputedTotals = {
 };
 
 /**
+ * Columns describing the chosen shipping option, written onto the order so the
+ * detail view and the "Buy label" action have everything they need. A `live`
+ * selection carries the Shippo `rateId` (purchasable later); `custom` leaves it
+ * null and just records the flat amount + label.
+ */
+export type ShippingDetail = {
+  shippingCarrier: string | null;
+  shippingService: string | null;
+  shippingRateCents: number | null;
+  shippingEstimatedDays: number | null;
+  shippoRateId: string | null;
+};
+
+function resolveShipping(shipping: CreateManualOrderInput["shipping"]): {
+  cost: Money;
+  detail: ShippingDetail;
+} {
+  const cost = round(shipping.amountCents / 100);
+  if (shipping.mode === "live") {
+    return {
+      cost,
+      detail: {
+        shippingCarrier: shipping.carrier,
+        shippingService: shipping.service,
+        shippingRateCents: shipping.amountCents,
+        shippingEstimatedDays: shipping.estimatedDays ?? null,
+        shippoRateId: shipping.rateId,
+      },
+    };
+  }
+  return {
+    cost,
+    detail: {
+      shippingCarrier: null,
+      shippingService: shipping.label || "Custom shipping",
+      shippingRateCents: shipping.amountCents,
+      shippingEstimatedDays: null,
+      shippoRateId: null,
+    },
+  };
+}
+
+/**
  * Resolve products for catalog items and compute all totals from input.
  * Throws Error if any productId or coupon code is invalid.
  */
@@ -111,12 +154,11 @@ export async function computeTotals(input: CreateManualOrderInput) {
 
   const discountedSubtotal = Math.max(0, subtotal - couponDiscount - manualDiscount);
 
-  // Shipping
-  const rates = siteConfig.shippingRates as Record<string, number>;
-  const shippingCost =
-    discountedSubtotal >= siteConfig.freeShippingThreshold
-      ? 0
-      : rates[input.shippingMethod] ?? rates.standard;
+  // Shipping: the admin-selected rate is authoritative. Live Shippo rates and
+  // custom amounts are both taken at face value — no free-shipping auto-zero
+  // (that would discard the carrier rate the admin picked). To comp shipping,
+  // the admin picks the custom-amount option and enters 0.
+  const { cost: shippingCost, detail: shippingDetail } = resolveShipping(input.shipping);
 
   // Tax: override if provided, else compute on discounted subtotal
   const taxAmount =
@@ -129,6 +171,7 @@ export async function computeTotals(input: CreateManualOrderInput) {
   return {
     resolvedItems,
     coupon,
+    shippingDetail,
     totals: {
       subtotal,
       shippingCost,
@@ -204,7 +247,7 @@ export async function createDraftOrder(
   input: CreateManualOrderInput,
   adminId: string
 ): Promise<{ orderId: string; orderNumber: string }> {
-  const { resolvedItems, coupon, totals } = await computeTotals(input);
+  const { resolvedItems, coupon, totals, shippingDetail } = await computeTotals(input);
 
   const customerId = await ensureCustomer(input);
 
@@ -236,7 +279,13 @@ export async function createDraftOrder(
       manualDiscountAmount: totals.manualDiscount.toFixed(2),
       manualDiscountReason: input.manualDiscount?.reason || null,
       total: totals.total.toFixed(2),
-      shippingMethod: input.shippingMethod,
+      // Legacy display field; the real carrier/service live in the shippo* cols.
+      shippingMethod: "standard",
+      shippingCarrier: shippingDetail.shippingCarrier,
+      shippingService: shippingDetail.shippingService,
+      shippingRateCents: shippingDetail.shippingRateCents,
+      shippingEstimatedDays: shippingDetail.shippingEstimatedDays,
+      shippoRateId: shippingDetail.shippoRateId,
       shippingAddressId,
       billingAddressId,
       isGift: input.isGift,

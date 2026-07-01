@@ -42,13 +42,32 @@ const itemCustom = z.object({
   unitPrice: z.number().nonnegative(),
 });
 
+// Shipping selection. `live` carries a rate the admin picked from Shippo (same
+// shape the storefront persists), so the "Buy label" action can later purchase
+// against `rateId`. `custom` is the escape hatch for free/comped shipping and
+// orders made entirely of custom line items (no product weight to rate).
+const shippingLive = z.object({
+  mode: z.literal("live"),
+  rateId: z.string().min(1),
+  carrier: z.string().min(1),
+  service: z.string().min(1),
+  amountCents: z.number().int().nonnegative(),
+  estimatedDays: z.number().int().nullable().optional(),
+  isFlatRate: z.boolean().optional(),
+});
+const shippingCustom = z.object({
+  mode: z.literal("custom"),
+  amountCents: z.number().int().nonnegative(),
+  label: z.string().optional(),
+});
+
 export const createManualOrderSchema = z.object({
   customer: z.discriminatedUnion("mode", [customerExisting, customerNew]),
   shippingAddress: z.discriminatedUnion("mode", [addressSaved, addressInline]),
   billingSameAsShipping: z.boolean().default(true),
   billingAddress: z.discriminatedUnion("mode", [addressSaved, addressInline]).optional(),
   items: z.array(z.discriminatedUnion("kind", [itemCatalog, itemCustom])).min(1, "Add at least one item"),
-  shippingMethod: z.enum(["standard", "express", "overnight"]),
+  shipping: z.discriminatedUnion("mode", [shippingLive, shippingCustom]),
   couponCode: z.string().optional(),
   manualDiscount: z
     .object({
