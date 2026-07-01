@@ -90,6 +90,13 @@ export type SiteSettingsOverrides = {
     colors?: { slug: string; label: string; hex?: string }[];
     flavors?: { slug: string; label: string; hex?: string }[];
   };
+  homePageSections?: {
+    hero?: { enabled?: boolean };
+    trustBadges?: { enabled?: boolean; order?: number };
+    shopByType?: { enabled?: boolean; order?: number };
+    shopByEvent?: { enabled?: boolean; order?: number };
+    trendingNow?: { enabled?: boolean; order?: number };
+  };
   colors?: {
     primary?: string;
     primaryHover?: string;

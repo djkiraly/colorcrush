@@ -13,6 +13,7 @@ import { useSession } from "next-auth/react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { ShippingBoxesManager } from "@/components/admin/shipping-boxes-manager";
 import { ByobManager } from "@/components/admin/byob-manager";
+import { HomeSectionsManager } from "@/components/admin/home-sections-manager";
 
 export default function AdminSettingsPage() {
   const { data: session } = useSession();
@@ -3006,6 +3007,8 @@ export default function AdminSettingsPage() {
             </p>
           )}
         </section>
+
+        <HomeSectionsManager />
 
         <ByobManager />
       </div>

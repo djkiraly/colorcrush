@@ -175,6 +175,20 @@ export const siteConfig = {
       { slug: "chocolate", label: "Chocolate", hex: "" },
     ],
   },
+
+  // ═══ HOME PAGE SECTION LAYOUT ═══
+  // Admin-configurable visibility + order of the storefront home page sections
+  // (Admin → Settings → Home Page Layout). One shared order applies to both
+  // desktop and mobile. Hero is pinned first (toggle only); the rest render in
+  // ascending `order`. Object-keyed by section id so new sections added here in
+  // the future still surface for stores that already saved an override.
+  homePageSections: {
+    hero: { enabled: true },
+    trustBadges: { enabled: true, order: 1 },
+    shopByType: { enabled: true, order: 2 },
+    shopByEvent: { enabled: true, order: 3 },
+    trendingNow: { enabled: true, order: 4 },
+  },
 } as const;
 
 export type ShippingConfig = {
@@ -231,10 +245,25 @@ export type ByobConfig = {
   flavors: readonly ByobTaxonomyItem[];
 };
 
-export type SiteConfig = Omit<typeof siteConfig, "shipping" | "ggsa" | "byob"> & {
+export type HomePageSectionSetting = { enabled: boolean; order: number };
+
+export type HomePageSectionsConfig = {
+  // Hero is pinned first — order is implicit, so it carries visibility only.
+  hero: { enabled: boolean };
+  trustBadges: HomePageSectionSetting;
+  shopByType: HomePageSectionSetting;
+  shopByEvent: HomePageSectionSetting;
+  trendingNow: HomePageSectionSetting;
+};
+
+export type SiteConfig = Omit<
+  typeof siteConfig,
+  "shipping" | "ggsa" | "byob" | "homePageSections"
+> & {
   shipping: ShippingConfig;
   ggsa: GgsaConfig;
   byob: ByobConfig;
+  homePageSections: HomePageSectionsConfig;
   logoUrl?: string;
   faviconUrl?: string;
   maintenanceMode?: {

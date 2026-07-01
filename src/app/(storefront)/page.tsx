@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -139,12 +140,13 @@ export default async function HomePage() {
     .map((slug) => (eventRoot?.children ?? []).find((c) => c.slug === slug))
     .filter((c): c is CategoryNode => !!c);
 
-  return (
-    <div>
-      {/* Hero */}
-      {settings.hero?.enabled ? (
-        <ConfigurableHero hero={settings.hero} />
-      ) : (
+  const layout = settings.homePageSections;
+
+  // Hero (pinned first, toggle only). Uses the configurable hero when enabled,
+  // otherwise the default gradient hero.
+  const heroSection: ReactNode = settings.hero?.enabled ? (
+    <ConfigurableHero hero={settings.hero} />
+  ) : (
       <section className="relative bg-gradient-to-br from-brand-pink/30 via-brand-lavender/20 to-brand-peach/30 overflow-hidden min-h-[60vw] sm:min-h-[480px] lg:min-h-[600px] flex items-center">
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
           <div className="text-center max-w-3xl mx-auto">
@@ -187,9 +189,13 @@ export default async function HomePage() {
         <div className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-brand-peach/40 blur-2xl" aria-hidden="true" />
         <div className="absolute top-1/3 left-1/3 w-40 h-40 rounded-full bg-brand-lavender/30 blur-2xl" aria-hidden="true" />
       </section>
-      )}
+  );
 
-      {/* Trust Badges */}
+  // Reorderable + toggleable sections, keyed by id. Rendered in the order the
+  // admin configures (Admin → Settings → Home Page Layout).
+  const sectionNodes: Record<string, ReactNode> = {
+    trustBadges: (
+      /* Trust Badges */
       <section className="border-b bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-center">
@@ -213,8 +219,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Shop by Type */}
+    ),
+    shopByType: (
+      /* Shop by Type */
       <section className="py-16 bg-brand-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
@@ -273,8 +280,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Shop by Event */}
+    ),
+    shopByEvent: (
+      /* Shop by Event */
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-10">
@@ -302,8 +310,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Trending Now */}
+    ),
+    trendingNow: (
+      /* Trending Now */
       <section className="py-16 bg-brand-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
@@ -318,6 +327,22 @@ export default async function HomePage() {
           <FeaturedProducts />
         </div>
       </section>
+    ),
+  };
+
+  // Order the reorderable sections by their configured `order`, dropping any the
+  // admin has toggled off. Same result on desktop and mobile.
+  const orderableIds = ["trustBadges", "shopByType", "shopByEvent", "trendingNow"] as const;
+  const orderedSections = orderableIds
+    .filter((id) => layout[id]?.enabled !== false)
+    .sort((a, b) => (layout[a]?.order ?? 0) - (layout[b]?.order ?? 0));
+
+  return (
+    <div>
+      {layout.hero?.enabled !== false && heroSection}
+      {orderedSections.map((id) => (
+        <Fragment key={id}>{sectionNodes[id]}</Fragment>
+      ))}
     </div>
   );
 }
