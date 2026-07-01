@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "oauth-social-login": {
+      "source": "dadbodgeoff/drift",
+      "sourceType": "github",
+      "skillPath": "drift v1 depreciated/skills/oauth-social-login/SKILL.md",
+      "computedHash": "3bbbc4f28f4366a9daf080480699dca81aada2c375b90b45cd9add1ae647c728"
+    }
+  }
+}

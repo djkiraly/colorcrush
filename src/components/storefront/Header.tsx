@@ -55,10 +55,16 @@ export function Header() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  // Admin-controlled header nav visibility. A missing/true entry shows the item;
+  // only an explicit `enabled: false` hides it. Applies to desktop + mobile.
+  const menu = siteConfig.headerMenu;
+  const showItem = (key: string) => menu?.[key]?.enabled !== false;
+
   const rootOrder = ["shop-by-type", "shop-by-color", "shop-by-event", "gift-boxes"];
   const orderedRoots = rootOrder
     .map((slug) => tree.find((r) => r.slug === slug))
-    .filter((r): r is CategoryNode => !!r);
+    .filter((r): r is CategoryNode => !!r)
+    .filter((r) => showItem(r.slug));
 
   return (
     <>
@@ -139,12 +145,14 @@ export function Header() {
             </Link>
 
             <nav ref={navRef} className="hidden lg:flex items-center gap-6">
-              <Link
-                href="/products"
-                className="text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
-              >
-                Shop All
-              </Link>
+              {showItem("shopAll") && (
+                <Link
+                  href="/products"
+                  className="text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
+                >
+                  Shop All
+                </Link>
+              )}
               {orderedRoots.map((root) => {
                 const isOpen = openDropdown === root.slug;
                 return (
@@ -186,12 +194,14 @@ export function Header() {
                   </div>
                 );
               })}
-              <Link
-                href="/build-your-box"
-                className="text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
-              >
-                Build Your Box
-              </Link>
+              {showItem("buildYourBox") && (
+                <Link
+                  href="/build-your-box"
+                  className="text-base font-medium text-brand-text-secondary hover:text-brand-primary transition-colors"
+                >
+                  Build Your Box
+                </Link>
+              )}
             </nav>
 
             <div className="flex items-center gap-2">
@@ -245,13 +255,15 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t bg-white max-h-[80vh] overflow-y-auto">
             <nav className="px-4 py-4 space-y-2">
-              <Link
-                href="/products"
-                className="block py-2 text-base font-medium text-brand-text hover:text-brand-primary"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Shop All
-              </Link>
+              {showItem("shopAll") && (
+                <Link
+                  href="/products"
+                  className="block py-2 text-base font-medium text-brand-text hover:text-brand-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Shop All
+                </Link>
+              )}
               {orderedRoots.map((root) => {
                 const isOpen = mobileExpandedRoot === root.slug;
                 return (
@@ -289,13 +301,15 @@ export function Header() {
                   </div>
                 );
               })}
-              <Link
-                href="/build-your-box"
-                className="block py-2 text-base font-medium text-brand-text hover:text-brand-primary"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Build Your Box
-              </Link>
+              {showItem("buildYourBox") && (
+                <Link
+                  href="/build-your-box"
+                  className="block py-2 text-base font-medium text-brand-text hover:text-brand-primary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Build Your Box
+                </Link>
+              )}
               {isSuperAdmin && (
                 <Link
                   href="/admin"

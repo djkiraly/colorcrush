@@ -189,6 +189,20 @@ export const siteConfig = {
     shopByEvent: { enabled: true, order: 3 },
     trendingNow: { enabled: true, order: 4 },
   },
+
+  // ═══ HEADER MENU VISIBILITY ═══
+  // Admin-configurable visibility of the top-level header nav items (Admin →
+  // Settings → Header Menu). Applies to both the desktop nav and the mobile
+  // menu. Category dropdowns are keyed by their category slug; the two static
+  // links use named keys. Toggling a key off hides that item from the header.
+  headerMenu: {
+    shopAll: { enabled: true },
+    "shop-by-type": { enabled: true },
+    "shop-by-color": { enabled: true },
+    "shop-by-event": { enabled: true },
+    "gift-boxes": { enabled: true },
+    buildYourBox: { enabled: true },
+  },
 } as const;
 
 export type ShippingConfig = {
@@ -256,14 +270,19 @@ export type HomePageSectionsConfig = {
   trendingNow: HomePageSectionSetting;
 };
 
+// Header nav items keyed by id (category slug or a named static-link key),
+// carrying visibility only.
+export type HeaderMenuConfig = Record<string, { enabled: boolean }>;
+
 export type SiteConfig = Omit<
   typeof siteConfig,
-  "shipping" | "ggsa" | "byob" | "homePageSections"
+  "shipping" | "ggsa" | "byob" | "homePageSections" | "headerMenu"
 > & {
   shipping: ShippingConfig;
   ggsa: GgsaConfig;
   byob: ByobConfig;
   homePageSections: HomePageSectionsConfig;
+  headerMenu: HeaderMenuConfig;
   logoUrl?: string;
   faviconUrl?: string;
   maintenanceMode?: {

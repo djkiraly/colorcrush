@@ -97,6 +97,7 @@ export type SiteSettingsOverrides = {
     shopByEvent?: { enabled?: boolean; order?: number };
     trendingNow?: { enabled?: boolean; order?: number };
   };
+  headerMenu?: Record<string, { enabled?: boolean }>;
   colors?: {
     primary?: string;
     primaryHover?: string;

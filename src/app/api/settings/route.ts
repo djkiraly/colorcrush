@@ -90,6 +90,7 @@ export async function PUT(request: NextRequest) {
     "ggsa",
     "byob",
     "homePageSections",
+    "headerMenu",
   ];
 
   if (!allowedKeys.includes(key)) {
